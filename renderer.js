@@ -22,6 +22,7 @@ async function loadCharacters() {
         characters.forEach(character => {
             const characterTile = document.createElement('div');
             characterTile.className = 'character-tile';
+			const fit = character.data && character.data.imageFit === 'squish' ? 'fill' : 'cover';
             characterTile.innerHTML = `
                 <img src="${character.imagePath}" alt="${character.name}">
                 <h3>${character.name}</h3>

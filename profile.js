@@ -17,8 +17,9 @@ async function loadCharacterProfile() {
 
     // Set character image
     const imagePath = `file://${__dirname}/app/characters/${characterName}/${characterName}.png`;
-    document.getElementById('profile-image').innerHTML = `<img src="${imagePath}" alt="${characterName}">`;
-}
+	const fit = characterData.imageFit === 'squish' ? 'fill' : 'cover';
+	document.getElementById('profile-image').innerHTML = `<img src="${imagePath}" alt="${characterName}" style="width:200px;height:200px;object-fit:${fit};">`;
+	}
 
 document.getElementById('home-btn').addEventListener('click', () => {
     window.location.href = 'index.html';

@@ -4,6 +4,15 @@
 
 let selectedImagePath = null;
 
+const cropCheckbox = document.getElementById('crop-image');
+
+function updatePreviewFit() {
+    const previewImg = document.getElementById('image-preview-img');
+    if (previewImg.style.display !== 'none') {
+        previewImg.style.objectFit = cropCheckbox.checked ? 'cover' : 'fill';
+    }
+}
+
 // Image upload button event
 document.getElementById('image-upload-btn').addEventListener('click', async () => {
     const imagePath = await window.electron.openFileDialog();
@@ -13,8 +22,11 @@ document.getElementById('image-upload-btn').addEventListener('click', async () =
         const previewImg = document.getElementById('image-preview-img');
         previewImg.src = `file://${imagePath}`;
         previewImg.style.display = 'block';
+		updatePreviewFit();
     }
 });
+
+cropCheckbox.addEventListener('change', updatePreviewFit);
 
 // Save Character button event
 document.getElementById('save-btn').addEventListener('click', async () => {
@@ -25,6 +37,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     const height = document.getElementById('height').value;
     const build = document.getElementById('build').value;
     const description = document.getElementById('description').value;
+	const cropImage = cropCheckbox.checked;
 
     // Validation
     if (!name) {
@@ -43,7 +56,8 @@ document.getElementById('save-btn').addEventListener('click', async () => {
         gender,
         height,
         build,
-        description
+        description,
+		imageFit: cropImage ? 'crop' : 'squish'
     };
 
     // Call backend to create character
