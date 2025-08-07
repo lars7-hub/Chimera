@@ -157,3 +157,96 @@ ipcMain.handle('delete-character', (event, characterName) => {
         return { success: false, message: 'Error deleting character' };
     }
 });
+
+// Get all loadouts for a character
+ipcMain.handle('get-loadouts', (event, characterName) => {
+    const loadouts = [];
+    try {
+        const loadoutsPath = path.join(fileSystemPath, characterName, 'loadouts');
+        if (fs.existsSync(loadoutsPath)) {
+            fs.readdirSync(loadoutsPath).forEach(file => {
+                if (file.endsWith('.json')) {
+                    const name = path.basename(file, '.json');
+                    const data = JSON.parse(fs.readFileSync(path.join(loadoutsPath, file), 'utf-8'));
+                    loadouts.push({ name, data });
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error reading loadouts:', error);
+    }
+    return loadouts;
+});
+
+// Get a specific loadout's data
+ipcMain.handle('get-loadout', (event, characterName, loadoutName) => {
+    try {
+        const loadoutDataPath = path.join(fileSystemPath, characterName, 'loadouts', `${loadoutName}.json`);
+        if (fs.existsSync(loadoutDataPath)) {
+            const loadoutData = JSON.parse(fs.readFileSync(loadoutDataPath, 'utf-8'));
+            return loadoutData;
+        }
+    } catch (error) {
+        console.error('Error reading loadout data:', error);
+    }
+    return null;
+});
+
+// Create a new loadout by copying base character data
+ipcMain.handle('create-loadout', (event, characterName, loadoutName) => {
+    const loadoutsPath = path.join(fileSystemPath, characterName, 'loadouts');
+    try {
+        if (!fs.existsSync(loadoutsPath)) {
+            fs.mkdirSync(loadoutsPath, { recursive: true });
+        }
+        const newDataPath = path.join(loadoutsPath, `${loadoutName}.json`);
+        if (fs.existsSync(newDataPath)) {
+            return { success: false, message: 'Loadout already exists' };
+        }
+        const baseDataPath = path.join(fileSystemPath, characterName, `${characterName}.json`);
+        const baseImagePath = path.join(fileSystemPath, characterName, `${characterName}.png`);
+        const baseData = JSON.parse(fs.readFileSync(baseDataPath, 'utf-8'));
+        baseData.name = loadoutName;
+        fs.writeFileSync(newDataPath, JSON.stringify(baseData));
+        const newImagePath = path.join(loadoutsPath, `${loadoutName}.png`);
+        if (fs.existsSync(baseImagePath)) {
+            fs.copyFileSync(baseImagePath, newImagePath);
+        }
+        return { success: true };
+    } catch (error) {
+        console.error('Error creating loadout:', error);
+        return { success: false, message: 'Error creating loadout' };
+    }
+});
+
+// Update an existing loadout
+ipcMain.handle('update-loadout', (event, characterName, originalName, loadoutData, imagePath) => {
+    const loadoutsPath = path.join(fileSystemPath, characterName, 'loadouts');
+    const newName = loadoutData.name;
+    try {
+        const originalDataPath = path.join(loadoutsPath, `${originalName}.json`);
+        const newDataPath = path.join(loadoutsPath, `${newName}.json`);
+
+        if (newName !== originalName) {
+            if (fs.existsSync(originalDataPath)) {
+                fs.renameSync(originalDataPath, newDataPath);
+            }
+            const oldImagePath = path.join(loadoutsPath, `${originalName}.png`);
+            const newImageDest = path.join(loadoutsPath, `${newName}.png`);
+            if (fs.existsSync(oldImagePath)) {
+                fs.renameSync(oldImagePath, newImageDest);
+            }
+        }
+
+        if (imagePath) {
+            const imageDestination = path.join(loadoutsPath, `${newName}.png`);
+            fs.copyFileSync(imagePath, imageDestination);
+        }
+
+        fs.writeFileSync(path.join(loadoutsPath, `${newName}.json`), JSON.stringify(loadoutData));
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating loadout:', error);
+        return { success: false, message: 'Error updating loadout' };
+    }
+});

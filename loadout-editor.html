@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Edit Loadout</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div id="nav-bar">
+		<button id="home-btn">Home</button>	
+	</div>
+	
+	<div id="character-creater-container">
+		<h2>Edit loadout</h2>
+		<form id="chracter-form">
+			<div class="form-group">
+				<label for="name">Loadout Name (Required)</label>
+				<input type="text" id="name" required>
+			</div>
+			<div class="form-group">
+				<label for="age">Age:</label>
+				<input type="number" id="age">
+			</div>
+			<div class="form-group">
+				<label for="gender">Gender:</label>
+				<input type="text" id="gender">
+			</div>
+			<div class="form-group">
+				<label for="height">Height:</label>
+				<input type="text" id="height">
+			</div>
+			<div class="form-group">
+				<label for="build">Build:</label>
+				<input type="text" id="build">
+			</div>
+			<div class="form-group">
+				<label for="description">Backstory/Description:</label>
+				<textarea id="description" rows="5"></textarea>
+			</div>
+			<div id="image-preview">
+				<img id="image-preview-img" src="" alt="Loadout Image Preview" style="display: none;">
+			</div>
+			
+			<button type="button" id="save-btn">Save Loadout</button>
+		</form>
+			
+			
+			
+	</div>
+
+	<script src="loadout-editor.js"></script>
+</body>
+</html>

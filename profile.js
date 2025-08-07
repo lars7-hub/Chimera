@@ -1,35 +1,99 @@
-// Extract character name from the URL query string
+// Extract character and loadout names from the URL query string
 const urlParams = new URLSearchParams(window.location.search);
 const characterName = urlParams.get('character');
+let activeLoadout = urlParams.get('loadout');
 
-// Load character data
-async function loadCharacterProfile() {
-    const characterData = await window.electron.getCharacter(characterName);
-	if (!characterData) {
-		console.error('Character data not found:', characterName);
-		return;	
-	}
-	
-    document.getElementById('character-name').innerText = characterData.name;
-    document.getElementById('character-age').innerText = `Age: ${characterData.age}`;
-    document.getElementById('character-gender').innerText = `Gender: ${characterData.gender}`;
-    document.getElementById('character-description').innerText = characterData.description;
+// Display profile data in the DOM
+function displayProfile(data, imagePath, loadoutName = null) {
+    document.getElementById('character-name').innerText = data.name;
+    document.getElementById('character-age').innerText = `Age: ${data.age}`;
+    document.getElementById('character-gender').innerText = `Gender: ${data.gender}`;
+    document.getElementById('character-description').innerText = data.description;
 
-    // Set character image
-    const imagePath = `app/characters/${characterName}/${characterName}.png`;
-    const fit = characterData.imageFit === 'squish' ? 'fill' : 'cover';
+    const fit = data.imageFit === 'squish' ? 'fill' : 'cover';
     document.getElementById('profile-image').innerHTML =
-        `<img src="${imagePath}" alt="${characterName}" style="width:100%;height:100%;object-fit:${fit};">`;
+        `<img src="${imagePath}" alt="${data.name}" style="width:100%;height:100%;object-fit:${fit};">`;
+
+    const loadoutTitle = document.getElementById('loadout-name');
+    const editBtn = document.getElementById('edit-character-btn');
+    if (loadoutName) {
+        loadoutTitle.innerText = loadoutName;
+        editBtn.innerText = 'Edit Loadout';
+        editBtn.onclick = () => {
+            window.location.href = `loadout-editor.html?character=${characterName}&loadout=${loadoutName}`;
+        };
+    } else {
+        loadoutTitle.innerText = '';
+        editBtn.innerText = 'Edit Character';
+        editBtn.onclick = () => {
+            window.location.href = `edit-character.html?character=${characterName}`;
+        };
+    }
 }
+
+// Load base character profile
+async function loadCharacterProfile() {
+    activeLoadout = null;
+    const characterData = await window.electron.getCharacter(characterName);
+    if (!characterData) {
+        console.error('Character data not found:', characterName);
+        return;
+    }
+    const imagePath = `app/characters/${characterName}/${characterName}.png`;
+    displayProfile(characterData, imagePath);
+}
+
+// Load specific loadout profile
+async function loadLoadout(loadoutName) {
+    const loadoutData = await window.electron.getLoadout(characterName, loadoutName);
+    if (!loadoutData) {
+        console.error('Loadout data not found:', loadoutName);
+        return;
+    }
+    activeLoadout = loadoutName;
+    const imagePath = `app/characters/${characterName}/loadouts/${loadoutName}.png`;
+    displayProfile(loadoutData, imagePath, loadoutName);
+}
+
+// Populate loadout list
+async function loadLoadouts() {
+    const loadouts = await window.electron.getLoadouts(characterName);
+    const list = document.getElementById('loadout-list');
+    list.innerHTML = '';
+
+    const baseItem = document.createElement('div');
+    baseItem.className = 'loadout-item';
+    baseItem.innerText = 'Base';
+    baseItem.addEventListener('click', loadCharacterProfile);
+    list.appendChild(baseItem);
+
+    loadouts.forEach(l => {
+        const item = document.createElement('div');
+        item.className = 'loadout-item';
+        item.innerText = l.name;
+        item.addEventListener('click', () => loadLoadout(l.name));
+        list.appendChild(item);
+    });
+}
+
+document.getElementById('add-loadout-btn').addEventListener('click', async () => {
+    const name = prompt('Enter loadout name:');
+    if (!name) return;
+    const result = await window.electron.createLoadout(characterName, name.trim());
+    if (result && result.success) {
+        loadLoadouts();
+    } else if (result && result.message) {
+        alert(result.message);
+    }
+});
 
 document.getElementById('home-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
 });
 
-document.getElementById('edit-character-btn')?.addEventListener('click', () => {
-    window.location.href = `edit-character.html?character=${characterName}`;
-});
-
-
-
-loadCharacterProfile();
+loadLoadouts();
+if (activeLoadout) {
+    loadLoadout(activeLoadout);
+} else {
+    loadCharacterProfile();
+}

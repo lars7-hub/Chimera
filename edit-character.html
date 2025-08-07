@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Character</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="nav-bar">
+        <button id="home-btn">Home</button>
+    </div>
+
+    <div id="character-creator-container">
+        <h2>Edit Character</h2>
+        <form id="character-form">
+            <div class="form-group">
+                <label for="name">Character Name (Required):</label>
+                <input type="text" id="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="age">Age:</label>
+                <input type="number" id="age">
+            </div>
+
+            <div class="form-group">
+                <label for="gender">Gender:</label>
+                <input type="text" id="gender">
+            </div>
+
+            <div class="form-group">
+                <label for="height">Height (in cm):</label>
+                <input type="number" id="height">
+            </div>
+
+            <div class="form-group">
+                <label for="build">Build (e.g., Slim, Muscular, etc.):</label>
+                <input type="text" id="build">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Backstory/Description:</label>
+                <textarea id="description" rows="4"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="image-upload">Upload Character Image:</label>
+                <button type="button" id="image-upload-btn">Upload Image</button>
+            </div>
+
+            <div class="form-group">
+                <label><input type="checkbox" id="crop-image"> Crop image to fit</label>
+            </div>
+
+            <div id="image-preview">
+                <img id="image-preview-img" src="" alt="Character Image Preview" style="display: none;">
+            </div>
+
+            <div class="form-group" id="edit-buttons">
+                <button type="button" id="cancel-btn">Cancel</button>
+                <button type="button" id="save-btn">Save</button>
+                <button type="button" id="delete-btn">Delete</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="edit-character.js"></script>
+</body>
+</html>

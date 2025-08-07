@@ -114,7 +114,7 @@ button:hover {
     background-color: #553159;
     border-radius: 10px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
 }
 
 #delete-btn {
@@ -153,11 +153,38 @@ button:hover {
     overflow-y: auto;
 }
 
-#profile-placeholder {
+/*#profile-placeholder {
     height: 20%;
     background-color: #444;
     margin-top: 20px;
     border-radius: 10px;
+}
+*/
+
+#loadout-sidebar {
+	flex: 0 0 20%;
+	margin-left: 20px;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+}
+
+#loadout-list {
+	flex: 1;
+	overflow-y: auto;
+}
+
+.loadout-item {
+	background-color: #444;
+	padding: 10px;
+	margin-bottom: 10px;
+	border-radius: 5px;
+	cursor: pointer;
+	text-align: center;
+}
+
+.loadout-item:hover {
+	background-color: #666;
 }
 
 #edit-character-btn {
