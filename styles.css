@@ -101,5 +101,61 @@ button:hover {
 #image-preview img {
     max-width: 200px;
     max-height: 300px;
-	object-fit: cover;
+        object-fit: cover;
+}
+
+/* Profile page layout */
+#profile-container {
+    margin-left: 12%;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    height: 100vh;
+    background-color: #553159;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+#profile-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#profile-top {
+    display: flex;
+}
+
+#profile-image {
+    flex: 0 0 30%;
+}
+
+#profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+#profile-details {
+    flex: 1;
+    padding-left: 20px;
+}
+
+#profile-background {
+    flex: 1;
+    margin-top: 20px;
+    overflow-y: auto;
+}
+
+#profile-placeholder {
+    height: 20%;
+    background-color: #444;
+    margin-top: 20px;
+    border-radius: 10px;
+}
+
+#edit-character-btn {
+    width: auto;
 }
