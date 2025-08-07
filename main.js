@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog} = require('electron'); // Ensure path and fs are required properly
 const fs = require('fs'); // Core Node.js fs module
 const path = require('path'); // Core Node.js path module
+const { pathToFileURL } = require('url');
 
 const fileSystemPath = path.join(__dirname, 'app/characters'); // Correctly access the characters directory
 
@@ -42,7 +43,12 @@ ipcMain.handle('get-characters', () => {
                 const characterDataPath = path.join(characterPath, `${characterFolder}.json`);
                 if (fs.existsSync(characterDataPath)) {
                     const characterData = JSON.parse(fs.readFileSync(characterDataPath, 'utf-8'));
-                    characters.push({ name: characterFolder, data: characterData });
+					const imagePath = path.join(characterPath, `${characterFolder}.png`);
+                    characters.push({ 
+					name: characterFolder, 
+					data: characterData, 
+					imagePath: pathToFileURL(imagePath).href,
+					});
                 }
             }
         });

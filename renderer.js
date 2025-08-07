@@ -23,7 +23,7 @@ async function loadCharacters() {
             const characterTile = document.createElement('div');
             characterTile.className = 'character-tile';
             characterTile.innerHTML = `
-                <img src="file://${__dirname}/app/characters/${character.name}/${character.name}.png" alt="${character.name}">
+                <img src="${character.imagePath}" alt="${character.name}">
                 <h3>${character.name}</h3>
             `;
             characterTile.addEventListener('click', () => {
