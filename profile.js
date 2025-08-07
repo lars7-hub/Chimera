@@ -1,5 +1,3 @@
-const { ipcRenderer } = require('electron');
-
 // Extract character name from the URL query string
 const urlParams = new URLSearchParams(window.location.search);
 const characterName = urlParams.get('character');

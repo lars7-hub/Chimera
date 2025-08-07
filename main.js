@@ -47,6 +47,21 @@ ipcMain.handle('get-characters', () => {
     return characters;
 });
 
+// Fetch a single character's data
+ipcMain.handle('get-character', (even, characterName) => {
+	try {
+		const characterDataPath = path.join(fileSystemPath, characterName, `${characterName}.json`);
+		if (fs.existsSync(characterDataPath)) {
+			const characterData = JSON.parse(fs.readFileSync(characterDataPath, 'utf-8'));
+			return characterData;
+		}
+	
+	} catch (error) {
+		console.error('Error reading character data:', error);
+	}
+	return null;
+	});
+
 // Open file dialog for image selection
 ipcMain.handle('open-file-dialog', () => {
     return dialog.showOpenDialog({

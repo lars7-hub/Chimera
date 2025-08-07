@@ -42,7 +42,7 @@ body {
     box-sizing: border-box; /* Ensure padding is included in the width */
     overflow-y: auto; /* Make the content scrollable if necessary */
     height: 100vh; /* Make the container fill the available height */
-    background-color: #222; /* Dark background for content area */
+    background-color: #553159; /* Dark background for content area */
     border-radius: 10px;
 }
 
