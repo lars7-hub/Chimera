@@ -190,3 +190,19 @@ button:hover {
 #edit-character-btn {
     width: auto;
 }
+
+#add-loadout-container {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+#new-loadout-name {
+    flex: 1;
+    padding: 5px;
+}
+
+#add-loadout-btn {
+    width: auto;
+    padding: 5px 10px;
+}

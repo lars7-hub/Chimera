@@ -14,23 +14,19 @@ function displayProfile(data, imagePath, loadoutName = null) {
     document.getElementById('profile-image').innerHTML =
         `<img src="${imagePath}" alt="${data.name}" style="width:100%;height:100%;object-fit:${fit};">`;
 
-    const loadoutTitle = document.getElementById('loadout-name');
-    const editBtn = document.getElementById('edit-character-btn');
+const editBtn = document.getElementById('edit-character-btn');
     if (loadoutName) {
-        loadoutTitle.innerText = loadoutName;
         editBtn.innerText = 'Edit Loadout';
         editBtn.onclick = () => {
             window.location.href = `loadout-editor.html?character=${characterName}&loadout=${loadoutName}`;
         };
     } else {
-        loadoutTitle.innerText = '';
         editBtn.innerText = 'Edit Character';
         editBtn.onclick = () => {
             window.location.href = `edit-character.html?character=${characterName}`;
         };
     }
 }
-
 // Load base character profile
 async function loadCharacterProfile() {
     activeLoadout = null;
@@ -59,6 +55,10 @@ async function loadLoadout(loadoutName) {
 async function loadLoadouts() {
     const loadouts = await window.electron.getLoadouts(characterName);
     const list = document.getElementById('loadout-list');
+	if (!list) {
+		console.error('Loadout list element not found');
+		return;
+	}
     list.innerHTML = '';
 
     const baseItem = document.createElement('div');
@@ -77,10 +77,12 @@ async function loadLoadouts() {
 }
 
 document.getElementById('add-loadout-btn').addEventListener('click', async () => {
-    const name = prompt('Enter loadout name:');
+    const input = document.getElementById('new-loadout-name');
+    const name = input.value.trim();
     if (!name) return;
-    const result = await window.electron.createLoadout(characterName, name.trim());
+    const result = await window.electron.createLoadout(characterName, name);
     if (result && result.success) {
+        input.value = '';
         loadLoadouts();
     } else if (result && result.message) {
         alert(result.message);
