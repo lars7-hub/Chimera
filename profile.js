@@ -4,7 +4,7 @@ const characterName = urlParams.get('character');
 
 // Load character data
 async function loadCharacterProfile() {
-    const characterData = await ipcRenderer.invoke('get-character', characterName);
+    const characterData = await window.electron.getCharacter(characterName);
 	if (!characterData) {
 		console.error('Character data not found:', characterName);
 		return;	
@@ -16,7 +16,7 @@ async function loadCharacterProfile() {
     document.getElementById('character-description').innerText = characterData.description;
 
     // Set character image
-    const imagePath = `file://${__dirname}/app/characters/${characterName}/${characterName}.png`;
+    const imagePath = `app/characters/${characterName}/${characterName}.png`;
 	const fit = characterData.imageFit === 'squish' ? 'fill' : 'cover';
 	document.getElementById('profile-image').innerHTML = `<img src="${imagePath}" alt="${characterName}" style="width:200px;height:200px;object-fit:${fit};">`;
 	}
@@ -24,5 +24,11 @@ async function loadCharacterProfile() {
 document.getElementById('home-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
 });
+
+document.getElementById('edit-character-btn')?.addEventListener('click', () => {
+    window.location.href = `character-creator.html?character=${characterName}`;
+});
+
+
 
 loadCharacterProfile();
