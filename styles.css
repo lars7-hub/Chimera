@@ -35,7 +35,7 @@ body {
     margin-bottom: 15px; /* Add space between buttons */
 }
 
-#character-selector-container, #character-creator-container {
+#character-selector-container, #character-creator-container, #loadout-editor-container {
     margin-left: 12%; /* Make room for the navbar */
     width: 100%; /* Take up the remaining 90% of the window */
     padding: 20px;
