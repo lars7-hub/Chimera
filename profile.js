@@ -5,6 +5,11 @@ const characterName = urlParams.get('character');
 // Load character data
 async function loadCharacterProfile() {
     const characterData = await ipcRenderer.invoke('get-character', characterName);
+	if (!characterData) {
+		console.error('Character data not found:', characterName);
+		return;	
+	}
+	
     document.getElementById('character-name').innerText = characterData.name;
     document.getElementById('character-age').innerText = `Age: ${characterData.age}`;
     document.getElementById('character-gender').innerText = `Gender: ${characterData.gender}`;

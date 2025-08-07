@@ -4,6 +4,11 @@ const path = require('path'); // Core Node.js path module
 
 const fileSystemPath = path.join(__dirname, 'app/characters'); // Correctly access the characters directory
 
+// Check if the directory exists and make it if it doesn't
+if (!fs.existsSync(fileSystemPath)) {
+	fs.mkdirSync(fileSystemPath, { recursive: true });
+}
+
 let mainWindow;
 
 function createWindow() {
