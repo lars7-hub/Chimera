@@ -106,3 +106,54 @@ ipcMain.handle('create-character', (event, characterName, characterData, imagePa
 
     return { success: true, message: 'Character created successfully' };
 });
+
+// Update an existing character
+ipcMain.handle('update-character', (event, originalName, characterData, imagePath) => {
+    const originalFolderPath = path.join(fileSystemPath, originalName);
+    const newName = characterData.name;
+    let newFolderPath = originalFolderPath;
+
+    // Rename folder if character's name has changed
+    if (newName !== originalName) {
+        newFolderPath = path.join(fileSystemPath, newName);
+        fs.renameSync(originalFolderPath, newFolderPath);
+    }
+
+    // Handle image
+    const newImageDestination = path.join(newFolderPath, `${newName}.png`);
+    if (imagePath) {
+        fs.copyFileSync(imagePath, newImageDestination);
+    } else if (newName !== originalName) {
+        const oldImagePath = path.join(newFolderPath, `${originalName}.png`);
+        if (fs.existsSync(oldImagePath)) {
+            fs.renameSync(oldImagePath, newImageDestination);
+        }
+    }
+
+    // Save character data
+    const newDataPath = path.join(newFolderPath, `${newName}.json`);
+    if (newName !== originalName) {
+        const oldDataPath = path.join(newFolderPath, `${originalName}.json`);
+        if (fs.existsSync(oldDataPath)) {
+            fs.unlinkSync(oldDataPath);
+        }
+    }
+    fs.writeFileSync(newDataPath, JSON.stringify(characterData));
+
+    return { success: true, message: 'Character updated successfully' };
+});
+
+// Delete a character
+ipcMain.handle('delete-character', (event, characterName) => {
+    const characterFolderPath = path.join(fileSystemPath, characterName);
+    try {
+        if (fs.existsSync(characterFolderPath)) {
+            fs.rmSync(characterFolderPath, { recursive: true, force: true });
+            return { success: true };
+        }
+        return { success: false, message: 'Character not found' };
+    } catch (error) {
+        console.error('Error deleting character:', error);
+        return { success: false, message: 'Error deleting character' };
+    }
+});

@@ -27,7 +27,7 @@ document.getElementById('home-btn').addEventListener('click', () => {
 });
 
 document.getElementById('edit-character-btn')?.addEventListener('click', () => {
-    window.location.href = `character-creator.html?character=${characterName}`;
+    window.location.href = `edit-character.html?character=${characterName}`;
 });
 
 

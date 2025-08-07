@@ -117,6 +117,10 @@ button:hover {
     flex-direction: column;
 }
 
+#delete-btn {
+	color: red;
+}
+
 #profile-main {
     flex: 1;
     display: flex;
