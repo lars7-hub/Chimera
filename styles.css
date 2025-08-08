@@ -144,6 +144,7 @@ button:hover {
 
 #profile-top {
     display: flex;
+    align-items: flex-start;
 }
 
 #profile-image {
@@ -159,7 +160,33 @@ button:hover {
 
 #profile-details {
     flex: 1;
-    padding-left: 20px;
+    margin: 0 20px;
+    background-color: #444;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+#core-info-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+}
+
+#core-info-list li {
+    margin-bottom: 5px;
+}
+
+#profile-stats {
+    flex: 0 0 25%;
+    background-color: #444;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+#profile-stats ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 #profile-background {
@@ -220,4 +247,21 @@ button:hover {
 #add-loadout-btn {
     width: auto;
     padding: 5px 10px;
+}
+
+.default-btn {
+    margin-left: 5px;
+    padding: 2px 6px;
+    font-size: 12px;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+#stats-container .stat-row label {
+    width: 100px;
 }

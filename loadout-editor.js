@@ -1,4 +1,5 @@
 let selectedImagePath = null;
+let baseCharacter = null;
 
 const urlParams = new URLSearchParams(window.location.search);
 const characterName = urlParams.get('character');
@@ -41,7 +42,29 @@ function updatePreviewFit() {
     }
 }
 
+function setupDefaultButtons() {
+    const fields = ['age','gender','height','build','occupation','alignment','race','affiliation','origin','goal','description'];
+    fields.forEach(f => {
+        const btn = document.getElementById(`${f}-default`);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                document.getElementById(f).value = baseCharacter?.[f] || '';
+            });
+        }
+    });
+    const stats = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
+    stats.forEach(s => {
+        const btn = document.getElementById(`stat-${s}-default`);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                document.getElementById(`stat-${s}`).value = baseCharacter?.stats?.[s] || 0;
+            });
+        }
+    });
+}
+
 async function loadLoadoutData() {
+    baseCharacter = await window.electron.getCharacter(characterName);
     const data = await window.electron.getLoadout(characterName, originalLoadoutName);
     if (!data) {
         console.error('Loadout data not found:', originalLoadoutName);
@@ -53,6 +76,9 @@ async function loadLoadoutData() {
     document.getElementById('gender').value = data.gender || '';
     document.getElementById('height').value = data.height || '';
     document.getElementById('build').value = data.build || '';
+	document.getElementById('occupation').value = data.occupation || '';
+    document.getElementById('alignment').value = data.alignment || '';
+    document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
 	showStatsCheckbox.checked = data.showStats !== false;
@@ -72,6 +98,7 @@ async function loadLoadoutData() {
     previewImg.src = imagePath;
     previewImg.style.display = 'block';
     updatePreviewFit();
+	setupDefaultButtons();
 }
 
 document.getElementById('image-upload-btn').addEventListener('click', async () => {
@@ -100,6 +127,9 @@ document.getElementById('save-btn').addEventListener('click', async () => {
         gender: document.getElementById('gender').value,
         height: document.getElementById('height').value,
         build: document.getElementById('build').value,
+		occupation: document.getElementById('occupation').value,
+        alignment: document.getElementById('alignment').value,
+        race: document.getElementById('race').value,
         description: document.getElementById('description').value,
         stats: {
             strength: parseInt(document.getElementById('stat-strength').value) || 0,

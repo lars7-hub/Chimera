@@ -64,6 +64,9 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     const gender = document.getElementById('gender').value;
     const height = document.getElementById('height').value;
     const build = document.getElementById('build').value;
+	const occupation = document.getElementById('occupation').value;
+    const alignment = document.getElementById('alignment').value;
+    const race = document.getElementById('race').value;
     const description = document.getElementById('description').value;
 	const cropImage = cropCheckbox.checked;
 
@@ -103,6 +106,9 @@ document.getElementById('save-btn').addEventListener('click', async () => {
         gender,
         height,
         build,
+		occupation,
+        alignment,
+        race,
         description,
 		stats,
         traits,

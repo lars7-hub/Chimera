@@ -5,37 +5,69 @@ let activeLoadout = urlParams.get('loadout');
 
 function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
     const finalStats = { ...baseStats };
+    const modifiers = {};
     traits.forEach(t => {
         if (t.stat && finalStats[t.stat] !== undefined) {
-            finalStats[t.stat] += Number(t.value) || 0;
+            const val = Number(t.value) || 0;
+            finalStats[t.stat] += val;
+            modifiers[t.stat] = (modifiers[t.stat] || 0) + val;
         }
     });
     inventoryMods.forEach(m => {
         if (m.stat && finalStats[m.stat] !== undefined) {
-            finalStats[m.stat] += Number(m.value) || 0;
+            const val = Number(m.value) || 0;
+            finalStats[m.stat] += val;
+            modifiers[m.stat] = (modifiers[m.stat] || 0) + val;
         }
     });
-    return finalStats;
+    return { finalStats, modifiers };
 }
 
 // Display profile data in the DOM
 function displayProfile(data, imagePath, loadoutName = null) {
     document.getElementById('character-name').innerText = data.name;
-    document.getElementById('character-age').innerText = `Age: ${data.age}`;
-    document.getElementById('character-gender').innerText = `Gender: ${data.gender}`;
     document.getElementById('character-description').innerText = data.description;
-	
-	const statsContainer = document.getElementById('profile-stats');
+
+    const infoList = document.getElementById('core-info-list');
+    infoList.innerHTML = '';
+    const infoFields = [
+        { key: 'age', label: 'Age' },
+        { key: 'gender', label: 'Gender' },
+        { key: 'height', label: 'Height' },
+        { key: 'build', label: 'Build' },
+        { key: 'occupation', label: 'Occupation' },
+        { key: 'alignment', label: 'Alignment' },
+        { key: 'race', label: 'Race' },
+        { key: 'affiliation', label: 'Affiliation' },
+        { key: 'origin', label: 'Origin' },
+        { key: 'goal', label: 'Goal' }
+    ];
+    infoFields.forEach(f => {
+        if (data[f.key]) {
+            const li = document.createElement('li');
+            li.textContent = `${f.label}: ${data[f.key]}`;
+            infoList.appendChild(li);
+        }
+    });
+
+    const statsContainer = document.getElementById('profile-stats');
     const traitsContainer = document.getElementById('profile-traits');
     traitsContainer.innerHTML = '';
 
-    const finalStats = calculateFinalStats(data.stats || {}, data.traits || [], []);
+    const { finalStats, modifiers } = calculateFinalStats(data.stats || {}, data.traits || [], []);
     if (data.showStats) {
         statsContainer.style.display = 'block';
-        Object.entries(finalStats).forEach(([key, val]) => {
+        Object.keys(finalStats).forEach(key => {
             const el = document.getElementById(`stat-${key}`);
             if (el) {
-                el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}`;
+                const base = (data.stats && data.stats[key]) || 0;
+                const mod = modifiers[key] || 0;
+                if (mod) {
+                    const sign = mod > 0 ? '+' : '-';
+                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base} ${sign} ${Math.abs(mod)} = ${finalStats[key]}`;
+                } else {
+                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base}`;
+                }
             }
         });
     } else {

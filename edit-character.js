@@ -55,6 +55,9 @@ async function loadCharacter() {
     document.getElementById('gender').value = data.gender || '';
     document.getElementById('height').value = data.height || '';
     document.getElementById('build').value = data.build || '';
+    document.getElementById('occupation').value = data.occupation || '';
+    document.getElementById('alignment').value = data.alignment || '';
+    document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
 	document.getElementById('stat-strength').value = data.stats?.strength || 0;
@@ -104,6 +107,9 @@ saveBtn.addEventListener('click', async () => {
         gender: document.getElementById('gender').value,
         height: document.getElementById('height').value,
         build: document.getElementById('build').value,
+        occupation: document.getElementById('occupation').value,
+        alignment: document.getElementById('alignment').value,
+        race: document.getElementById('race').value,
         description: document.getElementById('description').value,
         stats: {
             strength: parseInt(document.getElementById('stat-strength').value) || 0,
