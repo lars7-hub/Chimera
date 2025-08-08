@@ -104,6 +104,21 @@ button:hover {
         object-fit: cover;
 }
 
+#stats-container label {
+    display: block;
+    margin-top: 5px;
+}
+
+.trait-row {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.trait-row input[type="text"] {
+    flex: 1;
+}
+
 /* Profile page layout */
 #profile-container {
     margin-left: 12%;

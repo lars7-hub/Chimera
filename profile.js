@@ -3,12 +3,51 @@ const urlParams = new URLSearchParams(window.location.search);
 const characterName = urlParams.get('character');
 let activeLoadout = urlParams.get('loadout');
 
+function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
+    const finalStats = { ...baseStats };
+    traits.forEach(t => {
+        if (t.stat && finalStats[t.stat] !== undefined) {
+            finalStats[t.stat] += Number(t.value) || 0;
+        }
+    });
+    inventoryMods.forEach(m => {
+        if (m.stat && finalStats[m.stat] !== undefined) {
+            finalStats[m.stat] += Number(m.value) || 0;
+        }
+    });
+    return finalStats;
+}
+
 // Display profile data in the DOM
 function displayProfile(data, imagePath, loadoutName = null) {
     document.getElementById('character-name').innerText = data.name;
     document.getElementById('character-age').innerText = `Age: ${data.age}`;
     document.getElementById('character-gender').innerText = `Gender: ${data.gender}`;
     document.getElementById('character-description').innerText = data.description;
+	
+	const statsContainer = document.getElementById('profile-stats');
+    const traitsContainer = document.getElementById('profile-traits');
+    traitsContainer.innerHTML = '';
+
+    const finalStats = calculateFinalStats(data.stats || {}, data.traits || [], []);
+    if (data.showStats) {
+        statsContainer.style.display = 'block';
+        Object.entries(finalStats).forEach(([key, val]) => {
+            const el = document.getElementById(`stat-${key}`);
+            if (el) {
+                el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}`;
+            }
+        });
+    } else {
+        statsContainer.style.display = 'none';
+    }
+
+    (data.traits || []).forEach(t => {
+        const p = document.createElement('p');
+        p.textContent = t.text;
+        p.style.color = t.color || '#ffffff';
+        traitsContainer.appendChild(p);
+    });
 
     const fit = data.imageFit === 'squish' ? 'fill' : 'cover';
     document.getElementById('profile-image').innerHTML =

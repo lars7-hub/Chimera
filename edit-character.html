@@ -43,6 +43,25 @@
                 <label for="description">Backstory/Description:</label>
                 <textarea id="description" rows="4"></textarea>
             </div>
+			
+			<h3>Stats</h3>
+            <div id="stats-container">
+                <label>Strength: <input type="number" id="stat-strength" value="0"></label>
+                <label>Dexterity: <input type="number" id="stat-dexterity" value="0"></label>
+                <label>Constitution: <input type="number" id="stat-constitution" value="0"></label>
+                <label>Endurance: <input type="number" id="stat-endurance" value="0"></label>
+                <label>Intelligence: <input type="number" id="stat-intelligence" value="0"></label>
+                <label>Charisma: <input type="number" id="stat-charisma" value="0"></label>
+                <label>Fortitude: <input type="number" id="stat-fortitude" value="0"></label>
+            </div>
+
+            <div class="form-group">
+                <label><input type="checkbox" id="show-stats" checked> Show stats on profile</label>
+            </div>
+
+            <h3>Traits</h3>
+            <div id="traits-container"></div>
+            <button type="button" id="add-trait-btn">Add Trait</button>
 
             <div class="form-group">
                 <label for="image-upload">Upload Character Image:</label>
