@@ -111,12 +111,29 @@ button:hover {
 
 .trait-row {
     display: flex;
+	flex-direction: column;
     gap: 5px;
     margin-top: 5px;
 }
 
 .trait-row input[type="text"] {
-    flex: 1;
+    width: 100%;
+}
+
+.trait-stats-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.trait-stats-table th,
+.trait-stats-table td {
+	border: 1px solid #666;
+	padding: 2px;
+}
+
+.trait-stats-table td:nth-child(2),
+.trait-stats-table td:nth-child(3) {
+	text-align: center;
 }
 
 /* Profile page layout */
@@ -183,10 +200,59 @@ button:hover {
     border-radius: 10px;
 }
 
-#profile-stats ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+#stats-title {
+	text-align: center;
+	font-size: 1.6em;
+	margin-top: 0;
+}
+
+#stats-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+#stats-table th,
+#stats-table td {
+	padding: 2px 4px;
+}
+
+#stats-table td.stat-name {
+	text-align: left;
+}
+
+#stats-table td.base,
+#stats-table td.mod {
+    text-align: center;
+}
+
+#stats-table td.final {
+    text-align: right;
+    font-size: 1.1em;
+}
+
+#stats-table td.mod.positive {
+    color: green;
+}
+
+#stats-table td.mod.negative {
+    color: red;
+}
+
+#stats-table td.final.positive {
+    color: #aaffaa;
+}
+
+#stats-table td.final.negative {
+    color: #ffaaaa;
+}
+
+.profile-trait-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.profile-trait-row .trait-modifiers span {
+    margin-left: 4px;
 }
 
 #profile-background {
@@ -194,14 +260,6 @@ button:hover {
     margin-top: 20px;
     overflow-y: auto;
 }
-
-/*#profile-placeholder {
-    height: 20%;
-    background-color: #444;
-    margin-top: 20px;
-    border-radius: 10px;
-}
-*/
 
 #loadout-sidebar {
 	flex: 0 0 20%;
@@ -414,17 +472,23 @@ button:hover {
 
 #item-info-name {
 	display: block;
+	width: fit-content;
+	margin: 0 auto 4px;
 	text-align: center;
 	font-size: 1.4em;
 	-webkit-text-stroke: 0.4px #000;
-	margin-top: 0;
-	margin-bottom: 4px;
 }
 
 #item-info-rarity {
 	display: block;
 	width: fit-content;
 	margin: 0 auto 10px;
+}
+
+#item-info-image {
+	width: 100%;
+	height: auto;
+	display: block;
 }
 
 .rarity-tag {
@@ -437,8 +501,7 @@ button:hover {
 .name-tag {
 	padding: 2px 6px;
 	border-radius: 4px;
-	color: #000;
-	font-size: 0.8em;
+	background-color: rgba(50,50,50,0.5);
 }
 
 #item-info-modal .modal-content {
@@ -456,8 +519,8 @@ button:hover {
 }
 
 .item-value img {
-	width: 20px;
-	height: 20px;
+	width: 25px;
+	height: 25px;
 	object-fit: fill;
 	margin-right: 4px;
 }

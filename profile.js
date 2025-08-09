@@ -13,20 +13,48 @@ function updateStatsDisplay() {
         (item.stats || []).forEach(mod => inventoryMods.push(mod));
     });
     const { finalStats, modifiers } = calculateFinalStats(currentProfileData.stats || {}, currentProfileData.traits || [], inventoryMods);
+    const tableBody = document.querySelector('#stats-table tbody');
     if (currentProfileData.showStats) {
         statsContainer.style.display = 'block';
+        tableBody.innerHTML = '';
         Object.keys(finalStats).forEach(key => {
-            const el = document.getElementById(`stat-${key}`);
-            if (el) {
-                const base = (currentProfileData.stats && currentProfileData.stats[key]) || 0;
-                const mod = modifiers[key] || 0;
-                if (mod) {
-                    const sign = mod > 0 ? '+' : '-';
-                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base} ${sign} ${Math.abs(mod)} = ${finalStats[key]}`;
-                } else {
-                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base}`;
-                }
+            const tr = document.createElement('tr');
+            const nameTd = document.createElement('td');
+            nameTd.className = 'stat-name';
+            nameTd.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+
+            const base = (currentProfileData.stats && currentProfileData.stats[key]) || 0;
+            const baseTd = document.createElement('td');
+            baseTd.className = 'base';
+            baseTd.textContent = base;
+
+            const mod = modifiers[key] || 0;
+            const modTd = document.createElement('td');
+            modTd.className = 'mod';
+            if (mod > 0) {
+                modTd.classList.add('positive');
+                modTd.textContent = `+${Math.round(mod)}`;
+            } else if (mod < 0) {
+                modTd.classList.add('negative');
+                modTd.textContent = `${Math.round(mod)}`;
+            } else {
+                modTd.textContent = '0';
             }
+
+            const finalTd = document.createElement('td');
+            finalTd.className = 'final';
+            finalTd.textContent = Math.round(finalStats[key]);
+            if (mod > 0) {
+                finalTd.classList.add('positive');
+            } else if (mod < 0) {
+                finalTd.classList.add('negative');
+            }
+
+            tr.appendChild(nameTd);
+            tr.appendChild(baseTd);
+            tr.appendChild(modTd);
+            tr.appendChild(finalTd);
+            tableBody.appendChild(tr);
         });
     } else {
         statsContainer.style.display = 'none';
@@ -37,7 +65,23 @@ function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
     const finalStats = { ...baseStats };
     const modifiers = {};
     traits.forEach(t => {
-        if (t.stat && finalStats[t.stat] !== undefined) {
+        if (Array.isArray(t.stats)) {
+            t.stats.forEach(s => {
+                if (s.stat && finalStats[s.stat] !== undefined) {
+                    const val = Number(s.value) || 0;
+                    let change = 0;
+                    if (s.type === 'sub') {
+                        change = -val;
+                    } else if (s.type === 'mul') {
+                        change = finalStats[s.stat] * (val / 100);
+                    } else {
+                        change = val;
+                    }
+                    finalStats[s.stat] += change;
+                    modifiers[s.stat] = (modifiers[s.stat] || 0) + change;
+                }
+            });
+        } else if (t.stat && finalStats[t.stat] !== undefined) {
             const val = Number(t.value) || 0;
             finalStats[t.stat] += val;
             modifiers[t.stat] = (modifiers[t.stat] || 0) + val;
@@ -93,10 +137,39 @@ function displayProfile(data, imagePath, loadoutName = null) {
     traitsContainer.innerHTML = '';
 
     (data.traits || []).forEach(t => {
-        const p = document.createElement('p');
-        p.textContent = t.text;
-        p.style.color = t.color || '#ffffff';
-        traitsContainer.appendChild(p);
+        const row = document.createElement('div');
+        row.className = 'profile-trait-row';
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = t.text;
+        textSpan.style.color = t.color || '#ffffff';
+        row.appendChild(textSpan);
+
+        const modsSpan = document.createElement('span');
+        modsSpan.className = 'trait-modifiers';
+        const statsArr = Array.isArray(t.stats) ? t.stats : (t.stat ? [{ stat: t.stat, value: t.value, type: 'add' }] : []);
+        statsArr.forEach((s, idx) => {
+            if (!s.stat) return;
+            const modSpan = document.createElement('span');
+            let display = '';
+            if (s.type === 'mul') {
+                display = `${s.stat.charAt(0).toUpperCase() + s.stat.slice(1)} ${s.value}%`;
+                if (s.value > 100) {
+                    modSpan.style.color = 'green';
+                } else if (s.value < 100) {
+                    modSpan.style.color = 'red';
+                }
+            } else {
+                const val = s.type === 'sub' ? -s.value : s.value;
+                display = `${s.stat.charAt(0).toUpperCase() + s.stat.slice(1)} ${val > 0 ? '+' : ''}${val}`;
+                modSpan.style.color = val >= 0 ? 'green' : 'red';
+            }
+            modSpan.textContent = display;
+            if (idx > 0) modsSpan.appendChild(document.createTextNode(' '));
+            modsSpan.appendChild(modSpan);
+        });
+        row.appendChild(modsSpan);
+        traitsContainer.appendChild(row);
     });
 
     const fit = data.imageFit === 'squish' ? 'fill' : 'cover';
@@ -231,7 +304,7 @@ function openItemInfo(index) {
 	};
 	
 	const color = rarityColors[item.rarity] || rarityColors.common;
-	nameEl.style.backgroundColor = "000";
+	nameEl.style.backgroundColor = "rgba(50,50,50,0.5)";
 	nameEl.textContent = item.name;
 	nameEl.style.color = color;
 	

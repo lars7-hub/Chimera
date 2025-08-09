@@ -21,16 +21,18 @@
                     <button id="edit-character-btn">Edit Character</button>
                 </div>
                 <div id="profile-stats" style="display: none;">
-                    <h3>Stats</h3>
-                    <ul>
-                        <li id="stat-strength"></li>
-                        <li id="stat-dexterity"></li>
-                        <li id="stat-constitution"></li>
-                        <li id="stat-endurance"></li>
-                        <li id="stat-intelligence"></li>
-                        <li id="stat-charisma"></li>
-                        <li id="stat-fortitude"></li>
-                    </ul>
+                    <h3 id="stats-title">Stats</h3>
+                    <table id="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Stat</th>
+                                <th>Base</th>
+                                <th>Mod</th>
+                                <th>Final</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
             <div id="profile-background">
@@ -82,7 +84,7 @@
         <div id="item-info-modal" class="modal hidden">
             <div class="modal-content">
                 <span id="item-info-close" class="close">&times;</span>
-                <h3 id="item-info-name"></h3>
+                <h3 id="item-info-name" class=name-tag></h3>
 				<div id="item-info-rarity" class="rarity-tag"></div>
                 <img id="item-info-image" alt="">
                 <p id="item-info-description"></p>

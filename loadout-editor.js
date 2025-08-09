@@ -8,28 +8,38 @@ const originalLoadoutName = urlParams.get('loadout');
 const cropCheckbox = document.getElementById('crop-image');
 const showStatsCheckbox = document.getElementById('show-stats');
 const traitsContainer = document.getElementById('traits-container');
+const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
 
 function addTraitRow(trait = {}) {
     const row = document.createElement('div');
     row.className = 'trait-row';
+    const statsRows = statsList.map(stat => {
+        const existing = (trait.stats || []).find(s => s.stat === stat) || {};
+        const type = existing.type || 'add';
+        const value = existing.value || 0;
+        return `<tr>
+            <td>${stat.charAt(0).toUpperCase() + stat.slice(1)}</td>
+            <td><input type="number" class="trait-stat-value" data-stat="${stat}" value="${value}"></td>
+            <td>
+                <select class="trait-stat-type" data-stat="${stat}">
+                    <option value="add"${type === 'add' ? ' selected' : ''}>+</option>
+                    <option value="sub"${type === 'sub' ? ' selected' : ''}>-</option>
+                    <option value="mul"${type === 'mul' ? ' selected' : ''}>%</option>
+                </select>
+            </td>
+        </tr>`;
+    }).join('');
+
     row.innerHTML = `
         <input type="text" class="trait-text" placeholder="Trait description" value="${trait.text || ''}">
-        <select class="trait-stat">
-            <option value="">Stat</option>
-            <option value="strength">Strength</option>
-            <option value="dexterity">Dexterity</option>
-            <option value="constitution">Constitution</option>
-            <option value="endurance">Endurance</option>
-            <option value="intelligence">Intelligence</option>
-            <option value="charisma">Charisma</option>
-            <option value="fortitude">Fortitude</option>
-        </select>
-        <input type="number" class="trait-value" value="${trait.value || 0}">
+        <table class="trait-stats-table">
+            <thead><tr><th>Stat</th><th>Value</th><th>Type</th></tr></thead>
+            <tbody>${statsRows}</tbody>
+        </table>
         <input type="color" class="trait-color" value="${trait.color || '#ffffff'}">
         <button type="button" class="remove-trait-btn">Remove</button>
     `;
     traitsContainer.appendChild(row);
-    row.querySelector('.trait-stat').value = trait.stat || '';
     row.querySelector('.remove-trait-btn').addEventListener('click', () => row.remove());
 }
 
@@ -140,12 +150,21 @@ document.getElementById('save-btn').addEventListener('click', async () => {
             charisma: parseInt(document.getElementById('stat-charisma').value) || 0,
             fortitude: parseInt(document.getElementById('stat-fortitude').value) || 0,
         },
-        traits: Array.from(traitsContainer.querySelectorAll('.trait-row')).map(row => ({
-            text: row.querySelector('.trait-text').value,
-            stat: row.querySelector('.trait-stat').value,
-            value: parseInt(row.querySelector('.trait-value').value) || 0,
-            color: row.querySelector('.trait-color').value,
-        })),
+        traits: Array.from(traitsContainer.querySelectorAll('.trait-row')).map(row => {
+            const stats = [];
+            statsList.forEach(stat => {
+                const val = parseInt(row.querySelector(`.trait-stat-value[data-stat="${stat}"]`).value) || 0;
+                if (val) {
+                    const type = row.querySelector(`.trait-stat-type[data-stat="${stat}"]`).value;
+                    stats.push({ stat, value: val, type });
+                }
+            });
+            return {
+                text: row.querySelector('.trait-text').value,
+                stats,
+                color: row.querySelector('.trait-color').value,
+            };
+        }),
         showStats: showStatsCheckbox.checked,
         imageFit: cropCheckbox.checked ? 'crop' : 'squish'
     };
