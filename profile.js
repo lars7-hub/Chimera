@@ -78,14 +78,9 @@ function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
             t.stats.forEach(s => {
                 if (s.stat && finalStats[s.stat] !== undefined) {
                     const val = Number(s.value) || 0;
-                    let change = 0;
-                    if (s.type === 'sub') {
-                        change = -val;
-                    } else if (s.type === 'mul') {
-                        change = finalStats[s.stat] * (val / 100);
-                    } else {
-                        change = val;
-                    }
+                    const change = s.type === 'mul'
+                        ? finalStats[s.stat] * (val / 100)
+                        : (s.type === 'sub' ? -val : val);
                     finalStats[s.stat] += change;
                     modifiers[s.stat] = (modifiers[s.stat] || 0) + change;
                 }
@@ -99,14 +94,9 @@ function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
     inventoryMods.forEach(m => {
         if (m.stat && finalStats[m.stat] !== undefined) {
             const val = Number(m.value) || 0;
-            let change = 0;
-            if (m.type === 'sub') {
-                change = -val;
-            } else if (m.type === 'mul') {
-                change = finalStats[m.stat] * (val / 100);
-            } else {
-                change = val;
-            }
+            const change = m.type === 'mul'
+                ? finalStats[m.stat] * (val / 100)
+                : (m.type === 'sub' ? -val : val);
             finalStats[m.stat] += change;
             modifiers[m.stat] = (modifiers[m.stat] || 0) + change;
         }
@@ -162,8 +152,8 @@ function displayProfile(data, imagePath, loadoutName = null) {
             const chipEl = document.createElement('div');
             chipEl.className = 'stat-chip';
             const abbr = statAbbr[s.stat] || s.stat.substring(0,3).toUpperCase();
-            let val = s.type === 'mul' ? `${s.value}%` : `${s.type === 'sub' ? -s.value : s.value}`;
             const num = s.type === 'mul' ? s.value : (s.type === 'sub' ? -s.value : s.value);
+            let val = s.type === 'mul' ? `${s.value}%` : `${num}`;
             if (num >= 0) chipEl.classList.add('positive'); else chipEl.classList.add('negative');
             if (s.type !== 'mul' && num > 0) val = `+${val}`;
             chipEl.textContent = `${abbr}. ${val}`;
@@ -255,8 +245,15 @@ function openItemModal(index = null) {
         row.dataset.stat = stat;
         row.innerHTML = `<label>${stat.charAt(0).toUpperCase()+stat.slice(1)}</label>`+
             `<input type="number" class="stat-value" value="0">`+
-            `<select class="stat-type"><option value="add">Add</option><option value="sub">Subtract</option><option value="mul">Percent</option></select>`;
+            `<div class="type-toggle"><button type="button" class="type-btn active" data-type="add">Add</button><button type="button" class="type-btn" data-type="mul">%</button></div>`;
         statsContainer.appendChild(row);
+        const toggle = row.querySelector('.type-toggle');
+        toggle.querySelectorAll('.type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                toggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
     });
     if (index !== null) {
         const item = inventory[index];
@@ -271,7 +268,11 @@ function openItemModal(index = null) {
             const row = statsContainer.querySelector(`[data-stat="${sm.stat}"]`);
             if (row) {
                 row.querySelector('.stat-value').value = sm.value;
-                row.querySelector('.stat-type').value = sm.type;
+                const typeBtn = row.querySelector(`.type-btn[data-type="${sm.type === 'mul' ? 'mul' : 'add'}"]`);
+                if (typeBtn) {
+                    row.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                    typeBtn.classList.add('active');
+                }
             }
         });
         form.dataset.editIndex = index;
@@ -316,7 +317,7 @@ function openItemInfo(index) {
 	
     const img = document.getElementById('item-info-image');
     if (item.image) {
-        img.src = item.image;
+        img.src = `${item.image}?cb=${Date.now()}`;
         img.style.display = 'block';
     } else {
         img.style.display = 'none';
@@ -328,8 +329,8 @@ function openItemInfo(index) {
         const chip = document.createElement('div');
         chip.className = 'stat-chip';
         const abbr = statAbbr[s.stat] || s.stat.substring(0,3).toUpperCase();
-        let val = s.type === 'mul' ? `${s.value}%` : `${s.type === 'sub' ? -s.value : s.value}`;
         const num = s.type === 'mul' ? s.value : (s.type === 'sub' ? -s.value : s.value);
+        let val = s.type === 'mul' ? `${s.value}%` : `${num}`;
         if (num >= 0) chip.classList.add('positive'); else chip.classList.add('negative');
         if (s.type !== 'mul' && num > 0) val = `+${val}`;
         chip.textContent = `${abbr}. ${val}`;
@@ -351,6 +352,34 @@ function closeItemInfo() {
     modal.classList.add('hidden');
 }
 
+function showPrompt(message) {
+    return new Promise(resolve => {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <p>${message}</p>
+                <input type="text" id="prompt-input">
+                <div class="prompt-buttons">
+                    <button id="prompt-ok">OK</button>
+                    <button id="prompt-cancel">Cancel</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        const input = modal.querySelector('#prompt-input');
+        input.focus();
+        modal.querySelector('#prompt-ok').onclick = () => {
+            const value = input.value.trim();
+            modal.remove();
+            resolve(value);
+        };
+        modal.querySelector('#prompt-cancel').onclick = () => {
+            modal.remove();
+            resolve(null);
+        };
+    });
+}
+
 async function handleItemFormSubmit(e) {
     e.preventDefault();
     const index = e.target.dataset.editIndex !== undefined ? parseInt(e.target.dataset.editIndex) : null;
@@ -367,7 +396,9 @@ async function handleItemFormSubmit(e) {
     document.querySelectorAll('#item-stats .item-stat-row').forEach(row => {
         const val = parseFloat(row.querySelector('.stat-value').value) || 0;
         if (val !== 0) {
-            item.stats.push({ stat: row.dataset.stat, value: val, type: row.querySelector('.stat-type').value });
+            const typeBtn = row.querySelector('.type-btn.active');
+            const type = typeBtn ? typeBtn.dataset.type : 'add';
+            item.stats.push({ stat: row.dataset.stat, value: val, type });
         }
     });
     const file = document.getElementById('item-image').files[0];
@@ -462,7 +493,7 @@ document.getElementById('edit-loadout-btn').addEventListener('click', () => {
 });
 
 document.getElementById('new-loadout-btn').addEventListener('click', async () => {
-    const name = prompt('Enter loadout name:');
+    const name = await showPrompt('Enter loadout name:');
     if (!name) return;
     const result = await window.electron.createLoadout(characterName, name.trim());
     if (result && result.success) {

@@ -474,8 +474,20 @@ button:hover {
     width: 60px;
 }
 
-.item-stat-row select {
-    width: 80px;
+.item-stat-row .type-toggle,
+.trait-stat-row .type-toggle {
+    display: flex;
+    gap: 5px;
+}
+
+.type-btn {
+    padding: 2px 6px;
+    cursor: pointer;
+}
+
+.type-btn.active {
+    background-color: #555;
+    color: #fff;
 }
 
 #item-info-name {
@@ -589,10 +601,17 @@ button:hover {
 }
 
 .item-value img {
-	width: 25px;
-	height: 25px;
-	object-fit: fill;
-	margin-right: 4px;
+        width: 25px;
+        height: 25px;
+        object-fit: fill;
+        margin-right: 4px;
+}
+
+.prompt-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
 }
 
 /* Editor layout stuff*/

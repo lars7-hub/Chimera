@@ -12,40 +12,37 @@ const statsList = ['strength','dexterity','constitution','endurance','intelligen
 function addTraitRow(trait = {}) {
     const row = document.createElement('div');
     row.className = 'trait-row';
-	const statsRows = statsList.map(stat => {
-		const existing = trait.stats || [].find(s => s.stat === stat) || {};
-		const type = existing.type || 'add';
-		const value = existing.value || 0; 
-		return `<tr>
-			<td>${stat.CharAt(0).toUpperCase() + stat.slice(1)}</td>
-			<td><input type="number" class="trait-stat-value" data-stat="${stat}" value="${value}"></td>
-			 <td>
-                <select class="trait-stat-type" data-stat="${stat}">
-                    <option value="add"${type === 'add' ? ' selected' : ''}>+</option>
-                    <option value="sub"${type === 'sub' ? ' selected' : ''}>-</option>
-                    <option value="mul"${type === 'mul' ? ' selected' : ''}>%</option>
-                </select>
-            </td>
-			</tr>`
-	}).join('');
-	
+	const type = (trait.stats && trait.stats[0] && trait.stats[0].type) || 'add';
+	const stat = (trait.stats && trait.stats[0] && trait.stats[0].stat) || '';
+	const value = (trait.stats && trait.stats[0] && trait.stats[0].value) || 0;	
     row.innerHTML = `
         <input type="text" class="trait-text" placeholder="Trait description" value="${trait.text || ''}">
         <select class="trait-stat">
             <option value="">Stat</option>
-            <option value="strength">Strength</option>
-            <option value="dexterity">Dexterity</option>
-            <option value="constitution">Constitution</option>
-            <option value="endurance">Endurance</option>
-            <option value="intelligence">Intelligence</option>
-            <option value="charisma">Charisma</option>
-            <option value="fortitude">Fortitude</option>
+            <option value="strength"${stat === 'strength' ? ' selected' : ''}>Strength</option>
+            <option value="dexterity"${stat === 'dexterity' ? ' selected' : ''}>Dexterity</option>
+            <option value="constitution"${stat === 'constitution' ? ' selected' : ''}>Constitution</option>
+            <option value="endurance"${stat === 'endurance' ? ' selected' : ''}>Endurance</option>
+            <option value="intelligence"${stat === 'intelligence' ? ' selected' : ''}>Intelligence</option>
+            <option value="charisma"${stat === 'charisma' ? ' selected' : ''}>Charisma</option>
+            <option value="fortitude"${stat === 'fortitude' ? ' selected' : ''}>Fortitude</option>
         </select>
-        <input type="number" class="trait-value" value="${trait.value || 0}">
+        <input type="number" class="trait-value" value="${value}">
+        <div class="type-toggle">
+            <button type="button" class="type-btn${type === 'mul' ? '' : ' active'}" data-type="add">Add</button>
+            <button type="button" class="type-btn${type === 'mul' ? ' active' : ''}" data-type="mul">%</button>
+        </div>
         <input type="color" class="trait-color" value="${trait.color || '#ffffff'}">
         <button type="button" class="remove-trait-btn">Remove</button>
     `;
     traitsContainer.appendChild(row);
+	const toggle = row.querySelector('.type-toggle');
+    toggle.querySelectorAll('.type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            toggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
     row.querySelector('.remove-trait-btn').addEventListener('click', () => row.remove());
 }
 
@@ -98,17 +95,13 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     };
 
     const traits = Array.from(traitsContainer.querySelectorAll('.trait-row')).map(row => {
-        const stats = [];
-        statsList.forEach(stat => {
-            const val = parseInt(row.querySelector(`.trait-stat-value[data-stat="${stat}"]`).value) || 0;
-            if (val) {
-                const type = row.querySelector(`.trait-stat-type[data-stat="${stat}"]`).value;
-                stats.push({ stat, value: val, type });
-            }
-        });
+        const stat = row.querySelector('.trait-stat').value;
+        const value = parseInt(row.querySelector('.trait-value').value) || 0;
+        const typeBtn = row.querySelector('.type-btn.active');
+        const type = typeBtn ? typeBtn.dataset.type : 'add';
         return {
             text: row.querySelector('.trait-text').value,
-            stats,
+            stats: stat ? [{ stat, value, type }] : [],
             color: row.querySelector('.trait-color').value,
         };
     });

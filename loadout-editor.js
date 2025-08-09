@@ -33,12 +33,17 @@ function buildTraitStats(trait = {}) {
         row.innerHTML = `
             <label>${stat.charAt(0).toUpperCase() + stat.slice(1)}</label>
             <input type="number" data-stat="${stat}" value="${existing.value || 0}">
-            <select data-stat-type="${stat}">
-                <option value="add">+</option>
-                <option value="sub">-</option>
-                <option value="mul">%</option>
-            </select>`;
-        row.querySelector('select').value = existing.type || 'add';
+            <div class="type-toggle">
+                <button type="button" class="type-btn${existing.type === 'mul' ? '' : ' active'}" data-type="add">Add</button>
+                <button type="button" class="type-btn${existing.type === 'mul' ? ' active' : ''}" data-type="mul">%</button>
+            </div>`;
+        const toggle = row.querySelector('.type-toggle');
+        toggle.querySelectorAll('.type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                toggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
         statsContainer.appendChild(row);
     });
 }
@@ -79,7 +84,8 @@ document.getElementById('trait-save-btn').addEventListener('click', () => {
         const stat = row.querySelector('input').dataset.stat;
         const value = parseInt(row.querySelector('input').value) || 0;
         if (value) {
-            const type = row.querySelector('select').value;
+            const typeBtn = row.querySelector('.type-btn.active');
+            const type = typeBtn ? typeBtn.dataset.type : 'add';
             stats.push({ stat, value, type });
         }
     });
