@@ -93,7 +93,7 @@ async function loadLoadoutData() {
 
     (data.traits || []).forEach(t => addTraitRow(t));
 
-    const imagePath = `app/characters/${characterName}/loadouts/${originalLoadoutName}.png`;
+    const imagePath = `app/characters/${characterName}/loadouts/${originalLoadoutName}/image.png`;
     const previewImg = document.getElementById('image-preview-img');
     previewImg.src = imagePath;
     previewImg.style.display = 'block';

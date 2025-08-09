@@ -5,6 +5,34 @@ let activeLoadout = urlParams.get('loadout');
 let currentProfileData = null;
 let inventory = [];
 
+function updateStatsDisplay() {
+    if (!currentProfileData) return;
+    const statsContainer = document.getElementById('profile-stats');
+    const inventoryMods = [];
+    inventory.forEach(item => {
+        (item.stats || []).forEach(mod => inventoryMods.push(mod));
+    });
+    const { finalStats, modifiers } = calculateFinalStats(currentProfileData.stats || {}, currentProfileData.traits || [], inventoryMods);
+    if (currentProfileData.showStats) {
+        statsContainer.style.display = 'block';
+        Object.keys(finalStats).forEach(key => {
+            const el = document.getElementById(`stat-${key}`);
+            if (el) {
+                const base = (currentProfileData.stats && currentProfileData.stats[key]) || 0;
+                const mod = modifiers[key] || 0;
+                if (mod) {
+                    const sign = mod > 0 ? '+' : '-';
+                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base} ${sign} ${Math.abs(mod)} = ${finalStats[key]}`;
+                } else {
+                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base}`;
+                }
+            }
+        });
+    } else {
+        statsContainer.style.display = 'none';
+    }
+}
+
 function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
     const finalStats = { ...baseStats };
     const modifiers = {};
@@ -61,33 +89,8 @@ function displayProfile(data, imagePath, loadoutName = null) {
         }
     });
 
-    const statsContainer = document.getElementById('profile-stats');
     const traitsContainer = document.getElementById('profile-traits');
     traitsContainer.innerHTML = '';
-
-    const inventoryMods = [];
-    (data.inventory || []).forEach(item => {
-        (item.stats || []).forEach(mod => inventoryMods.push(mod));
-    });
-    const { finalStats, modifiers } = calculateFinalStats(data.stats || {}, data.traits || [], inventoryMods);
-    if (data.showStats) {
-        statsContainer.style.display = 'block';
-        Object.keys(finalStats).forEach(key => {
-            const el = document.getElementById(`stat-${key}`);
-            if (el) {
-                const base = (data.stats && data.stats[key]) || 0;
-                const mod = modifiers[key] || 0;
-                if (mod) {
-                    const sign = mod > 0 ? '+' : '-';
-                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base} ${sign} ${Math.abs(mod)} = ${finalStats[key]}`;
-                } else {
-                    el.innerText = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${base}`;
-                }
-            }
-        });
-    } else {
-        statsContainer.style.display = 'none';
-    }
 
     (data.traits || []).forEach(t => {
         const p = document.createElement('p');
@@ -112,8 +115,8 @@ const editBtn = document.getElementById('edit-character-btn');
             window.location.href = `edit-character.html?character=${characterName}`;
         };
     }
-    inventory = data.inventory || [];
     renderInventory();
+	updateStatsDisplay();
 }
 
 function renderInventory() {
@@ -135,24 +138,22 @@ function renderInventory() {
         const left = document.createElement('button');
         left.className = 'move-left';
         left.textContent = '<';
-        left.addEventListener('click', (e) => {
+        left.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (index > 0) {
                 [inventory[index - 1], inventory[index]] = [inventory[index], inventory[index - 1]];
-                saveInventory();
-                renderInventory();
+                await saveInventory();
             }
         });
         tile.appendChild(left);
         const right = document.createElement('button');
         right.className = 'move-right';
         right.textContent = '>';
-        right.addEventListener('click', (e) => {
+        right.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (index < inventory.length - 1) {
                 [inventory[index + 1], inventory[index]] = [inventory[index], inventory[index + 1]];
-                saveInventory();
-                renderInventory();
+                await saveInventory();
             }
         });
         tile.appendChild(right);
@@ -224,10 +225,9 @@ function openItemInfo(index) {
     }
     document.getElementById('item-info-description').innerText = item.description || '';
     document.getElementById('item-edit-btn').onclick = () => { closeItemInfo(); openItemModal(index); };
-    document.getElementById('item-delete-btn').onclick = () => {
+    document.getElementById('item-delete-btn').onclick = async () => {
         inventory.splice(index,1);
-        saveInventory();
-        renderInventory();
+        await saveInventory();
         closeItemInfo();
     };
     modal.classList.remove('hidden');
@@ -238,7 +238,7 @@ function closeItemInfo() {
     modal.classList.add('hidden');
 }
 
-function handleItemFormSubmit(e) {
+async function handleItemFormSubmit(e) {
     e.preventDefault();
     const index = e.target.dataset.editIndex !== undefined ? parseInt(e.target.dataset.editIndex) : null;
     const item = {
@@ -258,38 +258,27 @@ function handleItemFormSubmit(e) {
         }
     });
     const file = document.getElementById('item-image').files[0];
-    const finalize = () => {
-        if (index !== null) {
-            item.image = item.image || (inventory[index] && inventory[index].image);
-            inventory[index] = item;
-        } else {
-            inventory.push(item);
-        }
-        saveInventory();
-        renderInventory();
-        closeItemModal();
-    };
     if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            item.image = reader.result;
-            finalize();
-        };
-        reader.readAsDataURL(file);
-    } else {
-        finalize();
+        item.tempImagePath = file.path;
+    } else if (index !== null) {
+        item.image = inventory[index].image;
     }
+    if (index !== null) {
+        inventory[index] = item;
+    } else {
+        inventory.push(item);
+    }
+    await saveInventory();
+    closeItemModal();
 }
 
 async function saveInventory() {
-    if (!currentProfileData) return;
-    currentProfileData.inventory = inventory;
+    const loadoutName = activeLoadout || 'default';
     try {
-        if (activeLoadout) {
-            await window.electron.updateLoadout(characterName, activeLoadout, currentProfileData, null);
-        } else {
-            await window.electron.updateCharacter(characterName, currentProfileData, null);
-        }
+        await window.electron.saveInventory(characterName, loadoutName, inventory);
+        inventory = await window.electron.getInventory(characterName, loadoutName);
+        renderInventory();
+        updateStatsDisplay();
     } catch (err) {
         console.error('Error saving inventory:', err);
     }
@@ -307,6 +296,7 @@ async function loadCharacterProfile() {
         console.error('Character data not found:', characterName);
         return;
     }
+    inventory = await window.electron.getInventory(characterName, 'default');
     const imagePath = `app/characters/${characterName}/${characterName}.png`;
     displayProfile(characterData, imagePath);
 }
@@ -318,8 +308,9 @@ async function loadLoadout(loadoutName) {
         console.error('Loadout data not found:', loadoutName);
         return;
     }
+    inventory = await window.electron.getInventory(characterName, loadoutName);
     activeLoadout = loadoutName;
-    const imagePath = `app/characters/${characterName}/loadouts/${loadoutName}.png`;
+    const imagePath = `app/characters/${characterName}/loadouts/${loadoutName}/image.png`;
     displayProfile(loadoutData, imagePath, loadoutName);
 }
 

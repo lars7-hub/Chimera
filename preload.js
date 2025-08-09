@@ -10,5 +10,7 @@ contextBridge.exposeInMainWorld('electron', {
 	getLoadouts: (characterName) => ipcRenderer.invoke('get-loadouts', characterName),
 	getLoadout: (characterName, loadoutName) => ipcRenderer.invoke('get-loadout', characterName, loadoutName),
 	createLoadout: (characterName, loadoutName) => ipcRenderer.invoke('create-loadout', characterName, loadoutName),
-	updateLoadout: (characterName, originalName, loadoutData, imagePath) => ipcRenderer.invoke('update-loadout', characterName, originalName, loadoutData, imagePath)
+	updateLoadout: (characterName, originalName, loadoutData, imagePath) => ipcRenderer.invoke('update-loadout', characterName, originalName, loadoutData, imagePath),
+	getInventory: (characterName, loadoutName) => ipcRenderer.invoke('get-inventory', characterName, loadoutName),
+    saveInventory: (characterName, loadoutName, items) => ipcRenderer.invoke('save-inventory', characterName, loadoutName, items)
 });

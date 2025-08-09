@@ -95,6 +95,11 @@ ipcMain.handle('create-character', (event, characterName, characterData, imagePa
         fs.mkdirSync(characterFolderPath);
         fs.mkdirSync(path.join(characterFolderPath, 'loadouts'));
     }
+    // Ensure default loadout inventory folder exists
+    const defaultInvPath = path.join(characterFolderPath, 'loadouts', 'default', 'inventory');
+    if (!fs.existsSync(defaultInvPath)) {
+        fs.mkdirSync(defaultInvPath, { recursive: true });
+    }
 
     // Save the character image
     const newImagePath = path.join(characterFolderPath, `${characterName}.png`);
@@ -139,6 +144,10 @@ ipcMain.handle('update-character', (event, originalName, characterData, imagePat
         }
     }
     fs.writeFileSync(newDataPath, JSON.stringify(characterData));
+    const defaultInvPath = path.join(newFolderPath, 'loadouts', 'default', 'inventory');
+    if (!fs.existsSync(defaultInvPath)) {
+        fs.mkdirSync(defaultInvPath, { recursive: true });
+    }
 
     return { success: true, message: 'Character updated successfully' };
 });
@@ -164,11 +173,14 @@ ipcMain.handle('get-loadouts', (event, characterName) => {
     try {
         const loadoutsPath = path.join(fileSystemPath, characterName, 'loadouts');
         if (fs.existsSync(loadoutsPath)) {
-            fs.readdirSync(loadoutsPath).forEach(file => {
-                if (file.endsWith('.json')) {
-                    const name = path.basename(file, '.json');
-                    const data = JSON.parse(fs.readFileSync(path.join(loadoutsPath, file), 'utf-8'));
-                    loadouts.push({ name, data });
+            fs.readdirSync(loadoutsPath).forEach(folder => {
+                const loadoutFolder = path.join(loadoutsPath, folder);
+                if (fs.lstatSync(loadoutFolder).isDirectory() && folder !== 'default') {
+                    const dataPath = path.join(loadoutFolder, 'data.json');
+                    if (fs.existsSync(dataPath)) {
+                        const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+                        loadouts.push({ name: folder, data });
+                    }
                 }
             });
         }
@@ -181,7 +193,7 @@ ipcMain.handle('get-loadouts', (event, characterName) => {
 // Get a specific loadout's data
 ipcMain.handle('get-loadout', (event, characterName, loadoutName) => {
     try {
-        const loadoutDataPath = path.join(fileSystemPath, characterName, 'loadouts', `${loadoutName}.json`);
+        const loadoutDataPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'data.json');
         if (fs.existsSync(loadoutDataPath)) {
             const loadoutData = JSON.parse(fs.readFileSync(loadoutDataPath, 'utf-8'));
             return loadoutData;
@@ -196,19 +208,18 @@ ipcMain.handle('get-loadout', (event, characterName, loadoutName) => {
 ipcMain.handle('create-loadout', (event, characterName, loadoutName) => {
     const loadoutsPath = path.join(fileSystemPath, characterName, 'loadouts');
     try {
-        if (!fs.existsSync(loadoutsPath)) {
-            fs.mkdirSync(loadoutsPath, { recursive: true });
-        }
-        const newDataPath = path.join(loadoutsPath, `${loadoutName}.json`);
-        if (fs.existsSync(newDataPath)) {
+        const newLoadoutFolder = path.join(loadoutsPath, loadoutName);
+        if (fs.existsSync(newLoadoutFolder)) {
             return { success: false, message: 'Loadout already exists' };
         }
+        fs.mkdirSync(path.join(newLoadoutFolder, 'inventory'), { recursive: true });
         const baseDataPath = path.join(fileSystemPath, characterName, `${characterName}.json`);
         const baseImagePath = path.join(fileSystemPath, characterName, `${characterName}.png`);
         const baseData = JSON.parse(fs.readFileSync(baseDataPath, 'utf-8'));
+        delete baseData.inventory;
         baseData.name = loadoutName;
-        fs.writeFileSync(newDataPath, JSON.stringify(baseData));
-        const newImagePath = path.join(loadoutsPath, `${loadoutName}.png`);
+        fs.writeFileSync(path.join(newLoadoutFolder, 'data.json'), JSON.stringify(baseData));
+        const newImagePath = path.join(newLoadoutFolder, 'image.png');
         if (fs.existsSync(baseImagePath)) {
             fs.copyFileSync(baseImagePath, newImagePath);
         }
@@ -224,29 +235,77 @@ ipcMain.handle('update-loadout', (event, characterName, originalName, loadoutDat
     const loadoutsPath = path.join(fileSystemPath, characterName, 'loadouts');
     const newName = loadoutData.name;
     try {
-        const originalDataPath = path.join(loadoutsPath, `${originalName}.json`);
-        const newDataPath = path.join(loadoutsPath, `${newName}.json`);
-
+        let loadoutFolder = path.join(loadoutsPath, originalName);
         if (newName !== originalName) {
-            if (fs.existsSync(originalDataPath)) {
-                fs.renameSync(originalDataPath, newDataPath);
+            const newFolder = path.join(loadoutsPath, newName);
+            if (fs.existsSync(loadoutFolder)) {
+                fs.renameSync(loadoutFolder, newFolder);
             }
-            const oldImagePath = path.join(loadoutsPath, `${originalName}.png`);
-            const newImageDest = path.join(loadoutsPath, `${newName}.png`);
-            if (fs.existsSync(oldImagePath)) {
-                fs.renameSync(oldImagePath, newImageDest);
-            }
+            loadoutFolder = newFolder;
         }
 
+        if (!fs.existsSync(loadoutFolder)) {
+            fs.mkdirSync(loadoutFolder, { recursive: true });
+        }
         if (imagePath) {
-            const imageDestination = path.join(loadoutsPath, `${newName}.png`);
+            const imageDestination = path.join(loadoutFolder, 'image.png');
             fs.copyFileSync(imagePath, imageDestination);
         }
 
-        fs.writeFileSync(path.join(loadoutsPath, `${newName}.json`), JSON.stringify(loadoutData));
+        fs.writeFileSync(path.join(loadoutFolder, 'data.json'), JSON.stringify(loadoutData));
         return { success: true };
     } catch (error) {
         console.error('Error updating loadout:', error);
         return { success: false, message: 'Error updating loadout' };
+    }
+});
+
+// Get inventory for a loadout
+ipcMain.handle('get-inventory', (event, characterName, loadoutName) => {
+    const items = [];
+    try {
+        const inventoryPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'inventory');
+        if (fs.existsSync(inventoryPath)) {
+            fs.readdirSync(inventoryPath).forEach(file => {
+                if (file.endsWith('.json')) {
+                    const base = path.basename(file, '.json');
+                    const data = JSON.parse(fs.readFileSync(path.join(inventoryPath, file), 'utf-8'));
+                    const imgPath = path.join(inventoryPath, `${base}.png`);
+                    if (fs.existsSync(imgPath)) {
+                        data.image = pathToFileURL(imgPath).href;
+                    }
+                    items.push(data);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error reading inventory:', error);
+    }
+    return items;
+});
+
+// Save inventory for a loadout
+ipcMain.handle('save-inventory', (event, characterName, loadoutName, items) => {
+    try {
+        const inventoryPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'inventory');
+        fs.rmSync(inventoryPath, { recursive: true, force: true });
+        fs.mkdirSync(inventoryPath, { recursive: true });
+        items.forEach((item, index) => {
+            const base = `item${index}`;
+            const data = { ...item };
+            const tempImage = data.tempImagePath;
+            delete data.tempImagePath;
+            delete data.image;
+            fs.writeFileSync(path.join(inventoryPath, `${base}.json`), JSON.stringify(data));
+            const destImage = path.join(inventoryPath, `${base}.png`);
+            const srcImage = tempImage || (item.image ? new URL(item.image).pathname : null);
+            if (srcImage && fs.existsSync(srcImage)) {
+                fs.copyFileSync(srcImage, destImage);
+            }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving inventory:', error);
+        return { success: false, message: 'Error saving inventory' };
     }
 });
