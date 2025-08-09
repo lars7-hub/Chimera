@@ -1,49 +1,105 @@
 let selectedImagePath = null;
-let baseCharacter = null;
-
-const urlParams = new URLSearchParams(window.location.search);
-const characterName = urlParams.get('character');
-const originalLoadoutName = urlParams.get('loadout');
+let traitsData = [];
+let editingTraitIndex = null;
+const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
 
 const cropCheckbox = document.getElementById('crop-image');
 const showStatsCheckbox = document.getElementById('show-stats');
-const traitsContainer = document.getElementById('traits-container');
-const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
 
-function addTraitRow(trait = {}) {
-    const row = document.createElement('div');
-    row.className = 'trait-row';
-    const statsRows = statsList.map(stat => {
-        const existing = (trait.stats || []).find(s => s.stat === stat) || {};
-        const type = existing.type || 'add';
-        const value = existing.value || 0;
-        return `<tr>
-            <td>${stat.charAt(0).toUpperCase() + stat.slice(1)}</td>
-            <td><input type="number" class="trait-stat-value" data-stat="${stat}" value="${value}"></td>
-            <td>
-                <select class="trait-stat-type" data-stat="${stat}">
-                    <option value="add"${type === 'add' ? ' selected' : ''}>+</option>
-                    <option value="sub"${type === 'sub' ? ' selected' : ''}>-</option>
-                    <option value="mul"${type === 'mul' ? ' selected' : ''}>%</option>
-                </select>
-            </td>
-        </tr>`;
-    }).join('');
-
-    row.innerHTML = `
-        <input type="text" class="trait-text" placeholder="Trait description" value="${trait.text || ''}">
-        <table class="trait-stats-table">
-            <thead><tr><th>Stat</th><th>Value</th><th>Type</th></tr></thead>
-            <tbody>${statsRows}</tbody>
-        </table>
-        <input type="color" class="trait-color" value="${trait.color || '#ffffff'}">
-        <button type="button" class="remove-trait-btn">Remove</button>
-    `;
-    traitsContainer.appendChild(row);
-    row.querySelector('.remove-trait-btn').addEventListener('click', () => row.remove());
+function renderTraits() {
+    const list = document.getElementById('traits-list');
+    list.innerHTML = '';
+    traitsData.forEach((t, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'trait-btn';
+        btn.textContent = t.text || `Trait ${i + 1}`;
+        btn.addEventListener('click', () => openTraitModal(i));
+        list.appendChild(btn);
+    });
+    const newBtn = document.createElement('button');
+    newBtn.className = 'trait-btn';
+    newBtn.textContent = 'New Trait';
+    newBtn.addEventListener('click', () => openTraitModal());
+    list.appendChild(newBtn);
 }
 
-document.getElementById('add-trait-btn').addEventListener('click', () => addTraitRow());
+function buildTraitStats(trait = {}) {
+    const statsContainer = document.getElementById('trait-stats');
+    statsContainer.innerHTML = '';
+    statsList.forEach(stat => {
+        const row = document.createElement('div');
+        row.className = 'trait-stat-row';
+        const existing = (trait.stats || []).find(s => s.stat === stat) || {};
+        row.innerHTML = `
+            <label>${stat.charAt(0).toUpperCase() + stat.slice(1)}</label>
+            <input type="number" data-stat="${stat}" value="${existing.value || 0}">
+            <select data-stat-type="${stat}">
+                <option value="add">+</option>
+                <option value="sub">-</option>
+                <option value="mul">%</option>
+            </select>`;
+        row.querySelector('select').value = existing.type || 'add';
+        statsContainer.appendChild(row);
+    });
+}
+
+function openTraitModal(index = null) {
+    editingTraitIndex = index;
+    const modal = document.getElementById('trait-modal');
+    const title = document.getElementById('trait-modal-title');
+    const delBtn = document.getElementById('trait-delete-btn');
+    if (index === null) {
+        title.textContent = 'New Trait';
+        document.getElementById('trait-text').value = '';
+        document.getElementById('trait-color').value = '#ffffff';
+        delBtn.style.display = 'none';
+        buildTraitStats();
+    } else {
+        const trait = traitsData[index];
+        title.textContent = 'Edit Trait';
+        document.getElementById('trait-text').value = trait.text || '';
+        document.getElementById('trait-color').value = trait.color || '#ffffff';
+        delBtn.style.display = 'block';
+        buildTraitStats(trait);
+    }
+    modal.classList.remove('hidden');
+}
+
+function closeTraitModal() {
+    document.getElementById('trait-modal').classList.add('hidden');
+}
+
+document.getElementById('trait-modal-close').addEventListener('click', closeTraitModal);
+
+document.getElementById('trait-save-btn').addEventListener('click', () => {
+    const text = document.getElementById('trait-text').value;
+    const color = document.getElementById('trait-color').value;
+    const stats = [];
+    document.querySelectorAll('#trait-stats .trait-stat-row').forEach(row => {
+        const stat = row.querySelector('input').dataset.stat;
+        const value = parseInt(row.querySelector('input').value) || 0;
+        if (value) {
+            const type = row.querySelector('select').value;
+            stats.push({ stat, value, type });
+        }
+    });
+    const trait = { text, color, stats };
+    if (editingTraitIndex === null) {
+        traitsData.push(trait);
+    } else {
+        traitsData[editingTraitIndex] = trait;
+    }
+    closeTraitModal();
+    renderTraits();
+});
+
+document.getElementById('trait-delete-btn').addEventListener('click', () => {
+    if (editingTraitIndex !== null) {
+        traitsData.splice(editingTraitIndex, 1);
+        renderTraits();
+    }
+    closeTraitModal();
+});
 
 function updatePreviewFit() {
     const previewImg = document.getElementById('image-preview-img');
@@ -52,47 +108,27 @@ function updatePreviewFit() {
     }
 }
 
-function setupDefaultButtons() {
-    const fields = ['age','gender','height','build','occupation','alignment','race','affiliation','origin','goal','description'];
-    fields.forEach(f => {
-        const btn = document.getElementById(`${f}-default`);
-        if (btn) {
-            btn.addEventListener('click', () => {
-                document.getElementById(f).value = baseCharacter?.[f] || '';
-            });
-        }
-    });
-    const stats = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
-    stats.forEach(s => {
-        const btn = document.getElementById(`stat-${s}-default`);
-        if (btn) {
-            btn.addEventListener('click', () => {
-                document.getElementById(`stat-${s}`).value = baseCharacter?.stats?.[s] || 0;
-            });
-        }
-    });
-}
+const urlParams = new URLSearchParams(window.location.search);
+const characterName = urlParams.get('character');
+const originalLoadoutName = urlParams.get('loadout');
 
 async function loadLoadoutData() {
-    baseCharacter = await window.electron.getCharacter(characterName);
     const data = await window.electron.getLoadout(characterName, originalLoadoutName);
     if (!data) {
         console.error('Loadout data not found:', originalLoadoutName);
         return;
     }
-
     document.getElementById('name').value = data.name || '';
     document.getElementById('age').value = data.age || '';
     document.getElementById('gender').value = data.gender || '';
     document.getElementById('height').value = data.height || '';
     document.getElementById('build').value = data.build || '';
-	document.getElementById('occupation').value = data.occupation || '';
+    document.getElementById('occupation').value = data.occupation || '';
     document.getElementById('alignment').value = data.alignment || '';
     document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
-	showStatsCheckbox.checked = data.showStats !== false;
-
+    showStatsCheckbox.checked = data.showStats !== false;
     document.getElementById('stat-strength').value = data.stats?.strength || 0;
     document.getElementById('stat-dexterity').value = data.stats?.dexterity || 0;
     document.getElementById('stat-constitution').value = data.stats?.constitution || 0;
@@ -100,15 +136,13 @@ async function loadLoadoutData() {
     document.getElementById('stat-intelligence').value = data.stats?.intelligence || 0;
     document.getElementById('stat-charisma').value = data.stats?.charisma || 0;
     document.getElementById('stat-fortitude').value = data.stats?.fortitude || 0;
-
-    (data.traits || []).forEach(t => addTraitRow(t));
-
+    traitsData = data.traits || [];
+    renderTraits();
     const imagePath = `app/characters/${characterName}/loadouts/${originalLoadoutName}/image.png`;
     const previewImg = document.getElementById('image-preview-img');
     previewImg.src = imagePath;
     previewImg.style.display = 'block';
     updatePreviewFit();
-	setupDefaultButtons();
 }
 
 document.getElementById('image-upload-btn').addEventListener('click', async () => {
@@ -130,14 +164,13 @@ document.getElementById('save-btn').addEventListener('click', async () => {
         alert('Loadout name is required.');
         return;
     }
-
     const loadoutData = {
         name,
         age: document.getElementById('age').value,
         gender: document.getElementById('gender').value,
         height: document.getElementById('height').value,
         build: document.getElementById('build').value,
-		occupation: document.getElementById('occupation').value,
+        occupation: document.getElementById('occupation').value,
         alignment: document.getElementById('alignment').value,
         race: document.getElementById('race').value,
         description: document.getElementById('description').value,
@@ -150,30 +183,32 @@ document.getElementById('save-btn').addEventListener('click', async () => {
             charisma: parseInt(document.getElementById('stat-charisma').value) || 0,
             fortitude: parseInt(document.getElementById('stat-fortitude').value) || 0,
         },
-        traits: Array.from(traitsContainer.querySelectorAll('.trait-row')).map(row => {
-            const stats = [];
-            statsList.forEach(stat => {
-                const val = parseInt(row.querySelector(`.trait-stat-value[data-stat="${stat}"]`).value) || 0;
-                if (val) {
-                    const type = row.querySelector(`.trait-stat-type[data-stat="${stat}"]`).value;
-                    stats.push({ stat, value: val, type });
-                }
-            });
-            return {
-                text: row.querySelector('.trait-text').value,
-                stats,
-                color: row.querySelector('.trait-color').value,
-            };
-        }),
+        traits: traitsData,
         showStats: showStatsCheckbox.checked,
         imageFit: cropCheckbox.checked ? 'crop' : 'squish'
     };
-
     const result = await window.electron.updateLoadout(characterName, originalLoadoutName, loadoutData, selectedImagePath);
     if (result && result.success) {
         window.location.href = `profile.html?character=${characterName}&loadout=${name}`;
     } else {
         alert(result.message || 'Error saving loadout');
+    }
+});
+
+// Cancel and delete buttons
+
+document.getElementById('cancel-btn').addEventListener('click', () => {
+    window.location.href = `profile.html?character=${characterName}&loadout=${originalLoadoutName}`;
+});
+
+document.getElementById('delete-btn').addEventListener('click', async () => {
+    if (confirm('Delete this loadout?')) {
+        const result = await window.electron.deleteLoadout(characterName, originalLoadoutName);
+        if (result && result.success) {
+            window.location.href = `profile.html?character=${characterName}`;
+        } else if (result && result.message) {
+            alert(result.message);
+        }
     }
 });
 

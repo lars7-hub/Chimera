@@ -1,45 +1,105 @@
-// edit-character.js
-
 let selectedImagePath = null;
-const cropCheckbox = document.getElementById('crop-image');
-const showStatsCheckbox = document.getElementById('show-stats');
-const traitsContainer = document.getElementById('traits-container');
+let traitsData = [];
+let editingTraitIndex = null;
 const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
 
-function addTraitRow(trait = {}) {
-    const row = document.createElement('div');
-    row.className = 'trait-row';
-    const statsRows = statsList.map(stat => {
-        const existing = (trait.stats || []).find(s => s.stat === stat) || {};
-        const type = existing.type || 'add';
-        const value = existing.value || 0;
-        return `<tr>
-            <td>${stat.charAt(0).toUpperCase() + stat.slice(1)}</td>
-            <td><input type="number" class="trait-stat-value" data-stat="${stat}" value="${value}"></td>
-            <td>
-                <select class="trait-stat-type" data-stat="${stat}">
-                    <option value="add"${type === 'add' ? ' selected' : ''}>+</option>
-                    <option value="sub"${type === 'sub' ? ' selected' : ''}>-</option>
-                    <option value="mul"${type === 'mul' ? ' selected' : ''}>%</option>
-                </select>
-            </td>
-        </tr>`;
-    }).join('');
+const cropCheckbox = document.getElementById('crop-image');
+const showStatsCheckbox = document.getElementById('show-stats');
 
-    row.innerHTML = `
-        <input type="text" class="trait-text" placeholder="Trait description" value="${trait.text || ''}">
-        <table class="trait-stats-table">
-            <thead><tr><th>Stat</th><th>Value</th><th>Type</th></tr></thead>
-            <tbody>${statsRows}</tbody>
-        </table>
-        <input type="color" class="trait-color" value="${trait.color || '#ffffff'}">
-        <button type="button" class="remove-trait-btn">Remove</button>
-    `;
-    traitsContainer.appendChild(row);
-    row.querySelector('.remove-trait-btn').addEventListener('click', () => row.remove());
+function renderTraits() {
+    const list = document.getElementById('traits-list');
+    list.innerHTML = '';
+    traitsData.forEach((t, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'trait-btn';
+        btn.textContent = t.text || `Trait ${i + 1}`;
+        btn.addEventListener('click', () => openTraitModal(i));
+        list.appendChild(btn);
+    });
+    const newBtn = document.createElement('button');
+    newBtn.className = 'trait-btn';
+    newBtn.textContent = 'New Trait';
+    newBtn.addEventListener('click', () => openTraitModal());
+    list.appendChild(newBtn);
 }
 
-document.getElementById('add-trait-btn').addEventListener('click', () => addTraitRow());
+function buildTraitStats(trait = {}) {
+    const statsContainer = document.getElementById('trait-stats');
+    statsContainer.innerHTML = '';
+    statsList.forEach(stat => {
+        const row = document.createElement('div');
+        row.className = 'trait-stat-row';
+        const existing = (trait.stats || []).find(s => s.stat === stat) || {};
+        row.innerHTML = `
+            <label>${stat.charAt(0).toUpperCase() + stat.slice(1)}</label>
+            <input type="number" data-stat="${stat}" value="${existing.value || 0}">
+            <select data-stat-type="${stat}">
+                <option value="add">+</option>
+                <option value="sub">-</option>
+                <option value="mul">%</option>
+            </select>`;
+        row.querySelector('select').value = existing.type || 'add';
+        statsContainer.appendChild(row);
+    });
+}
+
+function openTraitModal(index = null) {
+    editingTraitIndex = index;
+    const modal = document.getElementById('trait-modal');
+    const title = document.getElementById('trait-modal-title');
+    const delBtn = document.getElementById('trait-delete-btn');
+    if (index === null) {
+        title.textContent = 'New Trait';
+        document.getElementById('trait-text').value = '';
+        document.getElementById('trait-color').value = '#ffffff';
+        delBtn.style.display = 'none';
+        buildTraitStats();
+    } else {
+        const trait = traitsData[index];
+        title.textContent = 'Edit Trait';
+        document.getElementById('trait-text').value = trait.text || '';
+        document.getElementById('trait-color').value = trait.color || '#ffffff';
+        delBtn.style.display = 'block';
+        buildTraitStats(trait);
+    }
+    modal.classList.remove('hidden');
+}
+
+function closeTraitModal() {
+    document.getElementById('trait-modal').classList.add('hidden');
+}
+
+document.getElementById('trait-modal-close').addEventListener('click', closeTraitModal);
+
+document.getElementById('trait-save-btn').addEventListener('click', () => {
+    const text = document.getElementById('trait-text').value;
+    const color = document.getElementById('trait-color').value;
+    const stats = [];
+    document.querySelectorAll('#trait-stats .trait-stat-row').forEach(row => {
+        const stat = row.querySelector('input').dataset.stat;
+        const value = parseInt(row.querySelector('input').value) || 0;
+        if (value) {
+            const type = row.querySelector('select').value;
+            stats.push({ stat, value, type });
+        }
+    });
+    const trait = { text, color, stats };
+    if (editingTraitIndex === null) {
+        traitsData.push(trait);
+    } else {
+        traitsData[editingTraitIndex] = trait;
+    }
+    closeTraitModal();
+    renderTraits();
+});
+
+document.getElementById('trait-delete-btn').addEventListener('click', () => {
+    if (editingTraitIndex !== null) {
+        traitsData.splice(editingTraitIndex, 1);
+        renderTraits();
+    }
+    closeTraitModal();
+});
 
 function updatePreviewFit() {
     const previewImg = document.getElementById('image-preview-img');
@@ -48,18 +108,15 @@ function updatePreviewFit() {
     }
 }
 
-// Extract original character name from URL
 const urlParams = new URLSearchParams(window.location.search);
 const originalName = urlParams.get('character');
 
-// Load existing character data and populate form
 async function loadCharacter() {
     const data = await window.electron.getCharacter(originalName);
     if (!data) {
         console.error('Character data not found:', originalName);
         return;
     }
-
     document.getElementById('name').value = data.name || '';
     document.getElementById('age').value = data.age || '';
     document.getElementById('gender').value = data.gender || '';
@@ -70,16 +127,16 @@ async function loadCharacter() {
     document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
-	document.getElementById('stat-strength').value = data.stats?.strength || 0;
+    showStatsCheckbox.checked = data.showStats !== false;
+    document.getElementById('stat-strength').value = data.stats?.strength || 0;
     document.getElementById('stat-dexterity').value = data.stats?.dexterity || 0;
     document.getElementById('stat-constitution').value = data.stats?.constitution || 0;
     document.getElementById('stat-endurance').value = data.stats?.endurance || 0;
     document.getElementById('stat-intelligence').value = data.stats?.intelligence || 0;
     document.getElementById('stat-charisma').value = data.stats?.charisma || 0;
     document.getElementById('stat-fortitude').value = data.stats?.fortitude || 0;
-
-    (data.traits || []).forEach(t => addTraitRow(t));
-
+    traitsData = data.traits || [];
+    renderTraits();
     const previewImg = document.getElementById('image-preview-img');
     const imagePath = `app/characters/${originalName}/${originalName}.png`;
     previewImg.src = imagePath;
@@ -87,9 +144,7 @@ async function loadCharacter() {
     updatePreviewFit();
 }
 
-// Image upload button event
-const uploadBtn = document.getElementById('image-upload-btn');
-uploadBtn.addEventListener('click', async () => {
+document.getElementById('image-upload-btn').addEventListener('click', async () => {
     const imagePath = await window.electron.openFileDialog();
     if (imagePath) {
         selectedImagePath = imagePath;
@@ -102,15 +157,12 @@ uploadBtn.addEventListener('click', async () => {
 
 cropCheckbox.addEventListener('change', updatePreviewFit);
 
-// Save changes
-const saveBtn = document.getElementById('save-btn');
-saveBtn.addEventListener('click', async () => {
+document.getElementById('save-btn').addEventListener('click', async () => {
     const name = document.getElementById('name').value.trim();
     if (!name) {
         alert('Character name is required.');
         return;
     }
-
     const characterData = {
         name,
         age: document.getElementById('age').value,
@@ -130,25 +182,10 @@ saveBtn.addEventListener('click', async () => {
             charisma: parseInt(document.getElementById('stat-charisma').value) || 0,
             fortitude: parseInt(document.getElementById('stat-fortitude').value) || 0,
         },
-        traits: Array.from(traitsContainer.querySelectorAll('.trait-row')).map(row => {
-            const stats = [];
-            statsList.forEach(stat => {
-                const val = parseInt(row.querySelector(`.trait-stat-value[data-stat="${stat}"]`).value) || 0;
-                if (val) {
-                    const type = row.querySelector(`.trait-stat-type[data-stat="${stat}"]`).value;
-                    stats.push({ stat, value: val, type });
-                }
-            });
-            return {
-                text: row.querySelector('.trait-text').value,
-                stats,
-                color: row.querySelector('.trait-color').value,
-            };
-        }),
+        traits: traitsData,
         showStats: showStatsCheckbox.checked,
         imageFit: cropCheckbox.checked ? 'crop' : 'squish'
     };
-
     try {
         const result = await window.electron.updateCharacter(originalName, characterData, selectedImagePath);
         if (result && result.success) {
@@ -161,15 +198,11 @@ saveBtn.addEventListener('click', async () => {
     }
 });
 
-// Cancel editing
-const cancelBtn = document.getElementById('cancel-btn');
-cancelBtn.addEventListener('click', () => {
+document.getElementById('cancel-btn').addEventListener('click', () => {
     window.location.href = `profile.html?character=${originalName}`;
 });
 
-// Delete character
-const deleteBtn = document.getElementById('delete-btn');
-deleteBtn.addEventListener('click', async () => {
+document.getElementById('delete-btn').addEventListener('click', async () => {
     if (confirm('Are you sure you want to delete this character? This action cannot be undone.')) {
         try {
             const result = await window.electron.deleteCharacter(originalName);
@@ -184,7 +217,6 @@ deleteBtn.addEventListener('click', async () => {
     }
 });
 
-// Home button
 document.getElementById('home-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
 });

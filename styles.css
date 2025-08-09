@@ -3,7 +3,7 @@ body {
     background-color: #553159;
     color: white;
     margin: 0;
-    min-height: 120vh;
+    min-height: 100vh;
     overflow-y: auto;
 }
 
@@ -86,7 +86,7 @@ button {
     font-size: 16px;
     cursor: pointer;
     border-radius: 5px;
-    width: 100%;
+    width: 80%;
 }
 
 button:hover {
@@ -277,37 +277,40 @@ button:hover {
 	align-items: center;
 }
 
+#loadout-sidebar button,
+#loadout-list .loadout-item {
+	background-color: #444;
+	border: none;
+	color: white;
+	padding: 10px;
+	font-size: 16px;
+	cursor: pointer;
+	border-radius: 5px;
+	width: 80%;
+	margin: 0 auto 15px;
+	text-align: center;
+}
+
 #loadout-list {
 	flex: 1;
 	overflow-y: auto;
 	width: 100%;
 }
 
-.loadout-item {
-	background-color: #444;
-	padding: 10px;
-	margin-bottom: 10px;
-	border-radius: 5px;
-	cursor: pointer;
-	text-align: center;
-}
-
-.loadout-item:hover {
+.loadout-item:hover,
+#loadout-sidebar button:hover {
 	background-color: #666;
 }
 
 #loadout-buttons {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	width: 80%;
+	align-items: center;
+	width: 100%;
 }
 
 #loadout-buttons button {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-	width: 100%;
+	width: 80%;
 }
 
 .delete-btn {
@@ -590,4 +593,73 @@ button:hover {
 	height: 25px;
 	object-fit: fill;
 	margin-right: 4px;
+}
+
+/* Editor layout stuff*/
+
+#editor-container {
+	margin-left: 7.4%;
+	margin-right: 7.4%;
+	width: 85%;
+	box-sizing: border-box;
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 10px;
+}
+
+.editor-top, .editor-bottom {
+	display: flex;
+	flex: 1;
+	gap: 10px;
+}
+
+.editor-section {
+	background-color: #444;
+	padding: 10px;
+	border-radius: 5px;
+	flex: 1;
+	overflow: auto;
+}
+
+.image-section {
+	flex-basis: 20%;
+}
+
+.traits-section {
+	flex-basis: 60%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.actions-section {
+	flex-basis: 20%;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.trait-btn {
+	background-color: #555;
+	border: none;
+	color: white;
+	padding: 10px;
+	margin-bottom: 10px;
+	border-radius: 5px;
+	cursor: pointer;
+	width: 100%;
+	text-align: left;
+}
+
+.trait-btn:hover {
+	background-color: #666;
+}
+
+#trait-stats .trait-stat-row {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 5px;
 }

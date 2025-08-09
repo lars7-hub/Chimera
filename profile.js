@@ -177,10 +177,19 @@ function displayProfile(data, imagePath, loadoutName = null) {
     document.getElementById('profile-image').innerHTML =
         `<img src="${imagePath}" alt="${data.name}" style="width:100%;height:100%;object-fit:${fit};">`;
 
-    document.getElementById('edit-loadout-btn').disabled = !loadoutName;
-    renderInventory();
-    updateStatsDisplay();
+	const editLoadoutBtn = document.getElementById('edit-loadout-btn');
+	const editCharacterBtn = document.getElementById('edit-character-btn');
+	if (loadoutName) {
+		editLoadoutBtn.style.display = 'block'; //this makes it so only one or the other button will Display
+		editCharacterBtn.style.display = 'none'; //depending the page you are on
+	} else {
+		editLoadoutBtn.style.display = 'none'; //this makes it so only one or the other button will Display
+		editCharacterBtn.style.display = 'block'; //depending the page you are on
+	}
+	renderInventory();
+	updateStatsDisplay();
 }
+
 
 function renderInventory() {
     const grid = document.getElementById('inventory-grid');
@@ -191,7 +200,7 @@ function renderInventory() {
         tile.className = 'inventory-tile';
         if (item.image) {
             const img = document.createElement('img');
-            img.src = item.image;
+            img.src = `${item.image}?cb=${Date.now()}`;
             tile.appendChild(img);
         } else {
             const span = document.createElement('span');
@@ -205,6 +214,7 @@ function renderInventory() {
             e.stopPropagation();
             if (index > 0) {
                 [inventory[index - 1], inventory[index]] = [inventory[index], inventory[index - 1]];
+				renderInventory();
                 await saveInventory();
             }
         });
@@ -216,6 +226,7 @@ function renderInventory() {
             e.stopPropagation();
             if (index < inventory.length - 1) {
                 [inventory[index + 1], inventory[index]] = [inventory[index], inventory[index + 1]];
+				renderInventory();
                 await saveInventory();
             }
         });
