@@ -18,8 +18,14 @@ function updateStatsDisplay() {
     if (!currentProfileData) return;
     const statsContainer = document.getElementById('profile-stats');
     const inventoryMods = [];
-    inventory.forEach(item => {
-        (item.stats || []).forEach(mod => inventoryMods.push(mod));
+   inventory.forEach(item => {
+        (item.stats || []).forEach(mod => {
+            const m = { ...mod };
+            if (item.stackable && item.quantityMultiplier) {
+                m.value = m.value * item.quantity;
+            }
+            inventoryMods.push(m);
+        });
     });
     const { finalStats, modifiers } = calculateFinalStats(currentProfileData.stats || {}, currentProfileData.traits || [], inventoryMods);
     const tableBody = document.querySelector('#stats-table tbody');
@@ -235,6 +241,7 @@ function openItemModal(index = null) {
     const modal = document.getElementById('item-modal');
     const form = document.getElementById('item-form');
     form.reset();
+    document.getElementById('item-quantity-multiplier').checked = false;
     document.getElementById('item-modal-title').innerText = index === null ? 'Create Item' : 'Edit Item';
     const statsContainer = document.getElementById('item-stats');
     statsContainer.innerHTML = '';
@@ -263,6 +270,7 @@ function openItemModal(index = null) {
         document.getElementById('item-stackable').checked = item.stackable || false;
         document.getElementById('item-maxstack').value = item.maxStack || 0;
         document.getElementById('item-quantity').value = item.quantity || 0;
+        document.getElementById('item-quantity-multiplier').checked = item.quantityMultiplier || false;
         document.getElementById('item-value').value = item.value || 0;
         (item.stats || []).forEach(sm => {
             const row = statsContainer.querySelector(`[data-stat="${sm.stat}"]`);
@@ -296,6 +304,9 @@ function openItemInfo(index) {
     const modal = document.getElementById('item-info-modal');
 	const nameEl = document.getElementById('item-info-name');
 	nameEl.innerText = item.name;
+    if (item.stackable) {
+        nameEl.innerText += ` (x${item.quantity})`;
+    }
 	
 	const rarityColors = {
 		common: '#D1D1D1',
@@ -337,7 +348,13 @@ function openItemInfo(index) {
         statContainer.appendChild(chip);
     });
     document.getElementById('item-info-description').innerText = item.description || '';
-    document.getElementById('item-info-value-text').innerText = formatCurrency(item.value);
+    const valueText = document.getElementById('item-info-value-text');
+    if (item.stackable) {
+        const total = item.value * item.quantity;
+        valueText.innerText = `Base: ${formatCurrency(item.value)} | Total: ${formatCurrency(total)}`;
+    } else {
+        valueText.innerText = formatCurrency(item.value);
+    }
     document.getElementById('item-edit-btn').onclick = () => { closeItemInfo(); openItemModal(index); };
     document.getElementById('item-delete-btn').onclick = async () => {
         inventory.splice(index,1);
@@ -387,9 +404,10 @@ async function handleItemFormSubmit(e) {
         name: document.getElementById('item-name').value.trim(),
         rarity: document.getElementById('item-rarity').value,
         description: document.getElementById('item-description').value,
-        stackable: document.getElementById('item-stackable').checked,
+         stackable: document.getElementById('item-stackable').checked,
         maxStack: parseInt(document.getElementById('item-maxstack').value) || 0,
         quantity: parseInt(document.getElementById('item-quantity').value) || 0,
+        quantityMultiplier: document.getElementById('item-quantity-multiplier').checked,
         value: parseFloat(document.getElementById('item-value').value) || 0,
         stats: []
     };

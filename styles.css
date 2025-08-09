@@ -109,6 +109,11 @@ button:hover {
     margin-top: 5px;
 }
 
+.stat-desc {
+    font-size: 12px;
+    color: #ccc;
+}
+
 .trait-row {
     display: flex;
 	flex-direction: column;

@@ -16,7 +16,7 @@ function addTraitRow(trait = {}) {
 	const stat = (trait.stats && trait.stats[0] && trait.stats[0].stat) || '';
 	const value = (trait.stats && trait.stats[0] && trait.stats[0].value) || 0;	
     row.innerHTML = `
-        <input type="text" class="trait-text" placeholder="Trait description" value="${trait.text || ''}">
+        <label>Trait name: <input type="text" class="trait-text" placeholder="Trait description" value="${trait.text || ''}"></label>
         <select class="trait-stat">
             <option value="">Stat</option>
             <option value="strength"${stat === 'strength' ? ' selected' : ''}>Strength</option>
