@@ -18,7 +18,6 @@
                 <div id="profile-details">
                     <h2 id="character-name"></h2>
                     <ul id="core-info-list"></ul>
-                    <button id="edit-character-btn">Edit Character</button>
                 </div>
                 <div id="profile-stats" style="display: none;">
                     <h3 id="stats-title">Stats</h3>
@@ -39,64 +38,67 @@
                 <p id="character-description"></p>
                 <div id="profile-traits"></div>
             </div>
-			<div id="inventory-section">
-                  <h3>Inventory</h3>
-                  <div id="inventory-grid"></div>
+            <div id="inventory-section">
+                <h3>Inventory</h3>
+                <div id="inventory-grid"></div>
             </div>
         </div>
-                <div id="loadout-sidebar">
-                        <div id="loadout-list"></div>
-                        <div id="add-loadout-container">
-                                <input type="text" id="new-loadout-name" placeholder="New Loadout">
-				<button id="add-loadout-btn">Add</button>
-			</div>
-		</div>
-	</div>
-
-        <div id="item-modal" class="modal hidden">
-            <div class="modal-content">
-                <span id="item-modal-close" class="close">&times;</span>
-                <h3 id="item-modal-title">Create Item</h3>
-                <form id="item-form">
-                    <label>Item Name<input type="text" id="item-name"></label>
-                    <label>Item Rarity
-                        <select id="item-rarity">
-                            <option value="common">Common</option>
-                            <option value="uncommon">Uncommon</option>
-                            <option value="rare">Rare</option>
-                            <option value="epic">Epic</option>
-                            <option value="legendary">Legendary</option>
-                        </select>
-                    </label>
-                    <label>Item Description<textarea id="item-description"></textarea></label>
-                    <label><input type="checkbox" id="item-stackable"> Stackable</label>
-                    <label>Maximum stackable quantity<input type="number" id="item-maxstack"></label>
-                    <label>Quantity of item<input type="number" id="item-quantity"></label>
-                    <label>Item Value<input type="number" id="item-value"></label>
-                    <h4>Stats Affected</h4>
-                    <div id="item-stats"></div>
-                    <label>Item Icon<input type="file" id="item-image" accept="image/*"></label>
-                    <button type="submit">Save</button>
-                </form>
+        <div id="loadout-sidebar">
+            <button id="edit-character-btn">Edit Character</button>
+            <div id="loadout-list"></div>
+            <div id="loadout-buttons">
+                <button id="edit-loadout-btn">Edit Loadout</button>
+                <button id="new-loadout-btn">New Loadout</button>
+                <button id="delete-loadout-btn" class="delete-btn">Delete Loadout</button>
             </div>
         </div>
+    </div>
 
-        <div id="item-info-modal" class="modal hidden">
-            <div class="modal-content">
-                <span id="item-info-close" class="close">&times;</span>
-                <h3 id="item-info-name" class=name-tag></h3>
-				<div id="item-info-rarity" class="rarity-tag"></div>
-                <img id="item-info-image" alt="">
-                <p id="item-info-description"></p>
-				<div id="item-info-value" class="item-value">
-					<img src="resources/ui/coin.png" alt="coin">
-					<span id="item-info-value-text"></span>
-				</div>
-                <button id="item-edit-btn">Edit</button>
-                <button id="item-delete-btn">Delete</button>
-            </div>
+    <div id="item-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="item-modal-close" class="close">&times;</span>
+            <h3 id="item-modal-title">Create Item</h3>
+            <form id="item-form">
+                <label>Item Name<input type="text" id="item-name"></label>
+                <label>Item Rarity
+                    <select id="item-rarity">
+                        <option value="common">Common</option>
+                        <option value="uncommon">Uncommon</option>
+                        <option value="rare">Rare</option>
+                        <option value="epic">Epic</option>
+                        <option value="legendary">Legendary</option>
+                    </select>
+                </label>
+                <label>Item Description<textarea id="item-description"></textarea></label>
+                <label><input type="checkbox" id="item-stackable"> Stackable</label>
+                <label>Maximum stackable quantity<input type="number" id="item-maxstack"></label>
+                <label>Quantity of item<input type="number" id="item-quantity"></label>
+                <label>Item Value<input type="number" id="item-value"></label>
+                <h4>Stats Affected</h4>
+                <div id="item-stats"></div>
+                <label>Item Icon<input type="file" id="item-image" accept="image/*"></label>
+                <button type="submit">Save</button>
+            </form>
         </div>
+    </div>
 
-          <script src="profile.js"></script>
- </body>
- </html>
+    <div id="item-info-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="item-info-close" class="close">&times;</span>
+            <h3 id="item-info-name" class="name-tag"></h3>
+            <div id="item-info-rarity" class="rarity-tag"></div>
+            <img id="item-info-image" alt="">
+            <div id="item-info-stats"></div>
+            <p id="item-info-description"></p>
+            <div id="item-info-value" class="item-value">
+                <img src="resources/ui/coin.png" alt="coin">
+                <span id="item-info-value-text"></span>
+            </div>
+            <button id="item-edit-btn">Edit</button>
+            <button id="item-delete-btn">Delete</button>
+        </div>
+    </div>
+
+    <script src="profile.js"></script>
+</body>
+</html>

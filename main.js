@@ -260,6 +260,21 @@ ipcMain.handle('update-loadout', (event, characterName, originalName, loadoutDat
     }
 });
 
+// Delete a loadout
+ipcMain.handle('delete-loadout', (event, characterName, loadoutName) => {
+    try {
+        const loadoutFolder = path.join(fileSystemPath, characterName, 'loadouts', loadoutName);
+        if (fs.existsSync(loadoutFolder)) {
+            fs.rmSync(loadoutFolder, { recursive: true, force: true });
+            return { success: true };
+        }
+        return { success: false, message: 'Loadout not found' };
+    } catch (error) {
+        console.error('Error deleting loadout:', error);
+        return { success: false, message: 'Error deleting loadout' };
+    }
+});
+
 // Get inventory for a loadout
 ipcMain.handle('get-inventory', (event, characterName, loadoutName) => {
     const items = [];

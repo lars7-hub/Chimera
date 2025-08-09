@@ -4,6 +4,15 @@ const characterName = urlParams.get('character');
 let activeLoadout = urlParams.get('loadout');
 let currentProfileData = null;
 let inventory = [];
+const statAbbr = {
+    strength: 'Str',
+    dexterity: 'Dex',
+    constitution: 'Con',
+    endurance: 'End',
+    intelligence: 'Int',
+    charisma: 'Cha',
+    fortitude: 'For'
+};
 
 function updateStatsDisplay() {
     if (!currentProfileData) return;
@@ -135,61 +144,42 @@ function displayProfile(data, imagePath, loadoutName = null) {
 
     const traitsContainer = document.getElementById('profile-traits');
     traitsContainer.innerHTML = '';
-
     (data.traits || []).forEach(t => {
-        const row = document.createElement('div');
-        row.className = 'profile-trait-row';
+        const chip = document.createElement('div');
+        chip.className = 'trait-chip';
 
-        const textSpan = document.createElement('span');
-        textSpan.textContent = t.text;
-        textSpan.style.color = t.color || '#ffffff';
-        row.appendChild(textSpan);
+        const textDiv = document.createElement('div');
+        textDiv.className = 'trait-text';
+        textDiv.textContent = t.text;
+        textDiv.style.color = t.color || '#ffffff';
+        chip.appendChild(textDiv);
 
-        const modsSpan = document.createElement('span');
-        modsSpan.className = 'trait-modifiers';
+        const modsDiv = document.createElement('div');
+        modsDiv.className = 'trait-modifiers';
         const statsArr = Array.isArray(t.stats) ? t.stats : (t.stat ? [{ stat: t.stat, value: t.value, type: 'add' }] : []);
-        statsArr.forEach((s, idx) => {
+        statsArr.forEach(s => {
             if (!s.stat) return;
-            const modSpan = document.createElement('span');
-            let display = '';
-            if (s.type === 'mul') {
-                display = `${s.stat.charAt(0).toUpperCase() + s.stat.slice(1)} ${s.value}%`;
-                if (s.value > 100) {
-                    modSpan.style.color = 'green';
-                } else if (s.value < 100) {
-                    modSpan.style.color = 'red';
-                }
-            } else {
-                const val = s.type === 'sub' ? -s.value : s.value;
-                display = `${s.stat.charAt(0).toUpperCase() + s.stat.slice(1)} ${val > 0 ? '+' : ''}${val}`;
-                modSpan.style.color = val >= 0 ? 'green' : 'red';
-            }
-            modSpan.textContent = display;
-            if (idx > 0) modsSpan.appendChild(document.createTextNode(' '));
-            modsSpan.appendChild(modSpan);
+            const chipEl = document.createElement('div');
+            chipEl.className = 'stat-chip';
+            const abbr = statAbbr[s.stat] || s.stat.substring(0,3).toUpperCase();
+            let val = s.type === 'mul' ? `${s.value}%` : `${s.type === 'sub' ? -s.value : s.value}`;
+            const num = s.type === 'mul' ? s.value : (s.type === 'sub' ? -s.value : s.value);
+            if (num >= 0) chipEl.classList.add('positive'); else chipEl.classList.add('negative');
+            if (s.type !== 'mul' && num > 0) val = `+${val}`;
+            chipEl.textContent = `${abbr}. ${val}`;
+            modsDiv.appendChild(chipEl);
         });
-        row.appendChild(modsSpan);
-        traitsContainer.appendChild(row);
+        chip.appendChild(modsDiv);
+        traitsContainer.appendChild(chip);
     });
 
     const fit = data.imageFit === 'squish' ? 'fill' : 'cover';
     document.getElementById('profile-image').innerHTML =
         `<img src="${imagePath}" alt="${data.name}" style="width:100%;height:100%;object-fit:${fit};">`;
 
-const editBtn = document.getElementById('edit-character-btn');
-    if (loadoutName) {
-        editBtn.innerText = 'Edit Loadout';
-        editBtn.onclick = () => {
-            window.location.href = `loadout-editor.html?character=${characterName}&loadout=${loadoutName}`;
-        };
-    } else {
-        editBtn.innerText = 'Edit Character';
-        editBtn.onclick = () => {
-            window.location.href = `edit-character.html?character=${characterName}`;
-        };
-    }
+    document.getElementById('edit-loadout-btn').disabled = !loadoutName;
     renderInventory();
-	updateStatsDisplay();
+    updateStatsDisplay();
 }
 
 function renderInventory() {
@@ -320,6 +310,20 @@ function openItemInfo(index) {
     } else {
         img.style.display = 'none';
     }
+    const statContainer = document.getElementById('item-info-stats');
+    statContainer.innerHTML = '';
+    (item.stats || []).forEach(s => {
+        if (!s.stat) return;
+        const chip = document.createElement('div');
+        chip.className = 'stat-chip';
+        const abbr = statAbbr[s.stat] || s.stat.substring(0,3).toUpperCase();
+        let val = s.type === 'mul' ? `${s.value}%` : `${s.type === 'sub' ? -s.value : s.value}`;
+        const num = s.type === 'mul' ? s.value : (s.type === 'sub' ? -s.value : s.value);
+        if (num >= 0) chip.classList.add('positive'); else chip.classList.add('negative');
+        if (s.type !== 'mul' && num > 0) val = `+${val}`;
+        chip.textContent = `${abbr}. ${val}`;
+        statContainer.appendChild(chip);
+    });
     document.getElementById('item-info-description').innerText = item.description || '';
     document.getElementById('item-info-value-text').innerText = formatCurrency(item.value);
     document.getElementById('item-edit-btn').onclick = () => { closeItemInfo(); openItemModal(index); };
@@ -437,16 +441,37 @@ async function loadLoadouts() {
     });
 }
 
-document.getElementById('add-loadout-btn').addEventListener('click', async () => {
-    const input = document.getElementById('new-loadout-name');
-    const name = input.value.trim();
+document.getElementById('edit-character-btn').addEventListener('click', () => {
+    window.location.href = `edit-character.html?character=${characterName}`;
+});
+
+document.getElementById('edit-loadout-btn').addEventListener('click', () => {
+    if (!activeLoadout) return;
+    window.location.href = `loadout-editor.html?character=${characterName}&loadout=${activeLoadout}`;
+});
+
+document.getElementById('new-loadout-btn').addEventListener('click', async () => {
+    const name = prompt('Enter loadout name:');
     if (!name) return;
-    const result = await window.electron.createLoadout(characterName, name);
+    const result = await window.electron.createLoadout(characterName, name.trim());
     if (result && result.success) {
-        input.value = '';
         loadLoadouts();
     } else if (result && result.message) {
         alert(result.message);
+    }
+});
+
+document.getElementById('delete-loadout-btn').addEventListener('click', async () => {
+    if (!activeLoadout) return;
+    if (confirm(`Delete loadout ${activeLoadout}?`)) {
+        const result = await window.electron.deleteLoadout(characterName, activeLoadout);
+        if (result && result.success) {
+            activeLoadout = null;
+            loadLoadouts();
+            loadCharacterProfile();
+        } else if (result && result.message) {
+            alert(result.message);
+        }
     }
 });
 
