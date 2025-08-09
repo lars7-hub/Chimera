@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog} = require('electron'); // Ensure path and fs are required properly
 const fs = require('fs'); // Core Node.js fs module
 const path = require('path'); // Core Node.js path module
-const { pathToFileURL } = require('url');
+const { pathToFileURL, fileURLToPath } = require('url');
 
 const fileSystemPath = path.join(__dirname, 'app/characters'); // Correctly access the characters directory
 
@@ -288,21 +288,24 @@ ipcMain.handle('get-inventory', (event, characterName, loadoutName) => {
 ipcMain.handle('save-inventory', (event, characterName, loadoutName, items) => {
     try {
         const inventoryPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'inventory');
-        fs.rmSync(inventoryPath, { recursive: true, force: true });
-        fs.mkdirSync(inventoryPath, { recursive: true });
+		const tempPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'inventory_tmp');
+        fs.rmSync(tempPath, { recursive: true, force: true });
+        fs.mkdirSync(tempPath, { recursive: true });
         items.forEach((item, index) => {
             const base = `item${index}`;
             const data = { ...item };
             const tempImage = data.tempImagePath;
             delete data.tempImagePath;
             delete data.image;
-            fs.writeFileSync(path.join(inventoryPath, `${base}.json`), JSON.stringify(data));
-            const destImage = path.join(inventoryPath, `${base}.png`);
-            const srcImage = tempImage || (item.image ? new URL(item.image).pathname : null);
+            fs.writeFileSync(path.join(tempPath, `${base}.json`), JSON.stringify(data));
+            const destImage = path.join(tempPath, `${base}.png`);
+            const srcImage = tempImage || (item.image ? fileURLToPath(item.image) : null);
             if (srcImage && fs.existsSync(srcImage)) {
                 fs.copyFileSync(srcImage, destImage);
             }
         });
+		fs.rmSync(inventoryPath, { recursive: true, force: true});
+		fs.renameSync(tempPath, inventoryPath);
         return { success: true };
     } catch (error) {
         console.error('Error saving inventory:', error);

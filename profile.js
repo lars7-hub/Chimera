@@ -212,10 +212,34 @@ function closeItemModal() {
     modal.classList.add('hidden');
 }
 
+function formatCurrency(value) {
+	return (Math.round(value) || 0).toLocaleString();
+}
+
 function openItemInfo(index) {
     const item = inventory[index];
     const modal = document.getElementById('item-info-modal');
-    document.getElementById('item-info-name').innerText = item.name;
+	const nameEl = document.getElementById('item-info-name');
+	nameEl.innerText = item.name;
+	
+	const rarityColors = {
+		common: '#D1D1D1',
+		uncommon: '#2BED2F',
+		rare: '#24A9F0',
+		epic: '#EAB8FF',
+		legendary: '#FF980F'
+	};
+	
+	const color = rarityColors[item.rarity] || rarityColors.common;
+	nameEl.style.backgroundColor = "000";
+	nameEl.textContent = item.name;
+	nameEl.style.color = color;
+	
+	const rarityEl = document.getElementById('item-info-rarity');
+	rarityEl.textContent = (item.rarity || 'common').charAt(0).toUpperCase() + (item.rarity || 'common').slice(1);
+	rarityEl.style.backgroundColor = color;
+	
+	
     const img = document.getElementById('item-info-image');
     if (item.image) {
         img.src = item.image;
@@ -224,6 +248,7 @@ function openItemInfo(index) {
         img.style.display = 'none';
     }
     document.getElementById('item-info-description').innerText = item.description || '';
+    document.getElementById('item-info-value-text').innerText = formatCurrency(item.value);
     document.getElementById('item-edit-btn').onclick = () => { closeItemInfo(); openItemModal(index); };
     document.getElementById('item-delete-btn').onclick = async () => {
         inventory.splice(index,1);

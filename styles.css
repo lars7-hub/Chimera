@@ -411,3 +411,53 @@ button:hover {
 .item-stat-row select {
     width: 80px;
 }
+
+#item-info-name {
+	display: block;
+	text-align: center;
+	font-size: 1.4em;
+	-webkit-text-stroke: 0.4px #000;
+	margin-top: 0;
+	margin-bottom: 4px;
+}
+
+#item-info-rarity {
+	display: block;
+	width: fit-content;
+	margin: 0 auto 10px;
+}
+
+.rarity-tag {
+	padding: 2px 6px;
+	border-radius: 4px;
+	color: #000;
+	font-size: 0.8em;
+}
+
+.name-tag {
+	padding: 2px 6px;
+	border-radius: 4px;
+	color: #000;
+	font-size: 0.8em;
+}
+
+#item-info-modal .modal-content {
+	position: relative;
+	padding-bottom: 40px;
+}
+
+.item-value {
+	position: absolute;
+	bottom: 20px;
+	right: 20px;
+	display: flex;
+	align-items: center;
+	color: #FFD700;
+}
+
+.item-value img {
+	width: 20px;
+	height: 20px;
+	object-fit: fill;
+	margin-right: 4px;
+}
