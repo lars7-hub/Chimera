@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="nav-bar">
+        <button id="home-btn">Home</button>
+    </div>
+
+    <div id="editor-container">
+        <div class="editor-top">
+            <div class="editor-section" id="core-section">
+                <h2 id="editor-title"> Create New Character</h2>
+                <label for="name" id="name-label">Character Name (Required):</label>
+                <input type="text" id="name" required>
+                <label for="age">Age:</label>
+                <input type="number" id="age">
+                <label for="gender">Gender:</label>
+                <input type="text" id="gender">
+                <label for="height">Height (in cm):</label>
+                <input type="number" id="height">
+                <label for="build">Build (e.g., Slim, Muscular, etc.):</label>
+                <input type="text" id="build">
+                <label for="occupation">Occupation:</label>
+                <input type="text" id="occupation">
+                <label for="alignment">Alignment:</label>
+                <input type="text" id="alignment">
+                <label for="race">Race:</label>
+                <input type="text" id="race">
+            </div>
+            <div class="editor-section" id="stats-section">
+                <h3>Stats</h3>
+                <div class="stats-content">
+                    <div class="stats-inputs">
+                        <label>Strength: <input type="number" id="stat-strength" value="0"></label>
+                        <label>Dexterity: <input type="number" id="stat-dexterity" value="0"></label>
+                        <label>Constitution: <input type="number" id="stat-constitution" value="0"></label>
+                        <label>Endurance: <input type="number" id="stat-endurance" value="0"></label>
+                        <label>Intelligence: <input type="number" id="stat-intelligence" value="0"></label>
+                        <label>Charisma: <input type="number" id="stat-charisma" value="0"></label>
+                        <label>Fortitude: <input type="number" id="stat-fortitude" value="0"></label>
+                    </div>
+                    <div class="stats-descriptions">
+                        <div class="stat-desc-chip"><img src="resources/ui/strength.png" alt=""><span>Increases physical power and physical damage-dealing potential.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/dexterity.png" alt=""><span>Improves agility and reflexes. Useful for delicate tools as well.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/constitution.png" alt=""><span>Represents the amount of Health one has.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/endurance.png" alt=""><span>Stamina reserves and Lifespan/longevity.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/intelligence.png" alt=""><span>Determines Intellect and reasoning. Also governs magical and mental abilities.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/charisma.png" alt=""><span>Influences persuasion and charm. Represents physical attractiveness and verbal influence.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/fortitude.png" alt=""><span>>Enhances resistance to damage. Affects resistance to the elements, toxins, crippling conditions, etc. Governs physical defense rating (Scales on a dragon, tough bones, etc.)</span></div>
+                    </div>
+                </div>
+                <label><input type="checkbox" id="show-stats" checked> Show stats on profile</label>
+            </div>
+            <div class="editor-section" id="description-section">
+                <h3>Backstory/Description</h3>
+                <textarea id="description" rows="10"></textarea>
+            </div>
+        </div>
+        <div class="editor-bottom">
+            <div class="editor-section image-section">
+                <button type="button" id="image-upload-btn">Upload Image</button>
+                <div id="image-preview"><img id="image-preview-img" src="" alt="Character Image Preview" style="display: none;"></div>
+                <label><input type="checkbox" id="crop-image" checked> Crop image to fit</label>
+            </div>
+            <div class="editor-section traits-section">
+                <div id="traits-container"></div>
+                <button type="button" id="add-trait-btn">Add Trait</button>
+            </div>
+            <div class="editor-section actions-section">
+                <button type="button" id="save-btn">Save Character</button>
+                <button type="button" id="cancel-btn" style="display:none;">Cancel Changes</button>
+                <button type="button" id="delete-btn" class="delete-btn" style="display:none;">Delete Character</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="character-editor.js"></script>
+</body>
+</html>

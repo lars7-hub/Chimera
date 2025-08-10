@@ -519,12 +519,12 @@ async function loadLoadouts() {
 }
 
 document.getElementById('edit-character-btn').addEventListener('click', () => {
-    window.location.href = `edit-character.html?character=${characterName}`;
+    window.location.href = `character-editor.html?mode=edit&character=${characterName}`;
 });
 
 document.getElementById('edit-loadout-btn').addEventListener('click', () => {
     if (!activeLoadout) return;
-    window.location.href = `loadout-editor.html?character=${characterName}&loadout=${activeLoadout}`;
+    window.location.href = `character-editor.html?mode=loadout&character=${characterName}&loadout=${activeLoadout}`;
 });
 
 document.getElementById('new-loadout-btn').addEventListener('click', async () => {

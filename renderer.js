@@ -4,7 +4,7 @@ window.onload = async function () {
 
     // Set up event listener for the "Create New Character" tile
     document.getElementById('create-new-character-tile').addEventListener('click', () => {
-        window.location.href = 'character-creator.html'; // Navigate to character creator page
+        window.location.href = 'character-editor.html?mode=new'; // Navigate to character creator page
     });
 
     document.getElementById('home-btn').addEventListener('click', () => {
