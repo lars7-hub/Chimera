@@ -139,7 +139,8 @@ function displayProfile(data, imagePath, loadoutName = null) {
 
         const textDiv = document.createElement('div');
         textDiv.className = 'trait-text';
-        textDiv.textContent = t.text;
+        textDiv.textContent = t.name || t.text;
+		textDiv.title = t.description || '';
         textDiv.style.color = t.color || '#ffffff';
         chip.appendChild(textDiv);
 
@@ -160,9 +161,9 @@ function displayProfile(data, imagePath, loadoutName = null) {
             textEl.className = 'stat-chip-value';
             let display = '';
             if (s.type === 'mult' || s.type === 'mul') {
-                display = `${s.value}%`;
-                if (s.value > 100) textEl.classList.add('positive');
-                else if (s.value < 100) textEl.classList.add('negative');
+                display = `${s.value}x`;
+                if (s.value > 1) textEl.classList.add('positive');
+                else if (s.value < 1) textEl.classList.add('negative');
             } else {
                 const num = s.value;
                 display = num > 0 ? `+${num}` : `${num}`;
@@ -259,7 +260,7 @@ function openItemModal(index = null) {
         row.className = 'item-stat-row';
         row.dataset.stat = stat;
         row.innerHTML = `<label>${stat.charAt(0).toUpperCase()+stat.slice(1)}</label>`+
-            `<input type="number" class="stat-value" value="0">`+
+            `<input type="number" class="stat-value" value="0" step="any">`+
             `<div class="type-toggle"><button type="button" class="type-btn active" data-type="boost">Boost</button><button type="button" class="type-btn" data-type="mult">x</button></div>`;
         statsContainer.appendChild(row);
         const toggle = row.querySelector('.type-toggle');
@@ -352,9 +353,9 @@ function openItemInfo(index) {
         textEl.className = 'stat-chip-value';
         let display = '';
         if (s.type === 'mult' || s.type === 'mul') {
-            display = `${s.value}%`;
-            if (s.value > 100) textEl.classList.add('positive');
-            else if (s.value < 100) textEl.classList.add('negative');
+            display = `${s.value}x`;
+            if (s.value > 1) textEl.classList.add('positive');
+            else if (s.value < 1) textEl.classList.add('negative');
         } else {
             const num = s.type === 'sub' ? -s.value : s.value;
             display = num > 0 ? `+${num}` : `${num}`;

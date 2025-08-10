@@ -116,7 +116,6 @@
                 <label><input type="checkbox" id="crop-image" checked> Crop image to fit</label>
             </div>
             <div class="editor-section traits-section">
-                <div class="editor-section traits-section">
                 <div id="traits-container"></div>
                 <button type="button" id="add-trait-btn">Add Trait</button>
             </div>
@@ -133,25 +132,20 @@
             <span id="trait-modal-close" class="close">&times;</span>
             <h3 id="trait-modal-title">Add Trait</h3>
             <form id="trait-form">
-                <label>Trait Description<input type="text" id="trait-text" required></label>
-                <label>Stat
-                    <select id="trait-stat">
-                        <option value="">None</option>
-                        <option value="strength">Strength</option>
-                        <option value="dexterity">Dexterity</option>
-                        <option value="constitution">Constitution</option>
-                        <option value="endurance">Endurance</option>
-                        <option value="intelligence">Intelligence</option>
-                        <option value="charisma">Charisma</option>
-                        <option value="fortitude">Fortitude</option>
-                    </select>
-                </label>
-                <label>Value<input type="number" id="trait-value" value="0"></label>
-                <div id="trait-type" class="type-toggle">
-                    <button type="button" class="type-btn active" data-type="boost">Add</button>
-                    <button type="button" class="type-btn" data-type="mult">x</button>
+                <div class="modal-row">
+                    <label for="trait-name">Trait Name</label>
+                    <input type="text" id="trait-name" required>
                 </div>
-                <label>Color<input type="color" id="trait-color" value="#ffffff"></label>
+                <div class="modal-row">
+                    <label for="trait-desc">Description</label>
+                    <textarea id="trait-desc"></textarea>
+                </div>
+                <div id="trait-stats-container"></div>
+                <button type="button" id="add-stat-btn">Add Stat Modifier</button>
+                <div class="modal-row">
+                    <label for="trait-color">Color</label>
+                    <input type="color" id="trait-color" value="#ffffff">
+                </div>
                 <div class="modal-buttons">
                     <button type="submit" id="trait-save-btn">Save</button>
                     <button type="button" id="trait-delete-btn" class="delete-btn">Delete</button>
@@ -159,9 +153,6 @@
             </form>
         </div>
     </div>
-
-    <script src="character-editor.js"></script>
-</body>
 
     <script src="character-editor.js"></script>
 </body>

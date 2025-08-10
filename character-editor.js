@@ -11,19 +11,77 @@ let editingTraitIndex = null;
 const traitModal = document.getElementById('trait-modal');
 const traitForm = document.getElementById('trait-form');
 const traitModalTitle = document.getElementById('trait-modal-title');
-const traitTextInput = document.getElementById('trait-text');
-const traitStatSelect = document.getElementById('trait-stat');
-const traitValueInput = document.getElementById('trait-value');
+const traitTextInput = document.getElementById('trait-name');
+const traitStatSelect = document.getElementById('trait-desc');
 const traitColorInput = document.getElementById('trait-color');
-const traitTypeToggle = document.getElementById('trait-type');
 const traitDeleteBtn = document.getElementById('trait-delete-btn');
+const traitStatsContainer = document.getElementById('trait-stats-container');
+const addStatBtn = document.getElementById('add-stat-btn');
 
-traitTypeToggle.querySelectorAll('.type-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    });
-});
+function createTypeToggle(initialType = 'boost') {
+    const toggle = document.createElement('div');
+    toggle.className = 'type-toggle';
+    const boostBtn = document.createElement('button');
+    boostBtn.type = 'button';
+    boostBtn.textContent = 'Add';
+    boostBtn.className = 'type-btn';
+    boostBtn.dataset.type = 'boost';
+    const multBtn = document.createElement('button');
+    multBtn.type = 'button';
+    multBtn.textContent = 'x';
+    multBtn.className = 'type-btn';
+    multBtn.dataset.type = 'mult';
+    toggle.appendChild(boostBtn);
+    toggle.appendChild(multBtn);
+    toggle.querySelectorAll('.type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            toggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+	 });
+	 const type = (initialType === 'mul' || initialType === 'mult') ? 'mult' : 'boost';
+    toggle.querySelector(`.type-btn[data-type="${type}"]`).classList.add('active');
+    return toggle;
+}
+
+function createStatRow(data = {}) {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+
+    const statSelect = document.createElement('select');
+    statSelect.className = 'stat-select';
+    statSelect.innerHTML = `
+        <option value="">None</option>
+        <option value="strength">Strength</option>
+        <option value="dexterity">Dexterity</option>
+        <option value="constitution">Constitution</option>
+        <option value="endurance">Endurance</option>
+        <option value="intelligence">Intelligence</option>
+        <option value="charisma">Charisma</option>
+        <option value="fortitude">Fortitude</option>`;
+    statSelect.value = data.stat || '';
+    row.appendChild(statSelect);
+
+    const valueInput = document.createElement('input');
+    valueInput.type = 'number';
+    valueInput.className = 'stat-value';
+    valueInput.value = data.value || 0;
+    row.appendChild(valueInput);
+
+    const toggle = createTypeToggle(data.type || 'boost');
+    row.appendChild(toggle);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'X';
+    removeBtn.className = 'remove-stat-btn delete-btn';
+    removeBtn.addEventListener('click', () => row.remove());
+    row.appendChild(removeBtn);
+
+    traitStatsContainer.appendChild(row);
+}
+
+addStatBtn.addEventListener('click', () => createStatRow());
 
 function renderTraits() {
     traitsContainer.innerHTML = '';
@@ -33,7 +91,8 @@ function renderTraits() {
 
         const textDiv = document.createElement('div');
         textDiv.className = 'trait-text';
-        textDiv.textContent = t.text;
+        textDiv.textContent = t.name || t.text;
+		textDiv.title = t.description || '';
         textDiv.style.color = t.color || '#ffffff';
         chip.appendChild(textDiv);
 
@@ -54,7 +113,7 @@ function renderTraits() {
             textEl.className = 'stat-chip-value';
             let display = '';
             if (s.type === 'mult' || s.type === 'mul') {
-                display = `${s.value}%`;
+                display = `${s.value}x`;
                 if (s.value > 1) textEl.classList.add('positive');
                 else if (s.value < 1) textEl.classList.add('negative');
             } else {
@@ -75,28 +134,24 @@ function renderTraits() {
 
 function openTraitModal(index) {
     editingTraitIndex = index;
+	traitStatsContainer.innerHTML = '';
     if (index != null) {
         const t = traitsData[index];
         traitModalTitle.textContent = 'Edit Trait';
-        traitTextInput.value = t.text || '';
-        const stat = t.stats && t.stats[0] ? t.stats[0].stat : '';
-        const value = t.stats && t.stats[0] ? t.stats[0].value : 0;
-		const rawType = t.stats && t.stats[0] ? t.stats[0].type : 'boost';
-        const type = (rawType === 'mul' || rawType === 'mult') ? 'mult' : 'boost';
-        traitStatSelect.value = stat;
-        traitValueInput.value = value;
+		traitNameInput.value = t.name || t.text || '';
+		traitDescInput.value = t.description || '';
+		const statsArr = Array.isArray(t.stats) && t.stats.length ? t.stats : [{}];
+		statsArr.forEach(s => createStatRow(s));
         traitColorInput.value = t.color || '#ffffff';
         traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
         traitTypeToggle.querySelector(`.type-btn[data-type="${type}"]`).classList.add('active');
         traitDeleteBtn.style.display = 'inline-block';
     } else {
         traitModalTitle.textContent = 'Add Trait';
-        traitTextInput.value = '';
-        traitStatSelect.value = '';
-        traitValueInput.value = 0;
+        traitnameInput.value = '';
+        traitDescInput.value = '';
+		createStatRow();
         traitColorInput.value = '#ffffff';
-        traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-        traitTypeToggle.querySelector('.type-btn[data-type="boost"]').classList.add('active');
         traitDeleteBtn.style.display = 'none';
     }
     traitModal.classList.remove('hidden');
@@ -119,17 +174,21 @@ traitDeleteBtn.addEventListener('click', () => {
 
 traitForm.addEventListener('submit', e => {
     e.preventDefault();
-    const text = traitTextInput.value.trim();
-    const stat = traitStatSelect.value;
-    const value = parseFloat(traitValueInput.value) || 0;
-    const typeBtn = traitTypeToggle.querySelector('.type-btn.active');
-    const type = typeBtn ? typeBtn.dataset.type : 'boost';
+	const name = traitNameInput.value.trim();
+	if (!name) return;
+	const description = traitDescInput.value.trim();
     const color = traitColorInput.value;
-    const trait = {
-        text,
-        stats: stat ? [{ stat, value, type }] : [],
-        color
-    };
+    const stats = [];
+	traitStatsContainer.querySelectorAll('.stat-row').forEach(row => {
+		const stat = row.querySelector('.stat-select').value;
+		if (!stat) return;
+		const value = parseFloat(row.querySelector('.stat-value').value) || 0;
+		const typeBtn = row.querySelector('.type-btn.active');
+		const type = typeBtn ? typeBtn.dataset.type : 'boost';
+		stats.push({ stat, value, type});
+		
+	});
+	const trait = { name, description, stats, color };
     if (editingTraitIndex != null) {
         traitsData[editingTraitIndex] = trait;
     } else {

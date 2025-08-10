@@ -456,6 +456,66 @@ button:hover {
     position: relative;
 }
 
+.modal-content h3 {
+	text-align: center;
+	margin-top: 0;
+}
+
+.modal-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 5px 0;
+}
+
+.modal-row label {
+	flex: 0 0 40%;
+}
+
+.modal-row input,
+.modal-row textarea,
+.modal-row select {
+	flex: 1;
+}
+
+#trait-stats-container {
+	margin-top: 10px;
+}
+
+.stat-row {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 5px;
+}
+
+.stat-row select {
+	flex: 1;
+}
+
+.stat-row input.stat-value {
+	width: 60px;
+}
+
+.type-toggle {
+	display: flex;
+	justify-content: center;
+	gap: 5px;
+}
+
+.type-toggle .type-btn-active {
+	background-color: #666;
+}
+
+.modal-buttons {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 10px;
+}
+
+
 .modal-content img {
     width: 100px;
     height: 100px;
@@ -512,11 +572,17 @@ button:hover {
 .type-btn {
     padding: 2px 6px;
     cursor: pointer;
+	width: auto;
 }
 
 .type-btn.active {
     background-color: #555;
     color: #fff;
+}
+
+.remove-stat-btn {
+	width: auto;
+	padding: 2px 6px;
 }
 
 #item-info-name {
@@ -852,4 +918,23 @@ button:hover {
 	align-items: center;
 	gap: 5px;
 	margin-top: 5px;
+}
+
+.image-section {
+	flex: 0 0 20%;
+}
+
+.traits-section {
+	flex: 0 0 70%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.actions-section {
+	flex: 0 0 10%;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex;
+	align-items: center;
 }
