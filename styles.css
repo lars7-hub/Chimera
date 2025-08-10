@@ -497,7 +497,7 @@ button:hover {
 }
 
 .item-stat-row input {
-    width: 60px;
+    width: 40px;
 }
 
 .item-stat-row .type-toggle,
@@ -678,35 +678,138 @@ button:hover {
 }
 
 .editor-top, .editor-bottom {
-	display: flex;
-	flex: 1;
-	gap: 10px;
+        display: flex;
+        flex: 1;
+        gap: 10px;
 }
 
 .editor-section {
-	background-color: #444;
-	padding: 10px;
-	border-radius: 5px;
-	flex: 1;
-	overflow: auto;
+        background-color: #444;
+        padding: 10px;
+        border-radius: 5px;
+        flex: 1;
+        overflow: auto;
+}
+
+.editor-section h3 {
+        text-align: center;
+        margin-top: 0;
+}
+
+#core-section .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 5px;
+}
+
+#core-section .detail-row label {
+        flex: 1;
+}
+
+#core-section .detail-row input {
+        flex: 0 0 60%;
+        text-align: right;
+}
+
+#stats-section {
+        display: flex;
+        flex-direction: column;
+}
+
+#stats-table-editor {
+        width: 100%;
+        border-collapse: collapse;
+}
+
+#stats-table-editor tr {
+        border-bottom: 1px solid #666;
+}
+
+#stats-table-editor tr:last-child {
+        border-bottom: none;
+}
+
+#stats-table-editor td {
+        padding: 5px 0;
+}
+
+.stat-icon-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+}
+
+.stat-icon-container img {
+        width: 40px;
+        height: 40px;
+}
+
+.stat-input input {
+        width: 50px;
+        text-align: center;
+}
+
+.show-stats-label {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+}
+
+#description-section {
+        display: flex;
+        flex-direction: column;
+}
+
+#description-section textarea {
+        flex: 1;
+        width: 100%;
+        box-sizing: border-box;
 }
 
 .image-section {
-	flex-basis: 20%;
+        flex-basis: 20%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+}
+
+.image-section label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
 }
 
 .traits-section {
-	flex-basis: 60%;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
+        flex-basis: 60%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
 }
 
 .actions-section {
-	flex-basis: 20%;
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
+        flex-basis: 20%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 10px;
+}
+
+.editor-section button,
+.trait-row .remove-trait-btn {
+        background-color: #666;
+}
+
+.editor-section button:hover,
+.trait-row .remove-trait-btn:hover {
+        background-color: #888;
+}
+
+#image-upload-btn {
+        font-size: 1.17em;
+        width: auto;
+        margin-top: 0;
 }
 
 .trait-btn {
