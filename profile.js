@@ -70,34 +70,36 @@ function updateStatsDisplay() {
 function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
     const finalStats = { ...baseStats };
     const modifiers = {};
+    const boosts = {};
+    const multipliers = {};
+
+    function gather(mod) {
+        if (!mod || !mod.stat || finalStats[mod.stat] === undefined) return;
+        const val = Number(mod.value) || 0;
+        const type = mod.type;
+        if (type === 'mult' || type === 'mul') {
+            multipliers[mod.stat] = (multipliers[mod.stat] || 1) * val;
+        } else if (type === 'boost' || type === 'add' || type === 'sub' || !type) {
+            const adj = type === 'sub' ? -val : val;
+            boosts[mod.stat] = (boosts[mod.stat] || 0) + adj;
+        }
+    }
+
     traits.forEach(t => {
-        if (Array.isArray(t.stats)) {
-            t.stats.forEach(s => {
-                if (s.stat && finalStats[s.stat] !== undefined) {
-                    const val = Number(s.value) || 0;
-                    const change = s.type === 'mul'
-                        ? finalStats[s.stat] * (val / 100)
-                        : (s.type === 'sub' ? -val : val);
-                    finalStats[s.stat] += change;
-                    modifiers[s.stat] = (modifiers[s.stat] || 0) + change;
-                }
-            });
-        } else if (t.stat && finalStats[t.stat] !== undefined) {
-            const val = Number(t.value) || 0;
-            finalStats[t.stat] += val;
-            modifiers[t.stat] = (modifiers[t.stat] || 0) + val;
-        }
+        if (Array.isArray(t.stats)) t.stats.forEach(gather);
+        else gather(t);
     });
-    inventoryMods.forEach(m => {
-        if (m.stat && finalStats[m.stat] !== undefined) {
-            const val = Number(m.value) || 0;
-            const change = m.type === 'mul'
-                ? finalStats[m.stat] * (val / 100)
-                : (m.type === 'sub' ? -val : val);
-            finalStats[m.stat] += change;
-            modifiers[m.stat] = (modifiers[m.stat] || 0) + change;
-        }
+    inventoryMods.forEach(gather);
+
+    Object.keys(finalStats).forEach(stat => {
+        const base = Number(baseStats[stat]) || 0;
+        const boost = boosts[stat] || 0;
+        const mult = multipliers[stat] || 1;
+        const total = (base + boost) * mult;
+        finalStats[stat] = total;
+        modifiers[stat] = total - base;
     });
+
     return { finalStats, modifiers };
 }
 
@@ -143,7 +145,7 @@ function displayProfile(data, imagePath, loadoutName = null) {
 
         const modsDiv = document.createElement('div');
         modsDiv.className = 'trait-modifiers';
-        const statsArr = Array.isArray(t.stats) ? t.stats : (t.stat ? [{ stat: t.stat, value: t.value, type: 'add' }] : []);
+        const statsArr = Array.isArray(t.stats) ? t.stats : (t.stat ? [{ stat: t.stat, value: t.value, type: 'boost' }] : []);
         statsArr.forEach(s => {
             if (!s.stat) return;
             const chipEl = document.createElement('div');
@@ -157,12 +159,12 @@ function displayProfile(data, imagePath, loadoutName = null) {
             const textEl = document.createElement('span');
             textEl.className = 'stat-chip-value';
             let display = '';
-            if (s.type === 'mul') {
+            if (s.type === 'mult' || s.type === 'mul') {
                 display = `${s.value}%`;
                 if (s.value > 100) textEl.classList.add('positive');
                 else if (s.value < 100) textEl.classList.add('negative');
             } else {
-                const num = s.type === 'sub' ? -s.value : s.value;
+                const num = s.value;
                 display = num > 0 ? `+${num}` : `${num}`;
                 if (num > 0) textEl.classList.add('positive');
                 else if (num < 0) textEl.classList.add('negative');
@@ -258,7 +260,7 @@ function openItemModal(index = null) {
         row.dataset.stat = stat;
         row.innerHTML = `<label>${stat.charAt(0).toUpperCase()+stat.slice(1)}</label>`+
             `<input type="number" class="stat-value" value="0">`+
-            `<div class="type-toggle"><button type="button" class="type-btn active" data-type="add">Add</button><button type="button" class="type-btn" data-type="mul">%</button></div>`;
+            `<div class="type-toggle"><button type="button" class="type-btn active" data-type="boost">Boost</button><button type="button" class="type-btn" data-type="mult">x</button></div>`;
         statsContainer.appendChild(row);
         const toggle = row.querySelector('.type-toggle');
         toggle.querySelectorAll('.type-btn').forEach(btn => {
@@ -282,7 +284,7 @@ function openItemModal(index = null) {
             const row = statsContainer.querySelector(`[data-stat="${sm.stat}"]`);
             if (row) {
                 row.querySelector('.stat-value').value = sm.value;
-                const typeBtn = row.querySelector(`.type-btn[data-type="${sm.type === 'mul' ? 'mul' : 'add'}"]`);
+                const typeBtn = row.querySelector(`.type-btn[data-type="${(sm.type === 'mult' || sm.type === 'mul') ? 'mult' : 'boost'}"]`);
                 if (typeBtn) {
                     row.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
                     typeBtn.classList.add('active');
@@ -349,7 +351,7 @@ function openItemInfo(index) {
         const textEl = document.createElement('span');
         textEl.className = 'stat-chip-value';
         let display = '';
-        if (s.type === 'mul') {
+        if (s.type === 'mult' || s.type === 'mul') {
             display = `${s.value}%`;
             if (s.value > 100) textEl.classList.add('positive');
             else if (s.value < 100) textEl.classList.add('negative');
@@ -432,7 +434,7 @@ async function handleItemFormSubmit(e) {
         const val = parseFloat(row.querySelector('.stat-value').value) || 0;
         if (val !== 0) {
             const typeBtn = row.querySelector('.type-btn.active');
-            const type = typeBtn ? typeBtn.dataset.type : 'add';
+            const type = typeBtn ? typeBtn.dataset.type : 'boost';
             item.stats.push({ stat: row.dataset.stat, value: val, type });
         }
     });

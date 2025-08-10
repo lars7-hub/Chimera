@@ -53,12 +53,12 @@ function renderTraits() {
             const textEl = document.createElement('span');
             textEl.className = 'stat-chip-value';
             let display = '';
-            if (s.type === 'mul') {
+            if (s.type === 'mult' || s.type === 'mul') {
                 display = `${s.value}%`;
-                if (s.value > 100) textEl.classList.add('positive');
-                else if (s.value < 100) textEl.classList.add('negative');
+                if (s.value > 1) textEl.classList.add('positive');
+                else if (s.value < 1) textEl.classList.add('negative');
             } else {
-                const num = s.type === 'sub' ? -s.value : s.value;
+                const num = s.value;
                 display = num > 0 ? `+${num}` : `${num}`;
                 if (num > 0) textEl.classList.add('positive');
                 else if (num < 0) textEl.classList.add('negative');
@@ -81,7 +81,8 @@ function openTraitModal(index) {
         traitTextInput.value = t.text || '';
         const stat = t.stats && t.stats[0] ? t.stats[0].stat : '';
         const value = t.stats && t.stats[0] ? t.stats[0].value : 0;
-        const type = t.stats && t.stats[0] ? t.stats[0].type || 'add' : 'add';
+		const rawType = t.stats && t.stats[0] ? t.stats[0].type : 'boost';
+        const type = (rawType === 'mul' || rawType === 'mult') ? 'mult' : 'boost';
         traitStatSelect.value = stat;
         traitValueInput.value = value;
         traitColorInput.value = t.color || '#ffffff';
@@ -95,7 +96,7 @@ function openTraitModal(index) {
         traitValueInput.value = 0;
         traitColorInput.value = '#ffffff';
         traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-        traitTypeToggle.querySelector('.type-btn[data-type="add"]').classList.add('active');
+        traitTypeToggle.querySelector('.type-btn[data-type="boost"]').classList.add('active');
         traitDeleteBtn.style.display = 'none';
     }
     traitModal.classList.remove('hidden');
@@ -120,9 +121,9 @@ traitForm.addEventListener('submit', e => {
     e.preventDefault();
     const text = traitTextInput.value.trim();
     const stat = traitStatSelect.value;
-    const value = parseInt(traitValueInput.value) || 0;
+    const value = parseFloat(traitValueInput.value) || 0;
     const typeBtn = traitTypeToggle.querySelector('.type-btn.active');
-    const type = typeBtn ? typeBtn.dataset.type : 'add';
+    const type = typeBtn ? typeBtn.dataset.type : 'boost';
     const color = traitColorInput.value;
     const trait = {
         text,
