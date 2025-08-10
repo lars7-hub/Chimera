@@ -4,15 +4,6 @@ const characterName = urlParams.get('character');
 let activeLoadout = urlParams.get('loadout');
 let currentProfileData = null;
 let inventory = [];
-const statAbbr = {
-    strength: 'Str',
-    dexterity: 'Dex',
-    constitution: 'Con',
-    endurance: 'End',
-    intelligence: 'Int',
-    charisma: 'Cha',
-    fortitude: 'For'
-};
 
 function updateStatsDisplay() {
     if (!currentProfileData) return;
@@ -157,12 +148,27 @@ function displayProfile(data, imagePath, loadoutName = null) {
             if (!s.stat) return;
             const chipEl = document.createElement('div');
             chipEl.className = 'stat-chip';
-            const abbr = statAbbr[s.stat] || s.stat.substring(0,3).toUpperCase();
-            const num = s.type === 'mul' ? s.value : (s.type === 'sub' ? -s.value : s.value);
-            let val = s.type === 'mul' ? `${s.value}%` : `${num}`;
-            if (num >= 0) chipEl.classList.add('positive'); else chipEl.classList.add('negative');
-            if (s.type !== 'mul' && num > 0) val = `+${val}`;
-            chipEl.textContent = `${abbr}. ${val}`;
+
+            const imgEl = document.createElement('img');
+            imgEl.src = `resources/ui/${s.stat}.png`;
+            imgEl.alt = s.stat;
+            chipEl.appendChild(imgEl);
+
+            const textEl = document.createElement('span');
+            textEl.className = 'stat-chip-value';
+            let display = '';
+            if (s.type === 'mul') {
+                display = `${s.value}%`;
+                if (s.value > 100) textEl.classList.add('positive');
+                else if (s.value < 100) textEl.classList.add('negative');
+            } else {
+                const num = s.type === 'sub' ? -s.value : s.value;
+                display = num > 0 ? `+${num}` : `${num}`;
+                if (num > 0) textEl.classList.add('positive');
+                else if (num < 0) textEl.classList.add('negative');
+            }
+            textEl.textContent = display;
+            chipEl.appendChild(textEl);
             modsDiv.appendChild(chipEl);
         });
         chip.appendChild(modsDiv);
@@ -302,30 +308,24 @@ function formatCurrency(value) {
 function openItemInfo(index) {
     const item = inventory[index];
     const modal = document.getElementById('item-info-modal');
-	const nameEl = document.getElementById('item-info-name');
-	nameEl.innerText = item.name;
-    if (item.stackable) {
-        nameEl.innerText += ` (x${item.quantity})`;
-    }
-	
-	const rarityColors = {
-		common: '#D1D1D1',
-		uncommon: '#2BED2F',
-		rare: '#24A9F0',
-		epic: '#EAB8FF',
-		legendary: '#FF980F'
-	};
-	
-	const color = rarityColors[item.rarity] || rarityColors.common;
-	nameEl.style.backgroundColor = "rgba(50,50,50,0.5)";
-	nameEl.textContent = item.name;
-	nameEl.style.color = color;
-	
-	const rarityEl = document.getElementById('item-info-rarity');
-	rarityEl.textContent = (item.rarity || 'common').charAt(0).toUpperCase() + (item.rarity || 'common').slice(1);
-	rarityEl.style.backgroundColor = color;
-	
-	
+    const nameEl = document.getElementById('item-info-name');
+    const displayName = item.stackable ? `${item.name} [ x${item.quantity} ]` : item.name;
+    const rarityColors = {
+        common: '#D1D1D1',
+        uncommon: '#2BED2F',
+        rare: '#24A9F0',
+        epic: '#EAB8FF',
+        legendary: '#FF980F'
+    };
+    const color = rarityColors[item.rarity] || rarityColors.common;
+    nameEl.style.backgroundColor = "rgba(50,50,50,0.5)";
+    nameEl.style.color = color;
+    nameEl.textContent = displayName;
+
+    const rarityEl = document.getElementById('item-info-rarity');
+    rarityEl.textContent = (item.rarity || 'common').charAt(0).toUpperCase() + (item.rarity || 'common').slice(1);
+    rarityEl.style.backgroundColor = color;
+
     const img = document.getElementById('item-info-image');
     if (item.image) {
         img.src = `${item.image}?cb=${Date.now()}`;
@@ -333,18 +333,34 @@ function openItemInfo(index) {
     } else {
         img.style.display = 'none';
     }
+	
     const statContainer = document.getElementById('item-info-stats');
     statContainer.innerHTML = '';
     (item.stats || []).forEach(s => {
         if (!s.stat) return;
         const chip = document.createElement('div');
         chip.className = 'stat-chip';
-        const abbr = statAbbr[s.stat] || s.stat.substring(0,3).toUpperCase();
-        const num = s.type === 'mul' ? s.value : (s.type === 'sub' ? -s.value : s.value);
-        let val = s.type === 'mul' ? `${s.value}%` : `${num}`;
-        if (num >= 0) chip.classList.add('positive'); else chip.classList.add('negative');
-        if (s.type !== 'mul' && num > 0) val = `+${val}`;
-        chip.textContent = `${abbr}. ${val}`;
+
+        const imgEl = document.createElement('img');
+        imgEl.src = `resources/ui/${s.stat}.gif`;
+        imgEl.alt = `resources/ui/${s.stat}.png`;
+        chip.appendChild(imgEl);
+
+        const textEl = document.createElement('span');
+        textEl.className = 'stat-chip-value';
+        let display = '';
+        if (s.type === 'mul') {
+            display = `${s.value}%`;
+            if (s.value > 100) textEl.classList.add('positive');
+            else if (s.value < 100) textEl.classList.add('negative');
+        } else {
+            const num = s.type === 'sub' ? -s.value : s.value;
+            display = num > 0 ? `+${num}` : `${num}`;
+            if (num > 0) textEl.classList.add('positive');
+            else if (num < 0) textEl.classList.add('negative');
+        }
+        textEl.textContent = display;
+        chip.appendChild(textEl);
         statContainer.appendChild(chip);
     });
     document.getElementById('item-info-description').innerText = item.description || '';
@@ -356,7 +372,8 @@ function openItemInfo(index) {
         valueText.innerText = formatCurrency(item.value);
     }
     document.getElementById('item-edit-btn').onclick = () => { closeItemInfo(); openItemModal(index); };
-    document.getElementById('item-delete-btn').onclick = async () => {
+    document.getElementById('item-destroy-btn').onclick = async () => {
+        if (!confirm('Destroy this item?')) return;
         inventory.splice(index,1);
         await saveInventory();
         closeItemInfo();

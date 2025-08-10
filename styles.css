@@ -104,16 +104,6 @@ button:hover {
         object-fit: cover;
 }
 
-#stats-container label {
-    display: block;
-    margin-top: 5px;
-}
-
-.stat-desc {
-    font-size: 12px;
-    color: #ccc;
-}
-
 .trait-row {
     display: flex;
 	flex-direction: column;
@@ -267,6 +257,12 @@ button:hover {
     overflow-y: auto;
 }
 
+#character-description {
+    background-color: rgba(50,50,50,0.5);
+    padding: 10px;
+    border-radius: 4px;
+}
+
 #loadout-sidebar {
 	position: fixed;
 	top: 0;
@@ -328,15 +324,40 @@ button:hover {
     font-size: 12px;
 }
 
-.stat-row {
+.stats-content {
     display: flex;
-    align-items: center;
-    gap: 5px;
+}
+
+.stats-inputs {
+    width: 20%;
+    display: flex;
+    flex-direction: column;
+}
+
+.stats-inputs label {
     margin-top: 5px;
 }
 
-#stats-container .stat-row label {
-    width: 100px;
+.stats-descriptions {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.stat-desc-chip {
+    background-color: silver;
+    border-radius: 6px;
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
+}
+
+.stat-desc-chip img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    margin-right: 5px;
 }
 
 /* Inventory styles */
@@ -531,19 +552,39 @@ button:hover {
 }
 
 .stat-chip {
+    position: relative;
+    width: 40px;
+    height: 40px;
     background-color: silver;
     border-radius: 6px;
-    padding: 2px 4px;
+    overflow: hidden;
+    display: inline-block;
+    margin: 2px;
+}
+
+.stat-chip img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.stat-chip-value {
+	position: absolute;
+	top: 75%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     font-size: 0.8em;
+    font-weight: bold;
+    text-shadow: 0 0 2px #000;
     color: #000;
 }
 
-.stat-chip.positive {
-    color: #155715;
+.stat-chip-value.positive {
+    color: #aaffaa;
 }
 
-.stat-chip.negative {
-    color: #ff0000;
+.stat-chip-value.negative {
+    color: #ffaaaa;
 }
 
 #profile-traits {
@@ -591,18 +632,11 @@ button:hover {
 	background-color: rgba(50,50,50,0.5);
 }
 
-#item-info-modal .modal-content {
-	position: relative;
-	padding-bottom: 40px;
-}
-
 .item-value {
-	position: absolute;
-	bottom: 20px;
-	right: 20px;
-	display: flex;
-	align-items: center;
-	color: #FFD700;
+        display: flex;
+        align-items: center;
+        color: #FFD700;
+        margin-top: 10px;
 }
 
 .item-value img {
@@ -610,6 +644,16 @@ button:hover {
         height: 25px;
         object-fit: fill;
         margin-right: 4px;
+}
+
+#item-info-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#item-info-actions .destroy-btn {
+    color: red;
 }
 
 .prompt-buttons {

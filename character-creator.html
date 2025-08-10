@@ -34,14 +34,25 @@
             </div>
             <div class="editor-section" id="stats-section">
                 <h3>Stats</h3>
-                <div id="stats-container">
-                    <div class="stat-row"><label>Strength: <input type="number" id="stat-strength" value="0"></label><span class="stat-desc">Increases physical power.</span></div>
-                    <div class="stat-row"><label>Dexterity: <input type="number" id="stat-dexterity" value="0"></label><span class="stat-desc">Improves agility and reflexes.</span></div>
-                    <div class="stat-row"><label>Constitution: <input type="number" id="stat-constitution" value="0"></label><span class="stat-desc">Represents health and stamina.</span></div>
-                    <div class="stat-row"><label>Endurance: <input type="number" id="stat-endurance" value="0"></label><span class="stat-desc">Measures ability to sustain effort.</span></div>
-                    <div class="stat-row"><label>Intelligence: <input type="number" id="stat-intelligence" value="0"></label><span class="stat-desc">Determines reasoning and knowledge.</span></div>
-                    <div class="stat-row"><label>Charisma: <input type="number" id="stat-charisma" value="0"></label><span class="stat-desc">Influences persuasion and charm.</span></div>
-                    <div class="stat-row"><label>Fortitude: <input type="number" id="stat-fortitude" value="0"></label><span class="stat-desc">Enhances resistance to damage.</span></div>
+                <div class="stats-content">
+                    <div class="stats-inputs">
+                        <label>Strength: <input type="number" id="stat-strength" value="0"></label>
+                        <label>Dexterity: <input type="number" id="stat-dexterity" value="0"></label>
+                        <label>Constitution: <input type="number" id="stat-constitution" value="0"></label>
+                        <label>Endurance: <input type="number" id="stat-endurance" value="0"></label>
+                        <label>Intelligence: <input type="number" id="stat-intelligence" value="0"></label>
+                        <label>Charisma: <input type="number" id="stat-charisma" value="0"></label>
+                        <label>Fortitude: <input type="number" id="stat-fortitude" value="0"></label>
+                    </div>
+                    <div class="stats-descriptions">
+                        <div class="stat-desc-chip"><img src="resources/ui/strength.png" alt=""><span>Increases physical power and physical damage-dealing potential.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/dexterity.png" alt=""><span>Improves agility and reflexes. Useful for delicate tools as well.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/constitution.png" alt=""><span>Represents the amount of Health one has.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/endurance.png" alt=""><span>Stamina reserves and Lifespan/longevity.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/intelligence.png" alt=""><span>Determines Intellect and reasoning. Also governs magical and mental abilities.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/charisma.png" alt=""><span>Influences persuasion and charm. Represents physical attractiveness and verbal influence.</span></div>
+                        <div class="stat-desc-chip"><img src="resources/ui/fortitude.png" alt=""><span>>Enhances resistance to damage. Affects resistance to the elements, toxins, crippling conditions, etc. Governs physical defense rating (Scales on a dragon, tough bones, etc.)</span></div>
+                    </div>
                 </div>
                 <label><input type="checkbox" id="show-stats" checked> Show stats on profile</label>
             </div>
