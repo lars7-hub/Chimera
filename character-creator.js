@@ -1,7 +1,4 @@
 // character-creator.js
-// Attach this script to your character-creator.html WITH <script src="character-creator.js"></script> (remove from renderer.js if present).
-// Handles form submission, image upload, and calls Electron IPC to create character.
-
 let selectedImagePath = null;
 
 const cropCheckbox = document.getElementById('crop-image');

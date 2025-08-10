@@ -342,8 +342,8 @@ function openItemInfo(index) {
         chip.className = 'stat-chip';
 
         const imgEl = document.createElement('img');
-        imgEl.src = `resources/ui/${s.stat}.gif`;
-        imgEl.alt = `resources/ui/${s.stat}.png`;
+        imgEl.src = `resources/ui/${s.stat}.png`;
+        imgEl.alt = s.stat;
         chip.appendChild(imgEl);
 
         const textEl = document.createElement('span');

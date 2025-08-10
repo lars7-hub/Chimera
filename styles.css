@@ -414,7 +414,7 @@ button:hover {
 }
 
 .inventory-tile .move-left {
-    left: 2px;
+    left: 12px;
 }
 
 .inventory-tile .move-right {
