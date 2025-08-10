@@ -116,6 +116,7 @@
                 <label><input type="checkbox" id="crop-image" checked> Crop image to fit</label>
             </div>
             <div class="editor-section traits-section">
+                <div class="editor-section traits-section">
                 <div id="traits-container"></div>
                 <button type="button" id="add-trait-btn">Add Trait</button>
             </div>
@@ -126,6 +127,41 @@
             </div>
         </div>
     </div>
+
+    <div id="trait-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="trait-modal-close" class="close">&times;</span>
+            <h3 id="trait-modal-title">Add Trait</h3>
+            <form id="trait-form">
+                <label>Trait Description<input type="text" id="trait-text" required></label>
+                <label>Stat
+                    <select id="trait-stat">
+                        <option value="">None</option>
+                        <option value="strength">Strength</option>
+                        <option value="dexterity">Dexterity</option>
+                        <option value="constitution">Constitution</option>
+                        <option value="endurance">Endurance</option>
+                        <option value="intelligence">Intelligence</option>
+                        <option value="charisma">Charisma</option>
+                        <option value="fortitude">Fortitude</option>
+                    </select>
+                </label>
+                <label>Value<input type="number" id="trait-value" value="0"></label>
+                <div id="trait-type" class="type-toggle">
+                    <button type="button" class="type-btn active" data-type="add">Add</button>
+                    <button type="button" class="type-btn" data-type="mul">%</button>
+                </div>
+                <label>Color<input type="color" id="trait-color" value="#ffffff"></label>
+                <div class="modal-buttons">
+                    <button type="submit" id="trait-save-btn">Save</button>
+                    <button type="button" id="trait-delete-btn" class="delete-btn">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="character-editor.js"></script>
+</body>
 
     <script src="character-editor.js"></script>
 </body>

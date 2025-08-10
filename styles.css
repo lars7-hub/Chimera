@@ -60,8 +60,8 @@ h2 {
 }
 
 .character-tile {
-    width: 400px;
-    height: 650px;
+    width: 350px;
+    height: 400;
     margin: 10px;
     background-color: #555;
     border-radius: 8px;
@@ -73,8 +73,9 @@ h2 {
 
 .character-tile img{
 	width: 100%;
-	height: 600px;
+	height: 350px;
 	object-fit: cover;
+	justify-content: top;
 }
 
 button {
@@ -263,7 +264,8 @@ button:hover {
     border-radius: 4px;
 }
 
-#loadout-sidebar {
+#loadout-sidebar,
+#character-select-sidebar {
 	position: fixed;
 	top: 0;
 	right: 0;
@@ -279,6 +281,7 @@ button:hover {
 }
 
 #loadout-sidebar button,
+#character-select-sidebar button,
 #loadout-list .loadout-item {
 	background-color: #444;
 	border: none;
@@ -587,7 +590,8 @@ button:hover {
     color: #ffaaaa;
 }
 
-#profile-traits {
+#profile-traits,
+#traits-container {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -601,6 +605,7 @@ button:hover {
     display: flex;
     justify-content: space-between;
     box-sizing: border-box;
+    cursor: pointer;
 }
 
 .trait-text {
@@ -792,8 +797,13 @@ button:hover {
         flex-basis: 20%;
         display: flex;
         flex-direction: column;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        align-items: center;
         gap: 10px;
+}
+
+.actions-section button {
+        margin-top: 0;
 }
 
 .editor-section button,

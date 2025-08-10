@@ -2,8 +2,8 @@ window.onload = async function () {
     // Load the list of characters and display them
     await loadCharacters();
 
-    // Set up event listener for the "Create New Character" tile
-    document.getElementById('create-new-character-tile').addEventListener('click', () => {
+    // Set up event listener for the "Create New Character" button
+    document.getElementById('create-new-character-btn').addEventListener('click', () => {
         window.location.href = 'character-editor.html?mode=new'; // Navigate to character creator page
     });
 

@@ -5,44 +5,138 @@ const showStatsCheckbox = document.getElementById('show-stats');
 const traitsContainer = document.getElementById('traits-container');
 const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
 
-function addTraitRow(trait = {}) {
-    const row = document.createElement('div');
-    row.className = 'trait-row';
-    const type = (trait.stats && trait.stats[0] && trait.stats[0].type) || 'add';
-    const stat = (trait.stats && trait.stats[0] && trait.stats[0].stat) || '';
-    const value = (trait.stats && trait.stats[0] && trait.stats[0].value) || 0;
-    row.innerHTML = `
-        <label>Trait name: <input type="text" class="trait-text" placeholder="Trait description" value="${trait.text || ''}"></label>
-        <select class="trait-stat">
-            <option value="">Stat</option>
-            <option value="strength"${stat === 'strength' ? ' selected' : ''}>Strength</option>
-            <option value="dexterity"${stat === 'dexterity' ? ' selected' : ''}>Dexterity</option>
-            <option value="constitution"${stat === 'constitution' ? ' selected' : ''}>Constitution</option>
-            <option value="endurance"${stat === 'endurance' ? ' selected' : ''}>Endurance</option>
-            <option value="intelligence"${stat === 'intelligence' ? ' selected' : ''}>Intelligence</option>
-            <option value="charisma"${stat === 'charisma' ? ' selected' : ''}>Charisma</option>
-            <option value="fortitude"${stat === 'fortitude' ? ' selected' : ''}>Fortitude</option>
-        </select>
-        <input type="number" class="trait-value" value="${value}">
-        <div class="type-toggle">
-            <button type="button" class="type-btn${type === 'mul' ? '' : ' active'}" data-type="add">Add</button>
-            <button type="button" class="type-btn${type === 'mul' ? ' active' : ''}" data-type="mul">%</button>
-        </div>
-        <input type="color" class="trait-color" value="${trait.color || '#ffffff'}">
-        <button type="button" class="remove-trait-btn">Remove</button>
-    `;
-    traitsContainer.appendChild(row);
-    const toggle = row.querySelector('.type-toggle');
-    toggle.querySelectorAll('.type-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            toggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        });
+let traitsData = [];
+let editingTraitIndex = null;
+
+const traitModal = document.getElementById('trait-modal');
+const traitForm = document.getElementById('trait-form');
+const traitModalTitle = document.getElementById('trait-modal-title');
+const traitTextInput = document.getElementById('trait-text');
+const traitStatSelect = document.getElementById('trait-stat');
+const traitValueInput = document.getElementById('trait-value');
+const traitColorInput = document.getElementById('trait-color');
+const traitTypeToggle = document.getElementById('trait-type');
+const traitDeleteBtn = document.getElementById('trait-delete-btn');
+
+traitTypeToggle.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
     });
-    row.querySelector('.remove-trait-btn').addEventListener('click', () => row.remove());
+});
+
+function renderTraits() {
+    traitsContainer.innerHTML = '';
+    traitsData.forEach((t, index) => {
+        const chip = document.createElement('div');
+        chip.className = 'trait-chip';
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'trait-text';
+        textDiv.textContent = t.text;
+        textDiv.style.color = t.color || '#ffffff';
+        chip.appendChild(textDiv);
+
+        const modsDiv = document.createElement('div');
+        modsDiv.className = 'trait-modifiers';
+        const statsArr = Array.isArray(t.stats) ? t.stats : [];
+        statsArr.forEach(s => {
+            if (!s.stat) return;
+            const chipEl = document.createElement('div');
+            chipEl.className = 'stat-chip';
+
+            const imgEl = document.createElement('img');
+            imgEl.src = `resources/ui/${s.stat}.png`;
+            imgEl.alt = s.stat;
+            chipEl.appendChild(imgEl);
+
+            const textEl = document.createElement('span');
+            textEl.className = 'stat-chip-value';
+            let display = '';
+            if (s.type === 'mul') {
+                display = `${s.value}%`;
+                if (s.value > 100) textEl.classList.add('positive');
+                else if (s.value < 100) textEl.classList.add('negative');
+            } else {
+                const num = s.type === 'sub' ? -s.value : s.value;
+                display = num > 0 ? `+${num}` : `${num}`;
+                if (num > 0) textEl.classList.add('positive');
+                else if (num < 0) textEl.classList.add('negative');
+            }
+            textEl.textContent = display;
+            chipEl.appendChild(textEl);
+            modsDiv.appendChild(chipEl);
+        });
+		chip.appendChild(modsDiv);
+        chip.addEventListener('click', () => openTraitModal(index));
+        traitsContainer.appendChild(chip);
+    });
 }
 
-document.getElementById('add-trait-btn').addEventListener('click', () => addTraitRow());
+function openTraitModal(index) {
+    editingTraitIndex = index;
+    if (index != null) {
+        const t = traitsData[index];
+        traitModalTitle.textContent = 'Edit Trait';
+        traitTextInput.value = t.text || '';
+        const stat = t.stats && t.stats[0] ? t.stats[0].stat : '';
+        const value = t.stats && t.stats[0] ? t.stats[0].value : 0;
+        const type = t.stats && t.stats[0] ? t.stats[0].type || 'add' : 'add';
+        traitStatSelect.value = stat;
+        traitValueInput.value = value;
+        traitColorInput.value = t.color || '#ffffff';
+        traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+        traitTypeToggle.querySelector(`.type-btn[data-type="${type}"]`).classList.add('active');
+        traitDeleteBtn.style.display = 'inline-block';
+    } else {
+        traitModalTitle.textContent = 'Add Trait';
+        traitTextInput.value = '';
+        traitStatSelect.value = '';
+        traitValueInput.value = 0;
+        traitColorInput.value = '#ffffff';
+        traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+        traitTypeToggle.querySelector('.type-btn[data-type="add"]').classList.add('active');
+        traitDeleteBtn.style.display = 'none';
+    }
+    traitModal.classList.remove('hidden');
+}
+
+function closeTraitModal() {
+    traitModal.classList.add('hidden');
+}
+
+document.getElementById('trait-modal-close').addEventListener('click', closeTraitModal);
+document.getElementById('add-trait-btn').addEventListener('click', () => openTraitModal());
+
+traitDeleteBtn.addEventListener('click', () => {
+    if (editingTraitIndex != null) {
+        traitsData.splice(editingTraitIndex, 1);
+        renderTraits();
+    }
+    closeTraitModal();
+});
+
+traitForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const text = traitTextInput.value.trim();
+    const stat = traitStatSelect.value;
+    const value = parseInt(traitValueInput.value) || 0;
+    const typeBtn = traitTypeToggle.querySelector('.type-btn.active');
+    const type = typeBtn ? typeBtn.dataset.type : 'add';
+    const color = traitColorInput.value;
+    const trait = {
+        text,
+        stats: stat ? [{ stat, value, type }] : [],
+        color
+    };
+    if (editingTraitIndex != null) {
+        traitsData[editingTraitIndex] = trait;
+    } else {
+        traitsData.push(trait);
+    }
+    renderTraits();
+    closeTraitModal();
+});
 
 function updatePreviewFit() {
     const previewImg = document.getElementById('image-preview-img');
@@ -123,7 +217,8 @@ async function loadCharacter() {
     document.getElementById('stat-intelligence').value = data.stats?.intelligence || 0;
     document.getElementById('stat-charisma').value = data.stats?.charisma || 0;
     document.getElementById('stat-fortitude').value = data.stats?.fortitude || 0;
-    (data.traits || []).forEach(t => addTraitRow(t));
+	traitsData = data.traits || [];
+	renderTraits();
     const previewImg = document.getElementById('image-preview-img');
     previewImg.src = `app/characters/${originalCharacterName}/${originalCharacterName}.png`;
     previewImg.style.display = 'block';
@@ -151,7 +246,8 @@ async function loadLoadout() {
     document.getElementById('stat-intelligence').value = data.stats?.intelligence || 0;
     document.getElementById('stat-charisma').value = data.stats?.charisma || 0;
     document.getElementById('stat-fortitude').value = data.stats?.fortitude || 0;
-    (data.traits || []).forEach(t => addTraitRow(t));
+	traitsData = data.traits || [];
+	renderTraits();
     const previewImg = document.getElementById('image-preview-img');
     previewImg.src = `app/characters/${originalCharacterName}/loadouts/${originalLoadoutName}/image.png`;
     previewImg.style.display = 'block';
@@ -183,17 +279,7 @@ saveBtn.addEventListener('click', async () => {
             charisma: parseInt(document.getElementById('stat-charisma').value) || 0,
             fortitude: parseInt(document.getElementById('stat-fortitude').value) || 0,
         },
-        traits: Array.from(traitsContainer.querySelectorAll('.trait-row')).map(row => {
-            const stat = row.querySelector('.trait-stat').value;
-            const value = parseInt(row.querySelector('.trait-value').value) || 0;
-            const typeBtn = row.querySelector('.type-btn.active');
-            const type = typeBtn ? typeBtn.dataset.type : 'add';
-            return {
-                text: row.querySelector('.trait-text').value,
-                stats: stat ? [{ stat, value, type }] : [],
-                color: row.querySelector('.trait-color').value,
-            };
-        }),
+        traits: traitsData,
         showStats: showStatsCheckbox.checked,
         imageFit: cropCheckbox.checked ? 'crop' : 'squish'
     };
