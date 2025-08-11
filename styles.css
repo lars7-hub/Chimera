@@ -868,6 +868,11 @@ button:hover {
         height: 40px;
 }
 
+#editor-container .stat-icon-container img {
+	width: 35px;
+	height: 35px;
+}
+
 .stat-input input {
         width: 50px;
         text-align: center;
