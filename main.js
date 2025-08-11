@@ -19,7 +19,7 @@ function createWindow() {
     mainWindow.loadFile('index.html'); // Load the character selector page by default
 }
 
-app.whenReady().then(createWindow);app.whenReady().then(() => {
+app.whenReady().then(() => {
     fileSystemPath = path.join(app.getPath('documents'), 'Chimera', 'characters');
     if (!fs.existsSync(fileSystemPath)) {
         fs.mkdirSync(fileSystemPath, { recursive: true });
@@ -59,7 +59,7 @@ ipcMain.handle('get-characters', () => {
 });
 
 // Fetch a single character's data
-ipcMain.handle('get-character', (even, characterName) => {
+ipcMain.handle('get-character', (event, characterName) => {
 	try {
 		const characterDataPath = path.join(fileSystemPath, characterName, `${characterName}.json`);
 		if (fs.existsSync(characterDataPath)) {

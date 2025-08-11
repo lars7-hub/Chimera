@@ -3,7 +3,6 @@ let selectedImagePath = null;
 const cropCheckbox = document.getElementById('crop-image');
 const showStatsCheckbox = document.getElementById('show-stats');
 const traitsContainer = document.getElementById('traits-container');
-const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
 const alignmentInput = document.getElementById('alignment');
 const alignmentSlider = document.getElementById('alignment-slider');
 
@@ -156,7 +155,7 @@ function openTraitModal(index) {
         traitDeleteBtn.style.display = 'inline-block';
     } else {
         traitModalTitle.textContent = 'Add Trait';
-        traitDameInput.value = '';
+        traitNameInput.value = '';
         traitDescInput.value = '';
 		createStatRow();
         traitColorInput.value = '#ffffff';
@@ -327,6 +326,8 @@ async function loadLoadout() {
         previewImg.src = imgPath;
         previewImg.style.display = 'block';
     }
+	updatePreviewFit();
+}
 
 saveBtn.addEventListener('click', async () => {
     const name = document.getElementById('name').value.trim();

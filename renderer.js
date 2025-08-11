@@ -33,7 +33,7 @@ async function loadCharacters() {
             characterTile.className = 'character-tile';
 			const fit = character.data && character.data.imageFit === 'squish' ? 'fill' : 'cover';
             characterTile.innerHTML = `
-                <img src="${character.imagePath}" alt="${character.name}">
+                <img src="${character.imagePath}" alt="${character.name}" style="object-fit:${fit};">
                 <h3>${character.name}</h3>
             `;
             characterTile.addEventListener('click', () => {

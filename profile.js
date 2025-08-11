@@ -515,7 +515,7 @@ async function loadCharacterProfile() {
         return;
     }
     inventory = await window.electron.getInventory(characterName, 'default');
-    await window.electron.getCharacterImage(characterName);
+    const imagePath = await window.electron.getCharacterImage(characterName);
     displayProfile(characterData, imagePath);
 }
 
@@ -528,7 +528,7 @@ async function loadLoadout(loadoutName) {
     }
     inventory = await window.electron.getInventory(characterName, loadoutName);
     activeLoadout = loadoutName;
-    await window.electron.getLoadoutImage(characterName, loadoutName);
+    const imagePath = await window.electron.getLoadoutImage(characterName, loadoutName);
     displayProfile(loadoutData, imagePath, loadoutName);
 }
 
