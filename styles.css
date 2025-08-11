@@ -783,6 +783,7 @@ button:hover {
 	flex-direction: column;
 	gap: 10px;
 	padding: 10px;
+	overflow: hidden;
 }
 
 .editor-top, .editor-bottom {
@@ -796,8 +797,7 @@ button:hover {
 	padding: 10px;
 	border-radius: 5px;
 	flex: 1;
-	overflow: hidden;
-	height: 90vh;
+	overflow-y: auto;
 }
 
 .editor-section h3 {
@@ -808,7 +808,8 @@ button:hover {
 #core-section {
 	display: flex;
 	flex-direction: column;
-	height: 95%;
+	flex: 1;
+	overflow-y: auto;
 }
 
 #core-section .detail-row {
@@ -835,7 +836,8 @@ button:hover {
 #stats-section {
 	display: flex;
 	flex-direction: column;
-	height: 95%;
+	flex: 1;
+	overflow-y: auto;
 }
 
 #stats-table-editor {
@@ -880,7 +882,8 @@ button:hover {
 #description-section {
         display: flex;
         flex-direction: column;
-		height: 95%;
+		flex: 1;
+        overflow-y: auto;
 }
 
 #description-section textarea {
@@ -942,8 +945,9 @@ button:hover {
 }
 
 .image-section {
-		height: 95%;
     align-items: center;
+    justify-content: center;
+
 }
 
 .image-section label {
@@ -956,18 +960,18 @@ button:hover {
 .traits-section {
 		display: flex;
 		flex-direction: column;
-		height: 95%;
 		flex: 0 0 60%;
 		align-items: stretch;
+		overflow-y: auto;
 }
 
 .actions-section {
         justify-content: flex-start;
         align-items: center;
-		height: 95%;
         gap: 10px;
 		display: flex;
 		flex-direction: column;
+		overflow-y: auto;
 }
 
 .actions-section button {
