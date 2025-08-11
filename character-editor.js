@@ -4,6 +4,16 @@ const cropCheckbox = document.getElementById('crop-image');
 const showStatsCheckbox = document.getElementById('show-stats');
 const traitsContainer = document.getElementById('traits-container');
 const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
+const alignmentInput = document.getElementById('alignment');
+const alignmentSlider = document.getElementById('alignment-slider');
+
+alignmentSlider.addEventListener('input', () => {
+    alignmentInput.value = alignmentSlider.value;
+});
+
+alignmentInput.addEventListener('input', () => {
+    alignmentSlider.value = alignmentInput.value;
+});
 
 let traitsData = [];
 let editingTraitIndex = null;
@@ -263,7 +273,8 @@ async function loadCharacter() {
     document.getElementById('height').value = data.height || '';
     document.getElementById('build').value = data.build || '';
     document.getElementById('occupation').value = data.occupation || '';
-    document.getElementById('alignment').value = data.alignment != null ? data.alignment : 0;
+    alignmentInput.value = data.alignment != null ? data.alignment : 0;
+    alignmentSlider.value = alignmentInput.value;
     document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
@@ -278,8 +289,11 @@ async function loadCharacter() {
 	traitsData = data.traits || [];
 	renderTraits();
     const previewImg = document.getElementById('image-preview-img');
-    previewImg.src = `app/characters/${originalCharacterName}/${originalCharacterName}.png`;
-    previewImg.style.display = 'block';
+    const imgPath = await window.electron.getCharacterImage(originalCharacterName);
+    if (imgPath) {
+        previewImg.src = imgPath;
+        previewImg.style.display = 'block';
+    }
     updatePreviewFit();
 }
 
@@ -292,7 +306,8 @@ async function loadLoadout() {
     document.getElementById('height').value = data.height || '';
     document.getElementById('build').value = data.build || '';
     document.getElementById('occupation').value = data.occupation || '';
-    document.getElementById('alignment').value = data.alignment != null ? data.alignment : 0;
+    alignmentInput.value = data.alignment != null ? data.alignment : 0;
+    alignmentSlider.value = alignmentInput.value;
     document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
@@ -307,10 +322,11 @@ async function loadLoadout() {
 	traitsData = data.traits || [];
 	renderTraits();
     const previewImg = document.getElementById('image-preview-img');
-    previewImg.src = `app/characters/${originalCharacterName}/loadouts/${originalLoadoutName}/image.png`;
-    previewImg.style.display = 'block';
-    updatePreviewFit();
-}
+    const imgPath = await window.electron.getLoadoutImage(originalCharacterName, originalLoadoutName);
+    if (imgPath) {
+        previewImg.src = imgPath;
+        previewImg.style.display = 'block';
+    }
 
 saveBtn.addEventListener('click', async () => {
     const name = document.getElementById('name').value.trim();
@@ -419,11 +435,14 @@ async function goRandom() {
         const chars = await window.electron.getCharacters();
         if (!chars.length) return;
         const char = chars[Math.floor(Math.random() * chars.length)];
-        let loads = await window.electron.getLoadouts(char.name);
-        let names = loads.map(l => l.name);
-        names.push('default');
-        const loadName = names[Math.floor(Math.random() * names.length)];
-        window.location.href = `profile.html?character=${char.name}&loadout=${loadName}`;
+		let loads = await window.electron.getLoadouts(char.name);
+		let names = loads.map(l => l.name);
+		names.push('default');
+		const loadName = names[Math.floor(Math.random() * names.length)];
+		const url = loadName === 'default'
+			? `profile.html?character=${char.name}`
+        : `profile.html?character=${char.name}&loadout=${loadName}`;
+		window.location.href = url;
     } catch (err) {
         console.error(err);
     }

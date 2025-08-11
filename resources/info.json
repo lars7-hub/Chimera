@@ -10,10 +10,14 @@
       "title": "Alignment System",
       "content": "Characters have an alignment value between -100 and 100. The profile page shows this on a colored bar." 
     },
-    {
+{
       "id": "random",
       "title": "Random Loadouts",
-      "content": "The random button jumps to a random character and loadout for quick inspiration." 
+      "content": "The random button jumps to a random character and loadout for quick inspiration."
+    },
+    {
+      "id": "stats",
+      "title": "Stats",
+      "content": ""
     }
   ]
-}

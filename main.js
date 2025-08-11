@@ -1,15 +1,9 @@
-const { app, BrowserWindow, ipcMain, dialog} = require('electron'); // Ensure path and fs are required properly
-const fs = require('fs'); // Core Node.js fs module
-const path = require('path'); // Core Node.js path module
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const fs = require('fs');
+const path = require('path');
 const { pathToFileURL, fileURLToPath } = require('url');
 
-const fileSystemPath = path.join(__dirname, 'app/characters'); // Correctly access the characters directory
-
-// Check if the directory exists and make it if it doesn't
-if (!fs.existsSync(fileSystemPath)) {
-	fs.mkdirSync(fileSystemPath, { recursive: true });
-}
-
+let fileSystemPath;
 let mainWindow;
 
 function createWindow() {
@@ -25,7 +19,13 @@ function createWindow() {
     mainWindow.loadFile('index.html'); // Load the character selector page by default
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(createWindow);app.whenReady().then(() => {
+    fileSystemPath = path.join(app.getPath('documents'), 'Chimera', 'characters');
+    if (!fs.existsSync(fileSystemPath)) {
+        fs.mkdirSync(fileSystemPath, { recursive: true });
+    }
+    createWindow();
+});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -72,6 +72,22 @@ ipcMain.handle('get-character', (even, characterName) => {
 	}
 	return null;
 	});
+	
+	ipcMain.handle('get-character-image', (event, characterName) => {
+    const imgPath = path.join(fileSystemPath, characterName, `${characterName}.png`);
+    if (fs.existsSync(imgPath)) {
+        return pathToFileURL(imgPath).href;
+    }
+    return null;
+});
+
+ipcMain.handle('get-loadout-image', (event, characterName, loadoutName) => {
+    const imgPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'image.png');
+    if (fs.existsSync(imgPath)) {
+        return pathToFileURL(imgPath).href;
+    }
+    return null;
+});
 
 // Open file dialog for image selection
 ipcMain.handle('open-file-dialog', () => {

@@ -5,6 +5,29 @@ let activeLoadout = urlParams.get('loadout');
 let currentProfileData = null;
 let inventory = [];
 
+function alignmentText(value) {
+    if (value < -90) return 'pure evil';
+    if (value < -25) return 'evil';
+    if (value <= 24) return 'neutral';
+    if (value <= 90) return 'good';
+    return 'pure good';
+}
+
+function alignmentColor(value) {
+    const clamped = Math.max(-100, Math.min(100, value));
+    if (clamped < 0) {
+        const t = (clamped + 100) / 100;
+        const g = Math.round(255 * t);
+        const b = g;
+        return `rgb(255,${g},${b})`;
+    }
+    const t = clamped / 100;
+    const r = Math.round(255 - (82 * t));
+    const g = Math.round(255 - (39 * t));
+    const b = Math.round(255 - (25 * t));
+    return `rgb(${r},${g},${b})`;
+}
+
 function updateStatsDisplay() {
     if (!currentProfileData) return;
     const statsContainer = document.getElementById('profile-stats');
@@ -136,6 +159,9 @@ function displayProfile(data, imagePath, loadoutName = null) {
         const tick = document.getElementById('alignment-tick');
         const clamped = Math.max(-100, Math.min(100, alignmentValue));
         tick.style.left = `${(clamped + 100) / 2}%`;
+        const label = document.getElementById('alignment-text');
+        label.textContent = alignmentText(clamped);
+        label.style.color = alignmentColor(clamped);
         alignmentContainer.style.display = 'block';
     } else {
         alignmentContainer.style.display = 'none';
@@ -489,7 +515,7 @@ async function loadCharacterProfile() {
         return;
     }
     inventory = await window.electron.getInventory(characterName, 'default');
-    const imagePath = `app/characters/${characterName}/${characterName}.png`;
+    await window.electron.getCharacterImage(characterName);
     displayProfile(characterData, imagePath);
 }
 
@@ -502,7 +528,7 @@ async function loadLoadout(loadoutName) {
     }
     inventory = await window.electron.getInventory(characterName, loadoutName);
     activeLoadout = loadoutName;
-    const imagePath = `app/characters/${characterName}/loadouts/${loadoutName}/image.png`;
+    await window.electron.getLoadoutImage(characterName, loadoutName);
     displayProfile(loadoutData, imagePath, loadoutName);
 }
 
@@ -584,7 +610,10 @@ async function goRandom() {
         let names = loads.map(l => l.name);
         names.push('default');
         const loadName = names[Math.floor(Math.random() * names.length)];
-        window.location.href = `profile.html?character=${char.name}&loadout=${loadName}`;
+		const url = loadName === 'default'
+        ? `profile.html?character=${char.name}`
+        : `profile.html?character=${char.name}&loadout=${loadName}`;
+    window.location.href = url;
     } catch (err) {
         console.error(err);
     }

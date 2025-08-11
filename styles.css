@@ -870,10 +870,61 @@ button:hover {
         box-sizing: border-box;
 }
 
-.image-section {
-        flex-basis: 20%;
+.image-section,
+ .traits-section,
+ .actions-section {
+        flex: 1;
         display: flex;
         flex-direction: column;
+}
+
+#alignment-text {
+    margin-top: 5px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.alignment-slider-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 5px;
+}
+
+#alignment-slider {
+    flex: 1;
+    appearance: none;
+    height: 20px;
+    background: linear-gradient(to right, red, white, lightblue);
+    border-radius: 10px;
+}
+
+#alignment-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: black;
+    border-radius: 50%;
+}
+
+#alignment-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: black;
+    border-radius: 50%;
+}
+
+.stats-table img {
+    width: 80px;
+    height: 80px;
+}
+
+.stats-table td {
+    padding: 5px;
+    vertical-align: middle;
+}
+
+.image-section {
         align-items: center;
 }
 
@@ -884,16 +935,10 @@ button:hover {
 }
 
 .traits-section {
-        flex-basis: 60%;
-        display: flex;
-        flex-direction: column;
         align-items: flex-start;
 }
 
 .actions-section {
-        flex-basis: 20%;
-        display: flex;
-        flex-direction: column;
         justify-content: flex-start;
         align-items: center;
         gap: 10px;
@@ -942,24 +987,6 @@ button:hover {
 	margin-top: 5px;
 }
 
-.image-section {
-	flex: 0 0 20%;
-}
-
-.traits-section {
-	flex: 0 0 70%;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-}
-
-.actions-section {
-	flex: 0 0 10%;
-	display: flex;
-	flex-direction: column;
-	justify-content: flex;
-	align-items: center;
-}
 
 #info-container {
     margin-left: 7.4%;

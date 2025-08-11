@@ -61,7 +61,10 @@ async function goRandom() {
         let names = loads.map(l => l.name);
         names.push('default');
         const loadName = names[Math.floor(Math.random() * names.length)];
-        window.location.href = `profile.html?character=${char.name}&loadout=${loadName}`;
+		const url = loadName === 'default'
+        ? `profile.html?character=${char.name}`
+        : `profile.html?character=${char.name}&loadout=${loadName}`;
+		window.location.href = url;
     } catch (err) {
         console.error(err);
     }
