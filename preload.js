@@ -13,5 +13,7 @@ contextBridge.exposeInMainWorld('electron', {
     updateLoadout: (characterName, originalName, loadoutData, imagePath) => ipcRenderer.invoke('update-loadout', characterName, originalName, loadoutData, imagePath),
     deleteLoadout: (characterName, loadoutName) => ipcRenderer.invoke('delete-loadout', characterName, loadoutName),
     getInventory: (characterName, loadoutName) => ipcRenderer.invoke('get-inventory', characterName, loadoutName),
-    saveInventory: (characterName, loadoutName, items) => ipcRenderer.invoke('save-inventory', characterName, loadoutName, items)
-	});
+    saveInventory: (characterName, loadoutName, items) => ipcRenderer.invoke('save-inventory', characterName, loadoutName, items),
+    getInfo: () => ipcRenderer.invoke('get-info'),
+    saveInfo: (data) => ipcRenderer.invoke('save-info', data)
+});

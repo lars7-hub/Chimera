@@ -117,7 +117,6 @@ function displayProfile(data, imagePath, loadoutName = null) {
         { key: 'height', label: 'Height' },
         { key: 'build', label: 'Build' },
         { key: 'occupation', label: 'Occupation' },
-        { key: 'alignment', label: 'Alignment' },
         { key: 'race', label: 'Race' },
         { key: 'affiliation', label: 'Affiliation' },
         { key: 'origin', label: 'Origin' },
@@ -130,6 +129,17 @@ function displayProfile(data, imagePath, loadoutName = null) {
             infoList.appendChild(li);
         }
     });
+
+    const alignmentContainer = document.getElementById('alignment-container');
+    const alignmentValue = parseInt(data.alignment);
+    if (!isNaN(alignmentValue)) {
+        const tick = document.getElementById('alignment-tick');
+        const clamped = Math.max(-100, Math.min(100, alignmentValue));
+        tick.style.left = `${(clamped + 100) / 2}%`;
+        alignmentContainer.style.display = 'block';
+    } else {
+        alignmentContainer.style.display = 'none';
+    }
 
     const traitsContainer = document.getElementById('profile-traits');
     traitsContainer.innerHTML = '';
@@ -558,6 +568,27 @@ document.getElementById('delete-loadout-btn').addEventListener('click', async ()
 document.getElementById('home-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
 });
+
+document.getElementById('info-btn').addEventListener('click', () => {
+    window.location.href = 'info.html';
+});
+
+document.getElementById('random-btn').addEventListener('click', goRandom);
+
+async function goRandom() {
+    try {
+        const chars = await window.electron.getCharacters();
+        if (!chars.length) return;
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        let loads = await window.electron.getLoadouts(char.name);
+        let names = loads.map(l => l.name);
+        names.push('default');
+        const loadName = names[Math.floor(Math.random() * names.length)];
+        window.location.href = `profile.html?character=${char.name}&loadout=${loadName}`;
+    } catch (err) {
+        console.error(err);
+    }
+}
 
 loadLoadouts();
 if (activeLoadout) {

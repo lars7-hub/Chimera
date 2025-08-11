@@ -9,6 +9,8 @@
 <body>
     <div id="nav-bar">
         <button id="home-btn">Home</button>
+		<button id="random-btn">Random</button>
+        <button id="info-btn">Info</button>
     </div>
 
     <div id="editor-container">
@@ -46,7 +48,7 @@
                 </div>
                 <div class="detail-row">
                     <label for="alignment">Alignment:</label>
-                    <input type="text" id="alignment">
+                    <input type="number" id="alignment" value="0" min="-100" max="100">
                 </div>
             </div>
             <div class="editor-section" id="stats-section">

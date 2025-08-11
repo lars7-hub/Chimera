@@ -327,3 +327,27 @@ ipcMain.handle('save-inventory', (event, characterName, loadoutName, items) => {
         return { success: false, message: 'Error saving inventory' };
     }
 });
+
+// Info page handlers
+const infoPath = path.join(__dirname, 'resources', 'info.json');
+
+ipcMain.handle('get-info', () => {
+    try {
+        if (fs.existsSync(infoPath)) {
+            return JSON.parse(fs.readFileSync(infoPath, 'utf-8'));
+        }
+    } catch (error) {
+        console.error('Error reading info file:', error);
+    }
+    return { sections: [] };
+});
+
+ipcMain.handle('save-info', (event, data) => {
+    try {
+        fs.writeFileSync(infoPath, JSON.stringify(data));
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving info file:', error);
+        return { success: false };
+    }
+});

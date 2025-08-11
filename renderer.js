@@ -10,6 +10,12 @@ window.onload = async function () {
     document.getElementById('home-btn').addEventListener('click', () => {
         window.location.href = 'index.html'; // Ensure Home button navigates to the selector page
     });
+
+    document.getElementById('info-btn').addEventListener('click', () => {
+        window.location.href = 'info.html';
+    });
+
+    document.getElementById('random-btn').addEventListener('click', goRandom);
 };
 
 // Load characters dynamically from the characters directory
@@ -41,4 +47,19 @@ async function loadCharacters() {
 // Navigate to a character's profile page
 function viewCharacterProfile(characterName) {
     window.location.href = `profile.html?character=${characterName}`; // Navigate to profile page
+}
+
+async function goRandom() {
+    try {
+        const chars = await window.electron.getCharacters();
+        if (!chars.length) return;
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        let loads = await window.electron.getLoadouts(char.name);
+        let names = loads.map(l => l.name);
+        names.push('default');
+        const loadName = names[Math.floor(Math.random() * names.length)];
+        window.location.href = `profile.html?character=${char.name}&loadout=${loadName}`;
+    } catch (err) {
+        console.error(err);
+    }
 }

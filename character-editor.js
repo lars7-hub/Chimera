@@ -265,7 +265,7 @@ async function loadCharacter() {
     document.getElementById('height').value = data.height || '';
     document.getElementById('build').value = data.build || '';
     document.getElementById('occupation').value = data.occupation || '';
-    document.getElementById('alignment').value = data.alignment || '';
+    document.getElementById('alignment').value = data.alignment != null ? data.alignment : 0;
     document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
@@ -294,7 +294,7 @@ async function loadLoadout() {
     document.getElementById('height').value = data.height || '';
     document.getElementById('build').value = data.build || '';
     document.getElementById('occupation').value = data.occupation || '';
-    document.getElementById('alignment').value = data.alignment || '';
+    document.getElementById('alignment').value = data.alignment != null ? data.alignment : 0;
     document.getElementById('race').value = data.race || '';
     document.getElementById('description').value = data.description || '';
     cropCheckbox.checked = data.imageFit !== 'squish';
@@ -327,7 +327,7 @@ saveBtn.addEventListener('click', async () => {
         height: document.getElementById('height').value,
         build: document.getElementById('build').value,
         occupation: document.getElementById('occupation').value,
-        alignment: document.getElementById('alignment').value,
+        alignment: parseInt(document.getElementById('alignment').value) || 0,
         race: document.getElementById('race').value,
         description: document.getElementById('description').value,
         stats: {
@@ -409,3 +409,24 @@ deleteBtn.addEventListener('click', async () => {
 document.getElementById('home-btn').addEventListener('click', () => {
     window.location.href = 'index.html';
 });
+
+document.getElementById('info-btn').addEventListener('click', () => {
+    window.location.href = 'info.html';
+});
+
+document.getElementById('random-btn').addEventListener('click', goRandom);
+
+async function goRandom() {
+    try {
+        const chars = await window.electron.getCharacters();
+        if (!chars.length) return;
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        let loads = await window.electron.getLoadouts(char.name);
+        let names = loads.map(l => l.name);
+        names.push('default');
+        const loadName = names[Math.floor(Math.random() * names.length)];
+        window.location.href = `profile.html?character=${char.name}&loadout=${loadName}`;
+    } catch (err) {
+        console.error(err);
+    }
+}

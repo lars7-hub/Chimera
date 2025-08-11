@@ -1,0 +1,19 @@
+{
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "content": "This application manages characters and loadouts. Use the navigation buttons to explore." 
+    },
+    {
+      "id": "alignment",
+      "title": "Alignment System",
+      "content": "Characters have an alignment value between -100 and 100. The profile page shows this on a colored bar." 
+    },
+    {
+      "id": "random",
+      "title": "Random Loadouts",
+      "content": "The random button jumps to a random character and loadout for quick inspiration." 
+    }
+  ]
+}

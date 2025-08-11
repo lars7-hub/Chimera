@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character Profile Manager</title>
+    <title>Information</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,15 +12,13 @@
         <button id="random-btn">Random</button>
         <button id="info-btn">Info</button>
     </div>
-
-    <div id="character-selector-container">
-        <h2>Character Select</h2>
-        <div id="character-list"></div>
+    <div id="info-container">
+        <div id="info-content"></div>
+        <div id="info-sidebar">
+            <div id="info-buttons"></div>
+            <button id="edit-info-btn">Edit</button>
+        </div>
     </div>
-	<div id="character-select-sidebar">
-        <button id="create-character-btn">Create New Character</button>
-    </div>
-
-    <script src="renderer.js"></script>
+    <script src="info.js"></script>
 </body>
 </html>
