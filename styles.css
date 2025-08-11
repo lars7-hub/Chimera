@@ -694,6 +694,12 @@ button:hover {
     gap: 10px;
 }
 
+#traits-container {
+	max-height: 300px;
+	overflow-y: auto;
+	width: 100%;
+}
+
 .trait-chip {
     width: calc(50% - 10px);
     background-color: #555;
@@ -790,7 +796,8 @@ button:hover {
 	padding: 10px;
 	border-radius: 5px;
 	flex: 1;
-	overflow: auto;
+	overflow: hidden;
+	height: 90vh;
 }
 
 .editor-section h3 {
@@ -947,12 +954,11 @@ button:hover {
 }
 
 .traits-section {
-        align-items: flex-start;
 		display: flex;
 		flex-direction: column;
 		height: 95%;
 		flex: 0 0 60%;
-		align-items: center;
+		align-items: stretch;
 }
 
 .actions-section {
