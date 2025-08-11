@@ -636,7 +636,16 @@ button:hover {
     margin: 4px 0;
 }
 
-#item-info-description {
+#trait-info-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin: 4px 0;
+}
+
+#item-info-description,
+#trait-info-description {
     background-color: rgba(50,50,50,0.5);
     padding: 4px 6px;
     border-radius: 4px;

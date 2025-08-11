@@ -32,12 +32,12 @@ function createTypeToggle(initialType = 'boost') {
     toggle.className = 'type-toggle';
     const boostBtn = document.createElement('button');
     boostBtn.type = 'button';
-    boostBtn.textContent = 'Add';
+    boostBtn.textContent = 'Stat Boost';
     boostBtn.className = 'type-btn';
     boostBtn.dataset.type = 'boost';
     const multBtn = document.createElement('button');
     multBtn.type = 'button';
-    multBtn.textContent = 'x';
+    multBtn.textContent = 'Multiplier';
     multBtn.className = 'type-btn';
     multBtn.dataset.type = 'mult';
     toggle.appendChild(boostBtn);
@@ -55,7 +55,7 @@ function createTypeToggle(initialType = 'boost') {
 
 function createStatRow(data = {}) {
     const row = document.createElement('div');
-    row.className = 'stat-row';
+    row.className = 'trait-stat-row';
 
     const statSelect = document.createElement('select');
     statSelect.className = 'stat-select';
@@ -100,9 +100,17 @@ function renderTraits() {
 
         const textDiv = document.createElement('div');
         textDiv.className = 'trait-text';
-        textDiv.textContent = t.name || t.text;
-		textDiv.title = t.description || '';
-        textDiv.style.color = t.color || '#ffffff';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'trait-name';
+        nameDiv.textContent = t.name || t.text;
+        nameDiv.style.color = t.color || '#ffffff';
+        textDiv.appendChild(nameDiv);
+        if (t.description) {
+            const descDiv = document.createElement('div');
+            descDiv.className = 'trait-desc';
+            descDiv.textContent = t.description;
+            textDiv.appendChild(descDiv);
+        }
         chip.appendChild(textDiv);
 
         const modsDiv = document.createElement('div');
@@ -136,10 +144,57 @@ function renderTraits() {
             modsDiv.appendChild(chipEl);
         });
 		chip.appendChild(modsDiv);
-        chip.addEventListener('click', () => openTraitModal(index));
+        chip.addEventListener('click', () => openTraitInfo(index));
         traitsContainer.appendChild(chip);
     });
 }
+
+function openTraitInfo(index) {
+    const trait = traitsData[index];
+    const modal = document.getElementById('trait-info-modal');
+    document.getElementById('trait-info-name').textContent = trait.name || '';
+    document.getElementById('trait-info-description').textContent = trait.description || '';
+    const statsDiv = document.getElementById('trait-info-stats');
+    statsDiv.innerHTML = '';
+    (trait.stats || []).forEach(s => {
+        if (!s.stat) return;
+        const chipEl = document.createElement('div');
+        chipEl.className = 'stat-chip';
+        const imgEl = document.createElement('img');
+        imgEl.src = `resources/ui/${s.stat}.png`;
+        imgEl.alt = s.stat;
+        chipEl.appendChild(imgEl);
+        const textEl = document.createElement('span');
+        textEl.className = 'stat-chip-value';
+        let display = '';
+        if (s.type === 'mult' || s.type === 'mul') {
+            display = `${s.value}x`;
+            if (s.value > 1) textEl.classList.add('positive');
+            else if (s.value < 1) textEl.classList.add('negative');
+        } else {
+            const num = s.value;
+            display = num > 0 ? `+${num}` : `${num}`;
+            if (num > 0) textEl.classList.add('positive');
+            else if (num < 0) textEl.classList.add('negative');
+        }
+        textEl.textContent = display;
+        chipEl.appendChild(textEl);
+        statsDiv.appendChild(chipEl);
+    });
+    modal.classList.remove('hidden');
+    document.getElementById('trait-edit-btn').onclick = () => { modal.classList.add('hidden'); openTraitModal(index); };
+    document.getElementById('trait-remove-btn').onclick = () => {
+        traitsData.splice(index, 1);
+        renderTraits();
+        modal.classList.add('hidden');
+    };
+}
+
+function closeTraitInfo() {
+    document.getElementById('trait-info-modal').classList.add('hidden');
+}
+
+document.getElementById('trait-info-close').addEventListener('click', closeTraitInfo);
 
 function openTraitModal(index) {
     editingTraitIndex = index;
@@ -186,7 +241,7 @@ traitForm.addEventListener('submit', e => {
 	const description = traitDescInput.value.trim();
     const color = traitColorInput.value;
     const stats = [];
-	traitStatsContainer.querySelectorAll('.stat-row').forEach(row => {
+	traitStatsContainer.querySelectorAll('.trait-stat-row').forEach(row => {
 		const stat = row.querySelector('.stat-select').value;
 		if (!stat) return;
 		const value = parseFloat(row.querySelector('.stat-value').value) || 0;

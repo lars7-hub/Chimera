@@ -175,9 +175,17 @@ function displayProfile(data, imagePath, loadoutName = null) {
 
         const textDiv = document.createElement('div');
         textDiv.className = 'trait-text';
-        textDiv.textContent = t.name || t.text;
-		textDiv.title = t.description || '';
-        textDiv.style.color = t.color || '#ffffff';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'trait-name';
+        nameDiv.textContent = t.name || t.text;
+        nameDiv.style.color = t.color || '#ffffff';
+        textDiv.appendChild(nameDiv);
+        if (t.description) {
+            const descDiv = document.createElement('div');
+            descDiv.className = 'trait-desc';
+            descDiv.textContent = t.description;
+            textDiv.appendChild(descDiv);
+        }
         chip.appendChild(textDiv);
 
         const modsDiv = document.createElement('div');
@@ -211,6 +219,8 @@ function displayProfile(data, imagePath, loadoutName = null) {
             modsDiv.appendChild(chipEl);
         });
         chip.appendChild(modsDiv);
+                chip.addEventListener('click', () => openTraitInfo(t));
+
         traitsContainer.appendChild(chip);
     });
 
@@ -625,3 +635,42 @@ if (activeLoadout) {
 } else {
     loadCharacterProfile();
 }
+function openTraitInfo(trait) {
+    const modal = document.getElementById('trait-info-modal');
+    document.getElementById('trait-info-name').textContent = trait.name || '';
+    document.getElementById('trait-info-description').textContent = trait.description || '';
+    const statsDiv = document.getElementById('trait-info-stats');
+    statsDiv.innerHTML = '';
+    (trait.stats || []).forEach(s => {
+        if (!s.stat) return;
+        const chipEl = document.createElement('div');
+        chipEl.className = 'stat-chip';
+        const imgEl = document.createElement('img');
+        imgEl.src = `resources/ui/${s.stat}.png`;
+        imgEl.alt = s.stat;
+        chipEl.appendChild(imgEl);
+        const textEl = document.createElement('span');
+        textEl.className = 'stat-chip-value';
+        let display = '';
+        if (s.type === 'mult' || s.type === 'mul') {
+            display = `${s.value}x`;
+            if (s.value > 1) textEl.classList.add('positive');
+            else if (s.value < 1) textEl.classList.add('negative');
+        } else {
+            const num = s.value;
+            display = num > 0 ? `+${num}` : `${num}`;
+            if (num > 0) textEl.classList.add('positive');
+            else if (num < 0) textEl.classList.add('negative');
+        }
+        textEl.textContent = display;
+        chipEl.appendChild(textEl);
+        statsDiv.appendChild(chipEl);
+    });
+    modal.classList.remove('hidden');
+}
+
+function closeTraitInfo() {
+    document.getElementById('trait-info-modal').classList.add('hidden');
+}
+
+document.getElementById('trait-info-close').addEventListener('click', closeTraitInfo);
