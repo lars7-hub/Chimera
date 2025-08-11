@@ -3,9 +3,12 @@ window.onload = async function () {
     await loadCharacters();
 
     // Set up event listener for the "Create New Character" button
-    document.getElementById('create-new-character-btn').addEventListener('click', () => {
-        window.location.href = 'character-editor.html?mode=new'; // Navigate to character creator page
-    });
+	const createBtn = document.getElementById('create-character-btn');
+    if (createBtn) {
+        createBtn.addEventListener('click', () => {
+            window.location.href = 'character-editor.html?mode=new'; // Navigate to character creator page
+        });
+    }
 
     document.getElementById('home-btn').addEventListener('click', () => {
         window.location.href = 'index.html'; // Ensure Home button navigates to the selector page

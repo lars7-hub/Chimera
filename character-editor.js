@@ -11,8 +11,8 @@ let editingTraitIndex = null;
 const traitModal = document.getElementById('trait-modal');
 const traitForm = document.getElementById('trait-form');
 const traitModalTitle = document.getElementById('trait-modal-title');
-const traitTextInput = document.getElementById('trait-name');
-const traitStatSelect = document.getElementById('trait-desc');
+const traitNameInput = document.getElementById('trait-name');
+const traitDescInput = document.getElementById('trait-desc');
 const traitColorInput = document.getElementById('trait-color');
 const traitDeleteBtn = document.getElementById('trait-delete-btn');
 const traitStatsContainer = document.getElementById('trait-stats-container');
@@ -143,12 +143,10 @@ function openTraitModal(index) {
 		const statsArr = Array.isArray(t.stats) && t.stats.length ? t.stats : [{}];
 		statsArr.forEach(s => createStatRow(s));
         traitColorInput.value = t.color || '#ffffff';
-        traitTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-        traitTypeToggle.querySelector(`.type-btn[data-type="${type}"]`).classList.add('active');
         traitDeleteBtn.style.display = 'inline-block';
     } else {
         traitModalTitle.textContent = 'Add Trait';
-        traitnameInput.value = '';
+        traitDameInput.value = '';
         traitDescInput.value = '';
 		createStatRow();
         traitColorInput.value = '#ffffff';
