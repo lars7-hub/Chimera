@@ -1,3 +1,19 @@
+const tileIcons = {
+    water: '🌊',
+    tree: '🌳',
+    building: '🏠',
+    pond: '🐟',
+    mountain: '⛰️',
+    town: '🏘️',
+    land: ''
+};
+
+let editMode = false;
+let gridWidth = 0;
+let gridHeight = 0;
+let tileMap = {};
+let currentKey = '1-1';
+
 window.onload = async function () {
     document.getElementById('home-btn').addEventListener('click', () => {
         window.location.href = 'index.html';
@@ -6,47 +22,143 @@ window.onload = async function () {
         window.location.href = 'info.html';
     });
     document.getElementById('random-btn').addEventListener('click', goRandom);
-    document.getElementById('map-btn').addEventListener('click', () => {
-        window.location.href = 'map.html';
+    document.getElementById('map-btn').addEventListener('click', async () => {
+        const character = localStorage.getItem('currentCharacter');
+        if (!character) {
+            alert('Please select a character first.');
+            return;
+        }
+        await window.electron.prepareMapCharacter(character);
+        window.location.href = `map.html?character=${encodeURIComponent(character)}`;
     });
 
-    const region = await window.electron.getMapRegion('region1');
-    const mapGrid = document.getElementById('map-grid');
-    mapGrid.style.gridTemplateColumns = `repeat(${region.width}, 1fr)`;
-    mapGrid.style.gridTemplateRows = `repeat(${region.height}, 1fr)`;
-
-    const tileMap = {};
-    for (let y = 1; y <= region.height; y++) {
-        for (let x = 1; x <= region.width; x++) {
-            const tile = region.tiles.find(t => t.x === x && t.y === y) || { name: '', type: '', items: [] };
-            const div = document.createElement('div');
-            div.className = 'map-tile';
-            div.dataset.x = x;
-            div.dataset.y = y;
-            mapGrid.appendChild(div);
-            tileMap[`${x}-${y}`] = { el: div, data: tile };
+    const editBtn = document.getElementById('edit-btn');
+    const addTileBtn = document.getElementById('add-tile-btn');
+    editBtn.addEventListener('click', () => {
+        editMode = !editMode;
+        editBtn.textContent = editMode ? 'Play Mode' : 'Edit Mode';
+    });
+    addTileBtn.addEventListener('click', () => {
+        if (!editMode) return;
+        const x = parseInt(prompt('Tile X coordinate:', ''));
+        const y = parseInt(prompt('Tile Y coordinate:', ''));
+        if (!x || !y) return;
+        gridWidth = Math.max(gridWidth, x);
+        gridHeight = Math.max(gridHeight, y);
+        const key = `${x}-${y}`;
+        if (!tileMap[key]) {
+            tileMap[key] = { data: { name: '', type: '', items: [] } };
         }
+        renderGrid();
+        editTile(x, y);
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    let activeCharacter = params.get('character') || localStorage.getItem('currentCharacter');
+    if (activeCharacter) {
+        localStorage.setItem('currentCharacter', activeCharacter);
+        loadCharacterPanel(activeCharacter);
     }
 
-    let currentKey = region.start ? `${region.start.x}-${region.start.y}` : '1-1';
-    if (tileMap[currentKey]) {
-        tileMap[currentKey].el.classList.add('current');
-        displayTile(tileMap[currentKey].data);
-    }
+    const region = await window.electron.getMapRegion('region1');
+    gridWidth = region.width;
+    gridHeight = region.height;
+    tileMap = {};
+    region.tiles.forEach(t => {
+        tileMap[`${t.x}-${t.y}`] = { data: t };
+    });
+    currentKey = region.start ? `${region.start.x}-${region.start.y}` : '1-1';
+    renderGrid();
 
-    mapGrid.addEventListener('click', (e) => {
+    document.getElementById('map-grid').addEventListener('click', (e) => {
         if (!e.target.classList.contains('map-tile')) return;
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
+        const key = `${x}-${y}`;
+        if (editMode) {
+            editTile(x, y);
+            return;
+        }
+        if (!tileMap[key]) return;
         const [cx, cy] = currentKey.split('-').map(Number);
         if (Math.abs(cx - x) + Math.abs(cy - y) === 1) {
-            tileMap[currentKey].el.classList.remove('current');
-            currentKey = `${x}-${y}`;
-            tileMap[currentKey].el.classList.add('current');
-            displayTile(tileMap[currentKey].data);
+            const prev = tileMap[currentKey];
+            if (prev) {
+                prev.el.classList.remove('current');
+                updateTileVisual(prev);
+            }
+            currentKey = key;
+            const cur = tileMap[currentKey];
+            cur.el.classList.add('current');
+            updateTileVisual(cur);
+            displayTile(cur.data);
         }
     });
 };
+
+function renderGrid() {
+    const mapGrid = document.getElementById('map-grid');
+    mapGrid.innerHTML = '';
+    mapGrid.style.gridTemplateColumns = `repeat(${gridWidth}, 1fr)`;
+    mapGrid.style.gridTemplateRows = `repeat(${gridHeight}, 1fr)`;
+    for (let y = 1; y <= gridHeight; y++) {
+        for (let x = 1; x <= gridWidth; x++) {
+            const key = `${x}-${y}`;
+            const entry = tileMap[key];
+            const div = document.createElement('div');
+            div.dataset.x = x;
+            div.dataset.y = y;
+            if (entry) {
+                div.className = 'map-tile';
+                entry.el = div;
+                if (key === currentKey) {
+                    div.classList.add('current');
+                }
+                updateTileVisual(entry);
+            } else {
+                div.className = 'map-tile blank';
+            }
+            mapGrid.appendChild(div);
+        }
+    }
+    if (tileMap[currentKey]) {
+        displayTile(tileMap[currentKey].data);
+    }
+}
+
+function updateTileVisual(entry) {
+    const icon = tileIcons[entry.data.type] || '';
+    entry.el.textContent = icon;
+    if (entry.el.classList.contains('current')) {
+        entry.el.textContent = '🧍' + icon;
+    }
+}
+
+function editTile(x, y) {
+    const key = `${x}-${y}`;
+    let entry = tileMap[key];
+    if (!entry) {
+        const div = document.querySelector(`.map-tile[data-x='${x}'][data-y='${y}']`);
+        if (div) div.classList.remove('blank');
+        entry = { el: div, data: { name: '', type: '', items: [] } };
+        tileMap[key] = entry;
+    }
+    const name = prompt('Tile name:', entry.data.name || '');
+    if (name === null) return;
+    entry.data.name = name;
+    const type = prompt('Tile type:', entry.data.type || '');
+    if (type !== null) entry.data.type = type;
+    const items = [];
+    while (true) {
+        const itemName = prompt('Item name (leave blank to finish):');
+        if (!itemName) break;
+        const itemDesc = prompt('Item description:') || '';
+        items.push({ name: itemName, description: itemDesc });
+    }
+    entry.data.items = items;
+    updateTileVisual(entry);
+    displayTile(entry.data);
+}
 
 function displayTile(tile) {
     document.getElementById('tile-name').textContent = tile.name || '';
@@ -58,6 +170,32 @@ function displayTile(tile) {
         li.textContent = item.name || 'Item';
         list.appendChild(li);
     });
+}
+
+async function loadCharacterPanel(characterName) {
+    try {
+        const data = await window.electron.getCharacter(characterName);
+        const img = await window.electron.getCharacterImage(characterName);
+        const inventory = await window.electron.getInventory(characterName, 'default');
+        document.getElementById('char-name').textContent = characterName;
+        if (img) document.getElementById('char-image').src = img;
+        const statsList = document.getElementById('char-stats');
+        statsList.innerHTML = '';
+        Object.entries((data && data.stats) || {}).forEach(([k, v]) => {
+            const li = document.createElement('li');
+            li.textContent = `${k}: ${v}`;
+            statsList.appendChild(li);
+        });
+        const invList = document.getElementById('char-items');
+        invList.innerHTML = '';
+        (inventory || []).forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item.name || 'Item';
+            invList.appendChild(li);
+        });
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 async function goRandom() {
@@ -72,6 +210,7 @@ async function goRandom() {
         const url = loadName === 'default'
             ? `profile.html?character=${char.name}`
             : `profile.html?character=${char.name}&loadout=${loadName}`;
+        localStorage.setItem('currentCharacter', char.name);
         window.location.href = url;
     } catch (err) {
         console.error(err);

@@ -5,6 +5,7 @@ const { pathToFileURL, fileURLToPath } = require('url');
 
 let fileSystemPath;
 let mapPath;
+let mapSavePath;
 let mainWindow;
 
 function ensureSampleMap() {
@@ -54,11 +55,15 @@ app.whenReady().then(() => {
     const basePath = path.join(app.getPath('documents'), 'Chimera');
     fileSystemPath = path.join(basePath, 'characters');
     mapPath = path.join(basePath, 'map');
+    mapSavePath = path.join(mapPath, 'save');
     if (!fs.existsSync(fileSystemPath)) {
         fs.mkdirSync(fileSystemPath, { recursive: true });
     }
     if (!fs.existsSync(mapPath)) {
         fs.mkdirSync(mapPath, { recursive: true });
+    }
+    if (!fs.existsSync(mapSavePath)) {
+        fs.mkdirSync(mapSavePath, { recursive: true });
     }
     ensureSampleMap();
     createWindow();
@@ -428,6 +433,26 @@ ipcMain.handle('get-map-region', (event, regionName) => {
         console.error('Error loading map region:', err);
     }
     return result;
+});
+
+ipcMain.handle('prepare-map-character', (event, characterName) => {
+    try {
+        const srcDir = path.join(fileSystemPath, characterName);
+        const destDir = path.join(mapSavePath, characterName);
+        fs.mkdirSync(destDir, { recursive: true });
+        const files = [`${characterName}.json`, `${characterName}.png`];
+        files.forEach(f => {
+            const src = path.join(srcDir, f);
+            const dest = path.join(destDir, f);
+            if (fs.existsSync(src)) {
+                fs.copyFileSync(src, dest);
+            }
+        });
+        return { success: true };
+    } catch (err) {
+        console.error('Error preparing map character:', err);
+        return { success: false };
+    }
 });
 
 // Info page handlers

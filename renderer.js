@@ -18,8 +18,14 @@ window.onload = async function () {
         window.location.href = 'info.html';
     });
 
-    document.getElementById('map-btn').addEventListener('click', () => {
-        window.location.href = 'map.html';
+    document.getElementById('map-btn').addEventListener('click', async () => {
+        const character = localStorage.getItem('currentCharacter');
+        if (!character) {
+            alert('Please select a character first.');
+            return;
+        }
+        await window.electron.prepareMapCharacter(character);
+        window.location.href = `map.html?character=${encodeURIComponent(character)}`;
     });
 
     document.getElementById('random-btn').addEventListener('click', goRandom);
@@ -53,6 +59,7 @@ async function loadCharacters() {
 
 // Navigate to a character's profile page
 function viewCharacterProfile(characterName) {
+    localStorage.setItem('currentCharacter', characterName);
     window.location.href = `profile.html?character=${characterName}`; // Navigate to profile page
 }
 
@@ -68,7 +75,8 @@ async function goRandom() {
 		const url = loadName === 'default'
         ? `profile.html?character=${char.name}`
         : `profile.html?character=${char.name}&loadout=${loadName}`;
-		window.location.href = url;
+        localStorage.setItem('currentCharacter', char.name);
+        window.location.href = url;
     } catch (err) {
         console.error(err);
     }

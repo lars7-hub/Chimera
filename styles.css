@@ -1057,16 +1057,18 @@ button:hover {
 
 /* Map interface */
 #map-container {
-    margin-left: 7.5%;
-    margin-right: 7.5%;
-    width: 85%;
+    margin-left: 2%;
+    margin-right: 2%;
+    width: 96%;
     box-sizing: border-box;
     min-height: 100vh;
     background-color: #553159;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 20px;
+    padding: 20px;
 }
 
 #map-grid {
@@ -1082,13 +1084,44 @@ button:hover {
     border: 1px solid #666;
     background-color: #333;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
 }
 
 .map-tile.current {
-    background-color: #777;
+    outline: 2px solid yellow;
 }
 
-#tile-details {
-    margin-top: 20px;
-    text-align: center;
+.map-tile.blank {
+    background-color: transparent;
+    border: 1px dashed #555;
+}
+
+#tile-details, #character-panel {
+    flex: 1;
+    color: #eee;
+}
+
+.info-box {
+    background-color: #333;
+    border: 2px solid #444;
+    padding: 10px;
+}
+
+#tile-details h3, #character-panel h3 {
+    margin-top: 0;
+}
+
+#char-header img {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto 10px;
+}
+
+#char-stats, #char-items, #tile-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }

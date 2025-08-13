@@ -12,13 +12,29 @@
         <button id="random-btn">Random</button>
         <button id="info-btn">Info</button>
         <button id="map-btn">Map</button>
+        <button id="edit-btn">Edit Mode</button>
+        <button id="add-tile-btn">Add Tile</button>
     </div>
     <div id="map-container">
         <div id="map-grid"></div>
-        <div id="tile-details">
+        <div id="tile-details" class="info-box">
             <h3 id="tile-name"></h3>
             <p id="tile-type"></p>
-            <ul id="tile-items"></ul>
+            <div>
+                <h4>Ground Items</h4>
+                <ul id="tile-items"></ul>
+            </div>
+        </div>
+        <div id="character-panel" class="info-box">
+            <div id="char-header">
+                <img id="char-image" alt="character" />
+                <h3 id="char-name"></h3>
+                <ul id="char-stats"></ul>
+            </div>
+            <div id="char-inventory">
+                <h4>Inventory</h4>
+                <ul id="char-items"></ul>
+            </div>
         </div>
     </div>
     <script src="map.js"></script>
