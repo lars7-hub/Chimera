@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Map</title>
+    <title>World Builder</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,25 +13,33 @@
         <button id="info-btn">Info</button>
         <button id="map-btn">World Builder</button>
         <button id="adventure-btn">Adventure</button>
-        <button id="edit-btn">Edit Mode</button>
-        <button id="add-tile-btn">Add Tile</button>
     </div>
-    </div>
-    <div id="map-container">
-        <div id="map-grid"></div>
-        <div id="tile-details" class="info-box">
-            <h3 id="tile-name"></h3>
-            <p id="tile-type"></p>
-            <div>
-                <h4>Ground Items</h4>
-                <ul id="tile-items"></ul>
+
+    <div id="main-content">
+        <div id="map-view">
+            <div id="map-module"></div>
+            <div id="info-panel" class="info-box">
+                <h3 id="tile-name"></h3>
+                <p id="tile-type"></p>
+                <div>
+                    <h4>Ground Items</h4>
+                    <ul id="tile-items"></ul>
+                </div>
             </div>
         </div>
+        <div id="interact-module">
+            <button id="edit-btn">Edit Mode</button>
+            <button id="edit-current-btn">Edit Current Tile</button>
+            <button id="add-adjacent-btn">Add Adjacent Tile</button>
+            <button id="delete-adjacent-btn">Delete Adjacent Tile</button>
+            <button id="refresh-btn">Refresh Map</button>
+            <button id="add-item-btn">Add Item to Tile</button>
+            <button id="remove-item-btn">Remove Item from Tile</button>
+            <button id="export-world-btn">Export World</button>
+            <button id="import-world-btn">Import World</button>
+        </div>
     </div>
-    <div id="map-actions">
-        <button id="export-world-btn">Export World</button>
-        <button id="import-world-btn">Import World</button>
-    </div>
+
     <div id="prompt-overlay" class="hidden">
         <div id="prompt-box">
             <p id="prompt-message"></p>
@@ -42,6 +50,20 @@
             </div>
         </div>
     </div>
+
+    <div id="tile-editor-overlay" class="hidden">
+        <div id="tile-editor-box">
+            <label>Tile Name:<input id="tile-name-input" /></label>
+            <label>Tile Type:<input id="tile-type-input" /></label>
+            <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
+            <label>Connections (comma separated x-y):<input id="tile-connections-input" /></label>
+            <div class="editor-buttons">
+                <button id="tile-save">Save</button>
+                <button id="tile-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script src="map.js"></script>
 </body>
 </html>

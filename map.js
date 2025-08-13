@@ -48,6 +48,50 @@ async function showPrompt(message, defaultValue = '') {
     });
 }
 
+function openTileEditor(data) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('tile-editor-overlay');
+        const nameInput = document.getElementById('tile-name-input');
+        const typeInput = document.getElementById('tile-type-input');
+        const itemsInput = document.getElementById('tile-items-input');
+        const conInput = document.getElementById('tile-connections-input');
+        const saveBtn = document.getElementById('tile-save');
+        const cancelBtn = document.getElementById('tile-cancel');
+
+        nameInput.value = data.name || '';
+        typeInput.value = data.type || '';
+        itemsInput.value = (data.items || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
+        conInput.value = (data.connections || []).join(',');
+        overlay.classList.remove('hidden');
+
+        function cleanup() {
+            overlay.classList.add('hidden');
+            saveBtn.removeEventListener('click', onSave);
+            cancelBtn.removeEventListener('click', onCancel);
+        }
+
+        function onSave() {
+            const items = itemsInput.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+                const [name, ...desc] = l.split(':');
+                return { name: name.trim(), description: desc.join(':').trim() };
+            });
+            const connections = conInput.value.split(',').map(s => s.trim()).filter(Boolean);
+            const obj = {
+                name: nameInput.value,
+                type: typeInput.value,
+                items,
+                connections
+            };
+            cleanup();
+            resolve(obj);
+        }
+        function onCancel() { cleanup(); resolve(null); }
+
+        saveBtn.addEventListener('click', onSave);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+}
+
 window.onload = async function () {
     document.getElementById('home-btn').addEventListener('click', () => {
         window.location.href = 'index.html';
@@ -69,28 +113,26 @@ window.onload = async function () {
         window.electron.importWorld();
     });
 
-    const editBtn = document.getElementById('edit-btn');
-    const addTileBtn = document.getElementById('add-tile-btn');
-    editBtn.addEventListener('click', () => {
+    document.getElementById('edit-btn').addEventListener('click', () => {
         editMode = !editMode;
-        editBtn.textContent = editMode ? 'Play Mode' : 'Edit Mode';
+        document.getElementById('edit-btn').textContent = editMode ? 'Play Mode' : 'Edit Mode';
     });
-    addTileBtn.addEventListener('click', async () => {
+    document.getElementById('edit-current-btn').addEventListener('click', async () => {
         if (!editMode) return;
-        const x = parseInt(await showPrompt('Tile X coordinate:', ''));
-        const y = parseInt(await showPrompt('Tile Y coordinate:', ''));
-        if (!x || !y) return;
-        gridWidth = Math.max(gridWidth, x);
-        gridHeight = Math.max(gridHeight, y);
-        const key = `${x}-${y}`;
-        if (!tileMap[key]) {
-            tileMap[key] = { data: { name: '', type: '', items: [], connections: [] } };
-        }
-        renderGrid();
+        const [x, y] = currentKey.split('-').map(Number);
         await editTile(x, y);
     });
+    document.getElementById('add-adjacent-btn').addEventListener('click', () => {
+        if (editMode) addAdjacentTile();
+    });
+    document.getElementById('delete-adjacent-btn').addEventListener('click', () => {
+        if (editMode) deleteAdjacentTile();
+    });
+    document.getElementById('refresh-btn').addEventListener('click', renderGrid);
+    document.getElementById('add-item-btn').addEventListener('click', addItemToTile);
+    document.getElementById('remove-item-btn').addEventListener('click', removeItemFromTile);
 
-        const region = await window.electron.getMapRegion('region1');
+    const region = await window.electron.getMapRegion('region1');
     gridWidth = region.width;
     gridHeight = region.height;
     tileMap = {};
@@ -100,7 +142,7 @@ window.onload = async function () {
     currentKey = region.start ? `${region.start.x}-${region.start.y}` : '1-1';
     renderGrid();
 
-    document.getElementById('map-grid').addEventListener('click', async (e) => {
+    document.getElementById('map-module').addEventListener('click', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
@@ -131,7 +173,7 @@ window.onload = async function () {
 };
 
 function renderGrid() {
-    const mapGrid = document.getElementById('map-grid');
+    const mapGrid = document.getElementById('map-module');
     mapGrid.innerHTML = '';
     const rect = mapGrid.getBoundingClientRect();
     if (gridWidth === 0 || gridHeight === 0) return;
@@ -181,23 +223,9 @@ async function editTile(x, y) {
         entry = { el: div, data: { name: '', type: '', items: [], connections: [] } };
         tileMap[key] = entry;
     }
-    const name = await showPrompt('Tile name:', entry.data.name || '');
-    if (name === null) return;
-    entry.data.name = name;
-    const type = await showPrompt('Tile type:', entry.data.type || '');
-    if (type !== null) entry.data.type = type;
-    const items = [];
-    while (true) {
-        const itemName = await showPrompt('Item name (leave blank to finish):');
-        if (!itemName) break;
-        const itemDesc = await showPrompt('Item description:') || '';
-        items.push({ name: itemName, description: itemDesc });
-    }
-    entry.data.items = items;
-    const connectionsStr = await showPrompt('Connections (comma separated x-y):', (entry.data.connections || []).join(','));
-    if (connectionsStr !== null) {
-        entry.data.connections = connectionsStr.split(',').map(s => s.trim()).filter(Boolean);
-    }
+    const data = await openTileEditor(entry.data);
+    if (!data) return;
+    entry.data = data;
     updateTileVisual(entry);
     displayTile(entry.data);
     renderGrid();
@@ -205,7 +233,7 @@ async function editTile(x, y) {
 
 function drawConnections() {
     document.querySelectorAll('.map-connection').forEach(el => el.remove());
-    const mapGrid = document.getElementById('map-grid');
+    const mapGrid = document.getElementById('map-module');
     for (const [key, entry] of Object.entries(tileMap)) {
         const [x, y] = key.split('-').map(Number);
         (entry.data.connections || []).forEach(conn => {
@@ -240,6 +268,154 @@ function displayTile(tile) {
         li.textContent = item.name || 'Item';
         list.appendChild(li);
     });
+}
+
+function addAdjacentTile() {
+    const [cx, cy] = currentKey.split('-').map(Number);
+    const overlay = document.createElement('div');
+    overlay.id = 'mini-map-overlay';
+    const grid = document.createElement('div');
+    grid.className = 'mini-map-grid';
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const x = cx + dx;
+            const y = cy + dy;
+            const key = `${x}-${y}`;
+            const cell = document.createElement('div');
+            cell.className = 'mini-map-cell';
+            if (dx === 0 && dy === 0) {
+                cell.textContent = 'X';
+                cell.classList.add('existing');
+            } else if (tileMap[key]) {
+                cell.classList.add('existing');
+            } else {
+                cell.classList.add('phantom');
+                cell.addEventListener('click', () => {
+                    document.body.removeChild(overlay);
+                    configureConnections(x, y);
+                });
+            }
+            grid.appendChild(cell);
+        }
+    }
+    overlay.appendChild(grid);
+    document.body.appendChild(overlay);
+}
+
+function configureConnections(x, y) {
+    const overlay = document.createElement('div');
+    overlay.id = 'connection-overlay';
+    const grid = document.createElement('div');
+    grid.className = 'mini-map-grid';
+    const connections = {};
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            const key = `${nx}-${ny}`;
+            const cell = document.createElement('div');
+            cell.className = 'mini-map-cell';
+            if (dx === 0 && dy === 0) {
+                cell.textContent = 'N';
+                cell.classList.add('existing');
+            } else if (tileMap[key]) {
+                connections[key] = true;
+                cell.classList.add('existing', 'connected');
+                cell.addEventListener('click', () => {
+                    connections[key] = !connections[key];
+                    cell.classList.toggle('connected', connections[key]);
+                    cell.classList.toggle('disconnected', !connections[key]);
+                });
+            } else {
+                cell.classList.add('phantom');
+            }
+            grid.appendChild(cell);
+        }
+    }
+    const btns = document.createElement('div');
+    btns.className = 'editor-buttons';
+    const ok = document.createElement('button');
+    ok.textContent = 'Create';
+    const cancel = document.createElement('button');
+    cancel.textContent = 'Cancel';
+    btns.appendChild(ok);
+    btns.appendChild(cancel);
+    const container = document.createElement('div');
+    container.appendChild(grid);
+    container.appendChild(btns);
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
+
+    cancel.addEventListener('click', () => document.body.removeChild(overlay));
+    ok.addEventListener('click', () => {
+        const key = `${x}-${y}`;
+        tileMap[key] = { data: { name: '', type: '', items: [], connections: Object.keys(connections).filter(k => connections[k]) } };
+        Object.keys(connections).forEach(k => {
+            if (connections[k]) {
+                const entry = tileMap[k];
+                if (entry && !(entry.data.connections || []).includes(key)) {
+                    entry.data.connections.push(key);
+                }
+            }
+        });
+        document.body.removeChild(overlay);
+        renderGrid();
+    });
+}
+
+function deleteAdjacentTile() {
+    const [cx, cy] = currentKey.split('-').map(Number);
+    const overlay = document.createElement('div');
+    overlay.id = 'mini-map-overlay';
+    const grid = document.createElement('div');
+    grid.className = 'mini-map-grid';
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const x = cx + dx;
+            const y = cy + dy;
+            const key = `${x}-${y}`;
+            const cell = document.createElement('div');
+            cell.className = 'mini-map-cell';
+            if (dx === 0 && dy === 0) {
+                cell.textContent = 'X';
+                cell.classList.add('existing');
+            } else if (tileMap[key]) {
+                cell.classList.add('existing');
+                cell.addEventListener('click', () => {
+                    delete tileMap[key];
+                    Object.values(tileMap).forEach(e => {
+                        e.data.connections = (e.data.connections || []).filter(c => c !== key);
+                    });
+                    document.body.removeChild(overlay);
+                    renderGrid();
+                });
+            } else {
+                cell.classList.add('phantom');
+            }
+            grid.appendChild(cell);
+        }
+    }
+    overlay.appendChild(grid);
+    document.body.appendChild(overlay);
+}
+
+async function addItemToTile() {
+    const entry = tileMap[currentKey];
+    if (!entry) return;
+    const name = await showPrompt('Item name:');
+    if (!name) return;
+    const desc = await showPrompt('Item description:', '') || '';
+    entry.data.items.push({ name, description: desc });
+    displayTile(entry.data);
+}
+
+async function removeItemFromTile() {
+    const entry = tileMap[currentKey];
+    if (!entry || !(entry.data.items || []).length) return;
+    const name = await showPrompt('Item name to remove:');
+    if (!name) return;
+    entry.data.items = entry.data.items.filter(i => i.name !== name);
+    displayTile(entry.data);
 }
 
 async function goRandom() {

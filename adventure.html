@@ -7,24 +7,20 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="nav-bar">
+     <div id="nav-bar">
         <button id="home-btn">Home</button>
         <button id="random-btn">Random</button>
         <button id="info-btn">Info</button>
         <button id="map-btn">World Builder</button>
         <button id="adventure-btn">Adventure</button>
     </div>
-    <div id="adventure-menu">
-        <button id="new-adventure-btn">Start New Adventure</button>
-        <div id="adventure-list"></div>
-    </div>
-    <div id="new-adventure-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <label>Adventure Name: <input id="adventure-name-input" type="text"></label>
-            <div class="modal-actions">
-                <button id="adventure-create-btn">Create</button>
-                <button id="adventure-cancel-btn">Cancel</button>
-            </div>
+    <div id="main-content">
+        <div id="adventure-menu">
+            <button id="new-adventure-btn">Start New Adventure</button>
+            <div id="adventure-list"></div>
+        </div>
+        <div id="interact-module">
+            <button id="adventure-action-btn">Adventure Action</button>
         </div>
     </div>
     <div id="character-select" style="display:none;">
