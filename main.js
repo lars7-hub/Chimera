@@ -11,8 +11,8 @@ let mapPath;
 let adventurePath;
 let mainWindow;
 
-function ensureSampleMap() {
-    const regionPath = path.join(mapPath, 'region1');
+function ensureSampleMap(targetMapPath) {
+    const regionPath = path.join(targetMapPath, 'region1');
     for (let y = 1; y <= 3; y++) {
         for (let x = 1; x <= 3; x++) {
             const tileFolder = path.join(regionPath, `tile${x}-${y}`);
@@ -69,7 +69,7 @@ app.whenReady().then(() => {
     if (!fs.existsSync(mapPath)) {
         fs.mkdirSync(mapPath, { recursive: true });
     }
-    ensureSampleMap();
+    ensureSampleMap(mapPath);
     createWindow();
 });
 
@@ -391,8 +391,9 @@ ipcMain.handle('save-inventory', (event, characterName, loadoutName, items) => {
 });
 
 // Map handlers
-ipcMain.handle('get-map-region', (event, regionName) => {
-    const regionDir = path.join(mapPath, regionName);
+ipcMain.handle('get-map-region', (event, regionName, worldName) => {
+    const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+    const regionDir = path.join(baseMap, regionName);
     const result = { tiles: [], width: 0, height: 0, start: null };
     try {
         if (fs.existsSync(regionDir)) {
@@ -567,5 +568,34 @@ ipcMain.handle('save-info', (event, data) => {
     } catch (error) {
         console.error('Error saving info file:', error);
         return { success: false };
+    }
+});
+
+ipcMain.handle('list-worlds', () => {
+    try {
+        if (!fs.existsSync(worldRoot)) return [];
+        return fs.readdirSync(worldRoot).filter(name => {
+            const dir = path.join(worldRoot, name);
+            return fs.lstatSync(dir).isDirectory() && name !== 'map';
+        });
+    } catch (err) {
+        console.error('Error listing worlds:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('create-world', (event, worldName) => {
+    try {
+        const target = path.join(worldRoot, worldName);
+        if (fs.existsSync(target)) {
+            return { success: false, message: 'World already exists' };
+        }
+        const mapDir = path.join(target, 'map');
+        fs.mkdirSync(mapDir, { recursive: true });
+        ensureSampleMap(mapDir);
+        return { success: true };
+    } catch (err) {
+        console.error('Error creating world:', err);
+        return { success: false, message: 'Error creating world' };
     }
 });

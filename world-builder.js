@@ -14,6 +14,7 @@ let gridHeight = 0;
 let tileMap = {};
 let currentKey = '1-1';
 let tileSize = 0;
+let currentWorld = null;
 
 async function showPrompt(message, defaultValue = '') {
     return new Promise(resolve => {
@@ -100,17 +101,47 @@ window.onload = async function () {
         window.location.href = 'info.html';
     });
     document.getElementById('random-btn').addEventListener('click', goRandom);
-    document.getElementById('map-btn').addEventListener('click', () => {
-        window.location.href = 'map.html';
+    document.getElementById('world-builder-btn').addEventListener('click', () => {
+        window.location.href = 'world-builder.html';
     });
     document.getElementById('adventure-btn').addEventListener('click', () => {
         window.location.href = 'adventure.html';
     });
     document.getElementById('export-world-btn').addEventListener('click', () => {
-        window.electron.exportWorld();
+        if (currentWorld) window.electron.exportWorld(currentWorld);
     });
-    document.getElementById('import-world-btn').addEventListener('click', () => {
-        window.electron.importWorld();
+    document.getElementById('import-world-btn').addEventListener('click', async () => {
+        if (!currentWorld) return;
+        await window.electron.importWorld(currentWorld);
+        await loadWorld();
+    });
+
+    document.getElementById('load-world-btn').addEventListener('click', async () => {
+        const worlds = await window.electron.listWorlds();
+        if (worlds.length === 0) {
+            alert('No worlds found');
+            return;
+        }
+        const name = await showPrompt('Enter world name to load:\n' + worlds.join('\n'));
+        if (!name || !worlds.includes(name)) return;
+        currentWorld = name;
+        document.getElementById('world-menu').classList.add('hidden');
+        document.getElementById('editor-container').classList.remove('hidden');
+        await loadWorld();
+    });
+
+    document.getElementById('create-world-btn').addEventListener('click', async () => {
+        const name = await showPrompt('Name for new world:');
+        if (!name) return;
+        const res = await window.electron.createWorld(name);
+        if (!res.success) {
+            alert(res.message || 'Failed to create world');
+            return;
+        }
+        currentWorld = name;
+        document.getElementById('world-menu').classList.add('hidden');
+        document.getElementById('editor-container').classList.remove('hidden');
+        await loadWorld();
     });
 
     document.getElementById('edit-btn').addEventListener('click', () => {
@@ -131,16 +162,6 @@ window.onload = async function () {
     document.getElementById('refresh-btn').addEventListener('click', renderGrid);
     document.getElementById('add-item-btn').addEventListener('click', addItemToTile);
     document.getElementById('remove-item-btn').addEventListener('click', removeItemFromTile);
-
-    const region = await window.electron.getMapRegion('region1');
-    gridWidth = region.width;
-    gridHeight = region.height;
-    tileMap = {};
-    region.tiles.forEach(t => {
-        tileMap[`${t.x}-${t.y}`] = { data: t };
-    });
-    currentKey = region.start ? `${region.start.x}-${region.start.y}` : '1-1';
-    renderGrid();
 
     document.getElementById('map-module').addEventListener('click', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
@@ -171,6 +192,18 @@ window.onload = async function () {
     });
     window.addEventListener('resize', renderGrid);
 };
+
+async function loadWorld() {
+    const region = await window.electron.getMapRegion('region1', currentWorld);
+    gridWidth = region.width;
+    gridHeight = region.height;
+    tileMap = {};
+    region.tiles.forEach(t => {
+        tileMap[`${t.x}-${t.y}`] = { data: t };
+    });
+    currentKey = region.start ? `${region.start.x}-${region.start.y}` : '1-1';
+    renderGrid();
+}
 
 function renderGrid() {
     const mapGrid = document.getElementById('map-module');

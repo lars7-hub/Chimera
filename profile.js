@@ -612,8 +612,8 @@ document.getElementById('info-btn').addEventListener('click', () => {
     window.location.href = 'info.html';
 });
 
-document.getElementById('map-btn').addEventListener('click', () => {
-    window.location.href = 'map.html';
+document.getElementById('world-builder-btn').addEventListener('click', () => {
+    window.location.href = 'world-builder.html';
 });
 
 document.getElementById('adventure-btn').addEventListener('click', () => {

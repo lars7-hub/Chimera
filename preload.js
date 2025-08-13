@@ -18,12 +18,14 @@ contextBridge.exposeInMainWorld('electron', {
     saveInventory: (characterName, loadoutName, items) => ipcRenderer.invoke('save-inventory', characterName, loadoutName, items),
     getInfo: () => ipcRenderer.invoke('get-info'),
     saveInfo: (data) => ipcRenderer.invoke('save-info', data),
-    getMapRegion: (regionName) => ipcRenderer.invoke('get-map-region', regionName),
+    getMapRegion: (regionName, worldName) => ipcRenderer.invoke('get-map-region', regionName, worldName),
     getAdventures: () => ipcRenderer.invoke('get-adventures'),
     createAdventure: (name) => ipcRenderer.invoke('create-adventure', name),
     prepareAdventureCharacter: (saveName, characterName, loadout) => ipcRenderer.invoke('prepare-adventure-character', saveName, characterName, loadout),
     exportCharacter: (name) => ipcRenderer.invoke('export-character', name),
     importCharacter: () => ipcRenderer.invoke('import-character'),
     exportWorld: (name) => ipcRenderer.invoke('export-world', name),
-    importWorld: () => ipcRenderer.invoke('import-world')
+    importWorld: (name) => ipcRenderer.invoke('import-world', name),
+    listWorlds: () => ipcRenderer.invoke('list-worlds'),
+    createWorld: (name) => ipcRenderer.invoke('create-world', name)
 });
