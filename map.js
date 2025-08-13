@@ -22,14 +22,11 @@ window.onload = async function () {
         window.location.href = 'info.html';
     });
     document.getElementById('random-btn').addEventListener('click', goRandom);
-    document.getElementById('map-btn').addEventListener('click', async () => {
-        const character = localStorage.getItem('currentCharacter');
-        if (!character) {
-            alert('Please select a character first.');
-            return;
-        }
-        await window.electron.prepareMapCharacter(character);
-        window.location.href = `map.html?character=${encodeURIComponent(character)}`;
+    document.getElementById('map-btn').addEventListener('click', () => {
+        window.location.href = 'map.html';
+    });
+    document.getElementById('adventure-btn').addEventListener('click', () => {
+        window.location.href = 'adventure.html';
     });
 
     const editBtn = document.getElementById('edit-btn');
@@ -53,14 +50,7 @@ window.onload = async function () {
         editTile(x, y);
     });
 
-    const params = new URLSearchParams(window.location.search);
-    let activeCharacter = params.get('character') || localStorage.getItem('currentCharacter');
-    if (activeCharacter) {
-        localStorage.setItem('currentCharacter', activeCharacter);
-        loadCharacterPanel(activeCharacter);
-    }
-
-    const region = await window.electron.getMapRegion('region1');
+        const region = await window.electron.getMapRegion('region1');
     gridWidth = region.width;
     gridHeight = region.height;
     tileMap = {};
@@ -170,32 +160,6 @@ function displayTile(tile) {
         li.textContent = item.name || 'Item';
         list.appendChild(li);
     });
-}
-
-async function loadCharacterPanel(characterName) {
-    try {
-        const data = await window.electron.getCharacter(characterName);
-        const img = await window.electron.getCharacterImage(characterName);
-        const inventory = await window.electron.getInventory(characterName, 'default');
-        document.getElementById('char-name').textContent = characterName;
-        if (img) document.getElementById('char-image').src = img;
-        const statsList = document.getElementById('char-stats');
-        statsList.innerHTML = '';
-        Object.entries((data && data.stats) || {}).forEach(([k, v]) => {
-            const li = document.createElement('li');
-            li.textContent = `${k}: ${v}`;
-            statsList.appendChild(li);
-        });
-        const invList = document.getElementById('char-items');
-        invList.innerHTML = '';
-        (inventory || []).forEach(item => {
-            const li = document.createElement('li');
-            li.textContent = item.name || 'Item';
-            invList.appendChild(li);
-        });
-    } catch (err) {
-        console.error(err);
-    }
 }
 
 async function goRandom() {

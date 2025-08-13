@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Map</title>
+    <title>Adventure</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,19 +13,19 @@
         <button id="info-btn">Info</button>
         <button id="map-btn">World Builder</button>
         <button id="adventure-btn">Adventure</button>
-        <button id="edit-btn">Edit Mode</button>
-        <button id="add-tile-btn">Add Tile</button>
     </div>
-    <div id="map-container">
-        <div id="tile-details" class="info-box">
-            <h3 id="tile-name"></h3>
-            <p id="tile-type"></p>
-            <div>
-                <h4>Ground Items</h4>
-                <ul id="tile-items"></ul>
-            </div>
+    <div id="adventure-menu">
+        <button id="new-adventure-btn">Start New Adventure</button>
+        <div id="adventure-list"></div>
+    </div>
+    <div id="character-select" style="display:none;">
+        <h2>Select Character</h2>
+        <div id="character-chips"></div>
+        <div id="loadout-select" style="display:none;">
+            <h3>Select Loadout</h3>
+            <div id="loadout-chips"></div>
         </div>
     </div>
-    <script src="map.js"></script>
+    <script src="adventure.js"></script>
 </body>
 </html>

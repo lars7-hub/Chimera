@@ -3,9 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL, fileURLToPath } = require('url');
 
+const worldRoot = path.join(__dirname, 'resources', 'world');
+
 let fileSystemPath;
 let mapPath;
-let mapSavePath;
+let AdventurePath;
 let mainWindow;
 
 function ensureSampleMap() {
@@ -54,16 +56,16 @@ function createWindow() {
 app.whenReady().then(() => {
     const basePath = path.join(app.getPath('documents'), 'Chimera');
     fileSystemPath = path.join(basePath, 'characters');
-    mapPath = path.join(basePath, 'map');
-    mapSavePath = path.join(mapPath, 'save');
+    adventurePath = path.join(basePath, 'Adventure');
+    mapPath = path.join(__dirname, 'resources', 'world', 'map');
     if (!fs.existsSync(fileSystemPath)) {
         fs.mkdirSync(fileSystemPath, { recursive: true });
     }
+    if (!fs.existsSync(adventurePath)) {
+        fs.mkdirSync(adventurePath, { recursive: true });
+    }
     if (!fs.existsSync(mapPath)) {
         fs.mkdirSync(mapPath, { recursive: true });
-    }
-    if (!fs.existsSync(mapSavePath)) {
-        fs.mkdirSync(mapSavePath, { recursive: true });
     }
     ensureSampleMap();
     createWindow();
@@ -435,11 +437,39 @@ ipcMain.handle('get-map-region', (event, regionName) => {
     return result;
 });
 
-ipcMain.handle('prepare-map-character', (event, characterName) => {
+ipcMain.handle('get-adventures', () => {
     try {
-        const srcDir = path.join(fileSystemPath, characterName);
-        const destDir = path.join(mapSavePath, characterName);
+        if (!fs.existsSync(adventurePath)) return [];
+        return fs.readdirSync(adventurePath).filter(name => {
+            const dir = path.join(adventurePath, name);
+            return fs.lstatSync(dir).isDirectory();
+        });
+    } catch (err) {
+        console.error('Error listing adventures:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('create-adventure', (event, saveName) => {
+    try {
+        const target = path.join(adventurePath, saveName);
+        if (fs.existsSync(target)) {
+            return { success: false, message: 'Adventure already exists' };
+        }
+        fs.mkdirSync(target, { recursive: true });
+        fs.cpSync(worldRoot, path.join(target, 'world'), { recursive: true });
+        return { success: true };
+    } catch (err) {
+        console.error('Error creating adventure:', err);
+        return { success: false };
+    }
+});
+
+ipcMain.handle('prepare-adventure-character', (event, saveName, characterName, loadoutName) => {
+    try {
+        const destDir = path.join(adventurePath, saveName, 'characters', characterName);
         fs.mkdirSync(destDir, { recursive: true });
+        const srcDir = path.join(fileSystemPath, characterName);
         const files = [`${characterName}.json`, `${characterName}.png`];
         files.forEach(f => {
             const src = path.join(srcDir, f);
@@ -448,9 +478,16 @@ ipcMain.handle('prepare-map-character', (event, characterName) => {
                 fs.copyFileSync(src, dest);
             }
         });
+        if (loadoutName) {
+            const srcLoad = path.join(srcDir, 'loadouts', loadoutName);
+            const destLoad = path.join(destDir, 'loadouts', loadoutName);
+            if (fs.existsSync(srcLoad)) {
+                fs.cpSync(srcLoad, destLoad, { recursive: true });
+            }
+        }
         return { success: true };
     } catch (err) {
-        console.error('Error preparing map character:', err);
+        console.error('Error preparing adventure character:', err);
         return { success: false };
     }
 });

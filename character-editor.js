@@ -484,14 +484,12 @@ document.getElementById('info-btn').addEventListener('click', () => {
     window.location.href = 'info.html';
 });
 
-document.getElementById('map-btn').addEventListener('click', async () => {
-    const character = localStorage.getItem('currentCharacter');
-    if (!character) {
-        alert('Please select a character first.');
-        return;
-    }
-    await window.electron.prepareMapCharacter(character);
-    window.location.href = `map.html?character=${encodeURIComponent(character)}`;
+document.getElementById('map-btn').addEventListener('click', () => {
+    window.location.href = 'map.html';
+});
+
+document.getElementById('adventure-btn').addEventListener('click', () => {
+    window.location.href = 'adventure.html';
 });
 
 document.getElementById('random-btn').addEventListener('click', goRandom);

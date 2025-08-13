@@ -19,5 +19,7 @@ contextBridge.exposeInMainWorld('electron', {
     getInfo: () => ipcRenderer.invoke('get-info'),
     saveInfo: (data) => ipcRenderer.invoke('save-info', data),
     getMapRegion: (regionName) => ipcRenderer.invoke('get-map-region', regionName),
-    prepareMapCharacter: (characterName) => ipcRenderer.invoke('prepare-map-character', characterName)
+    getAdventures: () => ipcRenderer.invoke('get-adventures'),
+    createAdventure: (name) => ipcRenderer.invoke('create-adventure', name),
+    prepareAdventureCharacter: (saveName, characterName, loadout) => ipcRenderer.invoke('prepare-adventure-character', saveName, characterName, loadout)
 });

@@ -1125,3 +1125,17 @@ button:hover {
     padding: 0;
     margin: 0;
 }
+
+.character-chip {
+    display: inline-block;
+    margin: 5px;
+    cursor: pointer;
+}
+.character-chip img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+}
+.adventure-chip {
+    margin: 5px;
+}
