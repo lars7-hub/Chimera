@@ -997,6 +997,8 @@ button:hover {
         font-size: 1em;
         width: auto;
         margin-top: 0;
+		align-content: center;
+		justify-content: center;
 }
 
 .trait-btn {
