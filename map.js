@@ -28,6 +28,12 @@ window.onload = async function () {
     document.getElementById('adventure-btn').addEventListener('click', () => {
         window.location.href = 'adventure.html';
     });
+    document.getElementById('export-world-btn').addEventListener('click', () => {
+        window.electron.exportWorld();
+    });
+    document.getElementById('import-world-btn').addEventListener('click', () => {
+        window.electron.importWorld();
+    });
 
     const editBtn = document.getElementById('edit-btn');
     const addTileBtn = document.getElementById('add-tile-btn');

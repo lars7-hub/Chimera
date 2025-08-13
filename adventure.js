@@ -12,7 +12,14 @@ window.onload = async function () {
         window.location.href = 'adventure.html';
     });
     document.getElementById('random-btn').addEventListener('click', goRandom);
-    document.getElementById('new-adventure-btn').addEventListener('click', newAdventure);
+    document.getElementById('new-adventure-btn').addEventListener('click', () => {
+        document.getElementById('new-adventure-modal').style.display = 'flex';
+        document.getElementById('adventure-name-input').value = '';
+    });
+    document.getElementById('adventure-create-btn').addEventListener('click', createAdventure);
+    document.getElementById('adventure-cancel-btn').addEventListener('click', () => {
+        document.getElementById('new-adventure-modal').style.display = 'none';
+    });
     loadAdventures();
 };
 
@@ -31,8 +38,9 @@ async function loadAdventures() {
     });
 }
 
-async function newAdventure() {
-    const name = prompt('Enter adventure name:');
+async function createAdventure() {
+    const modal = document.getElementById('new-adventure-modal');
+    const name = document.getElementById('adventure-name-input').value;
     if (!name || !/^[A-Za-z0-9 ]+$/.test(name)) {
         alert('Invalid name. Use letters, numbers and spaces only.');
         return;
@@ -43,6 +51,7 @@ async function newAdventure() {
         alert(result && result.message ? result.message : 'Failed to create adventure');
         return;
     }
+    modal.style.display = 'none';
     selectCharacter(trimmed);
 }
 

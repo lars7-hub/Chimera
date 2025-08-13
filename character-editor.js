@@ -290,6 +290,8 @@ const nameLabel = document.getElementById('name-label');
 const saveBtn = document.getElementById('save-btn');
 const cancelBtn = document.getElementById('cancel-btn');
 const deleteBtn = document.getElementById('delete-btn');
+const exportBtn = document.getElementById('export-char-btn');
+const importBtn = document.getElementById('import-char-btn');
 
 switch (mode) {
     case 'edit':
@@ -445,6 +447,20 @@ saveBtn.addEventListener('click', async () => {
         alert('An error occurred: ' + err.message);
     }
 });
+
+exportBtn.addEventListener('click', async () => {
+    const name = document.getElementById('name').value.trim();
+    if (!name) {
+        alert('Character name is required.');
+        return;
+    }
+    await window.electron.exportCharacter(name);
+});
+
+importBtn.addEventListener('click', async () => {
+    await window.electron.importCharacter();
+});
+
 
 cancelBtn.addEventListener('click', () => {
     if (mode === 'edit') {

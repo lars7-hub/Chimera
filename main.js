@@ -1,13 +1,14 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 const { pathToFileURL, fileURLToPath } = require('url');
 
-const worldRoot = path.join(__dirname, 'resources', 'world');
+let worldRoot;
 
 let fileSystemPath;
 let mapPath;
-let AdventurePath;
+let adventurePath;
 let mainWindow;
 
 function ensureSampleMap() {
@@ -57,7 +58,8 @@ app.whenReady().then(() => {
     const basePath = path.join(app.getPath('documents'), 'Chimera');
     fileSystemPath = path.join(basePath, 'characters');
     adventurePath = path.join(basePath, 'Adventure');
-    mapPath = path.join(__dirname, 'resources', 'world', 'map');
+    worldRoot = path.join(basePath, 'worlds');
+    mapPath = path.join(worldRoot, 'map');
     if (!fs.existsSync(fileSystemPath)) {
         fs.mkdirSync(fileSystemPath, { recursive: true });
     }
@@ -486,10 +488,62 @@ ipcMain.handle('prepare-adventure-character', (event, saveName, characterName, l
             }
         }
         return { success: true };
-    } catch (err) {
+     } catch (err) {
         console.error('Error preparing adventure character:', err);
         return { success: false };
     }
+});
+
+ipcMain.handle('export-character', async (event, characterName) => {
+    const srcDir = path.join(fileSystemPath, characterName);
+    if (!fs.existsSync(srcDir)) {
+        return { success: false, message: 'Character not found' };
+    }
+    const { canceled, filePath } = await dialog.showSaveDialog({ defaultPath: `${characterName}.zip` });
+    if (canceled || !filePath) return { success: false };
+    return new Promise(resolve => {
+        exec(`zip -r "${filePath}" .`, { cwd: srcDir }, err => {
+            if (err) resolve({ success: false }); else resolve({ success: true, path: filePath });
+        });
+    });
+});
+
+ipcMain.handle('import-character', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Zip', extensions: ['zip'] }] });
+    if (canceled || !filePaths || !filePaths[0]) return { success: false };
+    const zipPath = filePaths[0];
+    return new Promise(resolve => {
+        exec(`unzip -o "${zipPath}" -d "${fileSystemPath}"`, err => {
+            if (err) resolve({ success: false }); else resolve({ success: true });
+        });
+    });
+});
+
+ipcMain.handle('export-world', async (event, worldName) => {
+    const srcDir = worldName ? path.join(worldRoot, worldName) : worldRoot;
+    if (!fs.existsSync(srcDir)) {
+        return { success: false, message: 'World not found' };
+    }
+    const baseName = worldName || 'world';
+    const { canceled, filePath } = await dialog.showSaveDialog({ defaultPath: `${baseName}.zip` });
+    if (canceled || !filePath) return { success: false };
+    return new Promise(resolve => {
+        exec(`zip -r "${filePath}" .`, { cwd: srcDir }, err => {
+            if (err) resolve({ success: false }); else resolve({ success: true, path: filePath });
+        });
+    });
+});
+
+ipcMain.handle('import-world', async (event, worldName) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Zip', extensions: ['zip'] }] });
+    if (canceled || !filePaths || !filePaths[0]) return { success: false };
+    const zipPath = filePaths[0];
+    const destDir = worldName ? path.join(worldRoot, worldName) : worldRoot;
+    return new Promise(resolve => {
+        exec(`unzip -o "${zipPath}" -d "${destDir}"`, err => {
+            if (err) resolve({ success: false }); else resolve({ success: true });
+        });
+    });
 });
 
 // Info page handlers
