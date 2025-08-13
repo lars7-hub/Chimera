@@ -225,14 +225,16 @@ button:hover {
     padding: 10px;
     display: flex;
     align-items: flex-start;
+    justify-content: flex-start;
 }
 
 #map-grid {
-    width: 66vw;
-    height: 66vh;
+    width: 60vw;
+    height: 60vh;
     display: grid;
     background-color: #222;
     border: 1px solid #555;
+    position: relative;
 }
 
 .map-tile {
@@ -251,6 +253,13 @@ button:hover {
     border-color: yellow;
 }
 
+.map-connection {
+    position: absolute;
+    height: 2px;
+    background: yellow;
+    transform-origin: 0 50%;
+}
+
 #tile-details {
     margin-left: 20px;
     flex: 1;
@@ -264,6 +273,81 @@ button:hover {
 #map-actions button {
     width: auto;
     margin-right: 10px;
+}
+
+#prompt-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#prompt-overlay.hidden {
+    display: none;
+}
+
+#prompt-box {
+    background: #333;
+    padding: 20px;
+    border: 1px solid #555;
+}
+
+.prompt-buttons {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.prompt-buttons button {
+    width: auto;
+    margin-left: 10px;
+}
+
+#tile-details, #character-panel {
+    flex: 1;
+    color: #eee;
+}
+
+.info-box {
+    background-color: #333;
+    border: 2px solid #444;
+    padding: 10px;
+}
+
+#tile-details h3, #character-panel h3 {
+    margin-top: 0;
+}
+
+#char-header img {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto 10px;
+}
+
+#char-stats, #char-items, #tile-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.character-chip {
+    display: inline-block;
+    margin: 5px;
+    cursor: pointer;
+}
+
+.character-chip img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+}
+
+.adventure-chip {
+    margin: 5px;
 }
 
 /* Modal */
@@ -1129,89 +1213,4 @@ button:hover {
 
 #info-buttons button {
     margin-bottom: 10px;
-}
-
-/* Map interface */
-#map-container {
-    margin-left: 2%;
-    margin-right: 2%;
-    width: 96%;
-    box-sizing: border-box;
-    min-height: 100vh;
-    background-color: #553159;
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 20px;
-    padding: 20px;
-}
-
-#map-grid {
-    display: grid;
-    gap: 2px;
-    width: 50%;
-    max-width: 400px;
-    aspect-ratio: 1 / 1;
-    border: 2px solid #444;
-}
-
-.map-tile {
-    border: 1px solid #666;
-    background-color: #333;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-}
-
-.map-tile.current {
-    outline: 2px solid yellow;
-}
-
-.map-tile.blank {
-    background-color: transparent;
-    border: 1px dashed #555;
-}
-
-#tile-details, #character-panel {
-    flex: 1;
-    color: #eee;
-}
-
-.info-box {
-    background-color: #333;
-    border: 2px solid #444;
-    padding: 10px;
-}
-
-#tile-details h3, #character-panel h3 {
-    margin-top: 0;
-}
-
-#char-header img {
-    max-width: 100%;
-    display: block;
-    margin: 0 auto 10px;
-}
-
-#char-stats, #char-items, #tile-items {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.character-chip {
-    display: inline-block;
-    margin: 5px;
-    cursor: pointer;
-}
-.character-chip img {
-    width: 64px;
-    height: 64px;
-    object-fit: cover;
-}
-.adventure-chip {
-    margin: 5px;
 }
