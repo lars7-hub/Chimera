@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character Profile Manager</title>
+    <title>World Map</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div id="nav-bar">
+    <div id="nav-bar">
         <button id="home-btn">Home</button>
         <button id="random-btn">Random</button>
         <button id="info-btn">Info</button>
         <button id="map-btn">Map</button>
     </div>
-	
-    <div id="character-selector-container">
-        <h2>Character Select</h2>
-        <div id="character-list"></div>
+    <div id="map-container">
+        <div id="map-grid"></div>
+        <div id="tile-details">
+            <h3 id="tile-name"></h3>
+            <p id="tile-type"></p>
+            <ul id="tile-items"></ul>
+        </div>
     </div>
-	<div id="character-select-sidebar">
-        <button id="create-character-btn">Create New Character</button>
-    </div>
-
-    <script src="renderer.js"></script>
+    <script src="map.js"></script>
 </body>
 </html>

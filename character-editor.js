@@ -484,6 +484,10 @@ document.getElementById('info-btn').addEventListener('click', () => {
     window.location.href = 'info.html';
 });
 
+document.getElementById('map-btn').addEventListener('click', () => {
+    window.location.href = 'map.html';
+});
+
 document.getElementById('random-btn').addEventListener('click', goRandom);
 
 async function goRandom() {

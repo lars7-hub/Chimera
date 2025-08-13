@@ -18,6 +18,10 @@ window.onload = async function () {
         window.location.href = 'info.html';
     });
 
+    document.getElementById('map-btn').addEventListener('click', () => {
+        window.location.href = 'map.html';
+    });
+
     document.getElementById('random-btn').addEventListener('click', goRandom);
 };
 

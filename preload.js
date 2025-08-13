@@ -17,5 +17,6 @@ contextBridge.exposeInMainWorld('electron', {
     getInventory: (characterName, loadoutName) => ipcRenderer.invoke('get-inventory', characterName, loadoutName),
     saveInventory: (characterName, loadoutName, items) => ipcRenderer.invoke('save-inventory', characterName, loadoutName, items),
     getInfo: () => ipcRenderer.invoke('get-info'),
-    saveInfo: (data) => ipcRenderer.invoke('save-info', data)
+    saveInfo: (data) => ipcRenderer.invoke('save-info', data),
+    getMapRegion: (regionName) => ipcRenderer.invoke('get-map-region', regionName)
 });

@@ -1054,3 +1054,41 @@ button:hover {
 #info-buttons button {
     margin-bottom: 10px;
 }
+
+/* Map interface */
+#map-container {
+    margin-left: 7.5%;
+    margin-right: 7.5%;
+    width: 85%;
+    box-sizing: border-box;
+    min-height: 100vh;
+    background-color: #553159;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#map-grid {
+    display: grid;
+    gap: 2px;
+    width: 50%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1;
+    border: 2px solid #444;
+}
+
+.map-tile {
+    border: 1px solid #666;
+    background-color: #333;
+    cursor: pointer;
+}
+
+.map-tile.current {
+    background-color: #777;
+}
+
+#tile-details {
+    margin-top: 20px;
+    text-align: center;
+}

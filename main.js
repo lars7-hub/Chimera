@@ -4,7 +4,38 @@ const path = require('path');
 const { pathToFileURL, fileURLToPath } = require('url');
 
 let fileSystemPath;
+let mapPath;
 let mainWindow;
+
+function ensureSampleMap() {
+    const regionPath = path.join(mapPath, 'region1');
+    for (let y = 1; y <= 3; y++) {
+        for (let x = 1; x <= 3; x++) {
+            const tileFolder = path.join(regionPath, `tile${x}-${y}`);
+            const inventoryFolder = path.join(tileFolder, 'inventory');
+            if (!fs.existsSync(tileFolder)) {
+                fs.mkdirSync(inventoryFolder, { recursive: true });
+            } else if (!fs.existsSync(inventoryFolder)) {
+                fs.mkdirSync(inventoryFolder, { recursive: true });
+            }
+            const tileDataPath = path.join(tileFolder, 'tile.json');
+            if (!fs.existsSync(tileDataPath)) {
+                const tileData = {
+                    name: x === 2 && y === 2 ? 'Start' : `Tile ${x}-${y}`,
+                    type: x === 2 && y === 2 ? 'town' : 'land',
+                    start: x === 2 && y === 2
+                };
+                fs.writeFileSync(tileDataPath, JSON.stringify(tileData));
+            }
+            if (x === 2 && y === 2) {
+                const sampleItem = path.join(inventoryFolder, 'item0.json');
+                if (!fs.existsSync(sampleItem)) {
+                    fs.writeFileSync(sampleItem, JSON.stringify({ name: 'Welcome Sword', description: 'A basic sword.' }));
+                }
+            }
+        }
+    }
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -20,10 +51,16 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-    fileSystemPath = path.join(app.getPath('documents'), 'Chimera', 'characters');
+    const basePath = path.join(app.getPath('documents'), 'Chimera');
+    fileSystemPath = path.join(basePath, 'characters');
+    mapPath = path.join(basePath, 'map');
     if (!fs.existsSync(fileSystemPath)) {
         fs.mkdirSync(fileSystemPath, { recursive: true });
     }
+    if (!fs.existsSync(mapPath)) {
+        fs.mkdirSync(mapPath, { recursive: true });
+    }
+    ensureSampleMap();
     createWindow();
 });
 
@@ -342,6 +379,55 @@ ipcMain.handle('save-inventory', (event, characterName, loadoutName, items) => {
         console.error('Error saving inventory:', error);
         return { success: false, message: 'Error saving inventory' };
     }
+});
+
+// Map handlers
+ipcMain.handle('get-map-region', (event, regionName) => {
+    const regionDir = path.join(mapPath, regionName);
+    const result = { tiles: [], width: 0, height: 0, start: null };
+    try {
+        if (fs.existsSync(regionDir)) {
+            fs.readdirSync(regionDir).forEach(folder => {
+                const tileDir = path.join(regionDir, folder);
+                if (fs.lstatSync(tileDir).isDirectory()) {
+                    const match = folder.match(/^tile(\d+)-(\d+)$/);
+                    if (match) {
+                        const x = parseInt(match[1]);
+                        const y = parseInt(match[2]);
+                        const tileDataPath = path.join(tileDir, 'tile.json');
+                        let tileData = { name: '', type: '' };
+                        if (fs.existsSync(tileDataPath)) {
+                            tileData = JSON.parse(fs.readFileSync(tileDataPath, 'utf-8'));
+                        }
+                        const items = [];
+                        const inventoryDir = path.join(tileDir, 'inventory');
+                        if (fs.existsSync(inventoryDir)) {
+                            fs.readdirSync(inventoryDir).forEach(file => {
+                                if (file.endsWith('.json')) {
+                                    const base = path.basename(file, '.json');
+                                    const data = JSON.parse(fs.readFileSync(path.join(inventoryDir, file), 'utf-8'));
+                                    const img = path.join(inventoryDir, `${base}.png`);
+                                    if (fs.existsSync(img)) {
+                                        data.image = pathToFileURL(img).href;
+                                    }
+                                    items.push(data);
+                                }
+                            });
+                        }
+                        result.tiles.push({ x, y, name: tileData.name, type: tileData.type, items });
+                        if (tileData.start) {
+                            result.start = { x, y };
+                        }
+                        if (x > result.width) result.width = x;
+                        if (y > result.height) result.height = y;
+                    }
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error loading map region:', err);
+    }
+    return result;
 });
 
 // Info page handlers
