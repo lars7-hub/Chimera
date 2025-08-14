@@ -313,8 +313,9 @@ button:hover {
     z-index: 2000;
 }
 #tile-editor-overlay,
-#mini-map-overlay,
-#connection-overlay {
+mini-map-overlay,
+#connection-overlay,
+#image-picker-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -349,6 +350,33 @@ button:hover {
     grid-template-columns: repeat(3, 50px);
     grid-template-rows: repeat(3, 50px);
     gap: 5px;
+}
+
+#tile-bg-preview {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    margin-left: 10px;
+}
+
+#image-picker-overlay .image-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 64px);
+    gap: 10px;
+}
+
+#image-picker-overlay img {
+    width: 64px;
+    height: 64px;
+    cursor: pointer;
+    object-fit: cover;
+}
+
+.tile-type-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
 }
 
 .mini-map-cell {

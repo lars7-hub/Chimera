@@ -7,6 +7,7 @@ const tileIcons = {
     town: '🏘️',
     land: ''
 };
+const tileTypes = Object.keys(tileIcons);
 
 let editMode = false;
 let gridWidth = 0;
@@ -63,19 +64,48 @@ function openTileEditor(data, x, y) {
     return new Promise(resolve => {
         const overlay = document.getElementById('tile-editor-overlay');
         const nameInput = document.getElementById('tile-name-input');
-        const typeInput = document.getElementById('tile-type-input');
         const itemsInput = document.getElementById('tile-items-input');
         const grid = document.getElementById('tile-connection-grid');
         const saveBtn = document.getElementById('tile-save');
         const cancelBtn = document.getElementById('tile-cancel');
+        const typeContainer = document.getElementById('tile-type-options');
+        const bgBtn = document.getElementById('tile-bg-btn');
+        const bgPreview = document.getElementById('tile-bg-preview');
+        const oneWayBtn = document.getElementById('one-way-toggle');
 
         nameInput.value = data.name || '';
-        typeInput.value = data.type || '';
         itemsInput.value = (data.items || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
+
+        let selectedBg = data.background || '';
+        function updateBg() {
+            if (selectedBg) bgPreview.src = `resources/map/tiles/${selectedBg}`;
+            else bgPreview.src = '';
+        }
+        updateBg();
+
+        const existingTypes = data.types || (data.type ? [data.type] : []);
+        typeContainer.innerHTML = '';
+        tileTypes.forEach(t => {
+            const label = document.createElement('label');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = t;
+            if (existingTypes.includes(t)) cb.checked = true;
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(t));
+            typeContainer.appendChild(label);
+        });
+
         grid.innerHTML = '';
         const connectionState = {};
         const incoming = {};
         const removeIncoming = {};
+        let oneWayMode = false;
+
+        oneWayBtn.onclick = () => {
+            oneWayMode = !oneWayMode;
+            oneWayBtn.textContent = `One-Way Mode: ${oneWayMode ? 'On' : 'Off'}`;
+        };
 
         function updateCellClass(key, cell) {
             cell.classList.remove('connected', 'one-way', 'incoming', 'disconnected');
@@ -116,9 +146,9 @@ function openTileEditor(data, x, y) {
                     }
                     connectionState[key] = state;
                     updateCellClass(key, cell);
-                    cell.addEventListener('click', (e) => {
+                    cell.addEventListener('click', () => {
                         let st = connectionState[key];
-                        if (e.shiftKey) {
+                        if (oneWayMode) {
                             if (incoming[key] && !removeIncoming[key] && st === 0) {
                                 removeIncoming[key] = true;
                             } else {
@@ -141,10 +171,33 @@ function openTileEditor(data, x, y) {
         }
         overlay.classList.remove('hidden');
 
+        async function pickBackground() {
+            const files = await window.electron.listTileImages();
+            const over = document.createElement('div');
+            over.id = 'image-picker-overlay';
+            const g = document.createElement('div');
+            g.className = 'image-picker-grid';
+            files.forEach(f => {
+                const img = document.createElement('img');
+                img.src = `resources/map/tiles/${f}`;
+                img.addEventListener('click', () => {
+                    selectedBg = f;
+                    updateBg();
+                    document.body.removeChild(over);
+                });
+                g.appendChild(img);
+            });
+            over.appendChild(g);
+            over.addEventListener('click', e => { if (e.target === over) document.body.removeChild(over); });
+            document.body.appendChild(over);
+        }
+        bgBtn.addEventListener('click', pickBackground);
+
         function cleanup() {
             overlay.classList.add('hidden');
             saveBtn.removeEventListener('click', onSave);
             cancelBtn.removeEventListener('click', onCancel);
+            bgBtn.removeEventListener('click', pickBackground);
         }
 
         function onSave() {
@@ -153,9 +206,11 @@ function openTileEditor(data, x, y) {
                 return { name: name.trim(), description: desc.join(':').trim() };
             });
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
+            const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
             const obj = {
                 name: nameInput.value,
-                type: typeInput.value,
+                types,
+                background: selectedBg,
                 items,
                 connections,
                 connectionStates: connectionState,
@@ -274,8 +329,11 @@ async function loadWorld() {
     gridHeight = region.height;
     tileMap = {};
     region.tiles.forEach(t => {
-        tileMap[`${t.x}-${t.y}`] = { data: t };
-        if (t.start) originKey = `${t.x}-${t.y}`;
+        const data = { ...t };
+        if (data.type && !data.types) data.types = [data.type];
+        delete data.type;
+        tileMap[`${t.x}-${t.y}`] = { data };
+        if (data.start) originKey = `${t.x}-${t.y}`;
     });
     currentKey = originKey;
     normalizeCoordinates();
@@ -321,7 +379,8 @@ function renderGrid() {
 }
 
 function updateTileVisual(entry, key) {
-    const icon = tileIcons[entry.data.type] || '';
+    const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
+    const icon = types.map(t => tileIcons[t] || '').join('');
     let text = icon;
     if (key === originKey) {
         text = '⭐' + text;
@@ -330,6 +389,11 @@ function updateTileVisual(entry, key) {
         text = '🧍' + text;
     }
     entry.el.textContent = text;
+    if (entry.data.background) {
+        entry.el.style.backgroundImage = `url(resources/map/tiles/${entry.data.background})`;
+    } else {
+        entry.el.style.backgroundImage = 'none';
+    }
 }
 
 async function editTile(x, y) {
@@ -338,14 +402,15 @@ async function editTile(x, y) {
     if (!entry) {
         const div = document.querySelector(`.map-tile[data-x='${x}'][data-y='${y}']`);
         if (div) div.classList.remove('blank');
-        entry = { el: div, data: { name: '', type: '', items: [], connections: [] } };
+        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [] } };
         tileMap[key] = entry;
     }
-	
+
     const data = await openTileEditor(entry.data, x, y);
     if (!data) return;
     entry.data.name = data.name;
-    entry.data.type = data.type;
+    entry.data.types = data.types;
+    entry.data.background = data.background;
     entry.data.items = data.items;
     entry.data.connections = data.connections;
     updateTileVisual(entry, key);
@@ -399,7 +464,8 @@ function drawConnections() {
 
 function displayTile(tile) {
     document.getElementById('tile-name').textContent = tile.name || '';
-    document.getElementById('tile-type').textContent = tile.type ? `Type: ${tile.type}` : '';
+    const types = tile.types || (tile.type ? [tile.type] : []);
+    document.getElementById('tile-type').textContent = types.length ? `Type: ${types.join(', ')}` : '';
     const list = document.getElementById('tile-items');
     list.innerHTML = '';
     (tile.items || []).forEach(item => {
@@ -494,7 +560,9 @@ function normalizeCoordinates() {
 async function saveRegion() {
     const tiles = Object.entries(tileMap).map(([key, entry]) => {
         const [x, y] = key.split('-').map(Number);
-        return { x, y, ...entry.data, start: key === originKey };
+        const data = { ...entry.data };
+        if (data.type) delete data.type;
+        return { x, y, ...data, start: key === originKey };
     });
     const [ox, oy] = originKey.split('-').map(Number);
     await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
@@ -506,6 +574,7 @@ function configureConnections(x, y) {
     const grid = document.createElement('div');
     grid.className = 'mini-map-grid';
     const connections = {};
+    let oneWayMode = false;
     for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
             const nx = x + dx;
@@ -521,7 +590,7 @@ function configureConnections(x, y) {
                 cell.classList.add('existing', 'connected');
                 cell.addEventListener('click', (e) => {
                     let state = connections[key];
-                    if (e.shiftKey) {
+                    if (oneWayMode) {
                         state = state === 2 ? 0 : 2;
                         connections[key] = state;
                         cell.classList.toggle('one-way', state === 2);
@@ -547,10 +616,16 @@ function configureConnections(x, y) {
     cancel.textContent = 'Cancel';
     btns.appendChild(ok);
     btns.appendChild(cancel);
-    const container = document.createElement('div');
     const instr = document.createElement('p');
     instr.textContent = 'Select which tiles will connect to the new tile:';
+    const toggle = document.createElement('button');
+    toggle.textContent = 'One-Way Mode: Off';
+    toggle.addEventListener('click', () => {
+        oneWayMode = !oneWayMode;
+        toggle.textContent = `One-Way Mode: ${oneWayMode ? 'On' : 'Off'}`;
+    });
     container.appendChild(instr);
+    container.appendChild(toggle);
     container.appendChild(grid);
     container.appendChild(btns);
     overlay.appendChild(container);
@@ -559,7 +634,7 @@ function configureConnections(x, y) {
     cancel.addEventListener('click', () => document.body.removeChild(overlay));
     ok.addEventListener('click', () => {
         const key = `${x}-${y}`;
-        tileMap[key] = { data: { name: '', type: '', items: [], connections: Object.keys(connections).filter(k => connections[k] > 0) } };
+        tileMap[key] = { data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: Object.keys(connections).filter(k => connections[k] > 0) } };
         Object.entries(connections).forEach(([k, state]) => {
             const entry = tileMap[k];
             if (!entry) return;

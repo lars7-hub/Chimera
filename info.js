@@ -9,15 +9,25 @@ async function loadInfo() {
         infoData = { sections: [] };
         console.error(err);
     }
-    renderInfo();
+    await renderInfo();
 }
 
-function renderInfo() {
+async function renderInfo() {
     const content = document.getElementById('info-content');
     const buttons = document.getElementById('info-buttons');
     content.innerHTML = '';
     buttons.innerHTML = '';
-    infoData.sections.forEach(sec => {
+    const tileImgs = await window.electron.listTileImages();
+    const typeDescs = {
+        water: 'Bodies of water that may require special means to cross.',
+        tree: 'Forested tiles filled with trees.',
+        building: 'Structures and buildings.',
+        fish: 'Aquatic areas rich with fish.',
+        mountain: 'High elevation and rough terrain.',
+        town: 'Populated settlements.',
+        land: 'Generic land or plains.'
+    };
+    for (const sec of infoData.sections) {
         const section = document.createElement('div');
         section.className = 'info-section';
         section.id = sec.id;
@@ -50,6 +60,22 @@ function renderInfo() {
                 table.appendChild(row);
             });
             section.appendChild(table);
+        } else if (sec.id === 'tile-types') {
+            const container = document.createElement('div');
+            tileImgs.forEach(f => {
+                const name = f.replace(/\.[^/.]+$/, '');
+                const row = document.createElement('div');
+                row.className = 'tile-type-row';
+                const img = document.createElement('img');
+                img.src = `resources/map/tiles/${f}`;
+                img.alt = name;
+                row.appendChild(img);
+                const span = document.createElement('span');
+                span.textContent = typeDescs[name] || '';
+                row.appendChild(span);
+                container.appendChild(row);
+            });
+            section.appendChild(container);
         } else {
             const p = document.createElement('p');
             p.textContent = sec.content;
@@ -62,7 +88,7 @@ function renderInfo() {
             document.getElementById(sec.id).scrollIntoView({ behavior: 'smooth' });
         });
         buttons.appendChild(btn);
-    });
+    }
 }
 
 async function toggleEdit() {

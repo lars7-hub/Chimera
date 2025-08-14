@@ -59,10 +59,19 @@
     <div id="tile-editor-overlay" class="hidden">
         <div id="tile-editor-box">
             <label>Tile Name:<input id="tile-name-input" /></label>
-            <label>Tile Type:<input id="tile-type-input" /></label>
+            <div id="tile-bg-control">
+                <span>Background:</span>
+                <button id="tile-bg-btn">Select</button>
+                <img id="tile-bg-preview" alt="" />
+            </div>
+            <div id="tile-type-select">
+                <span>Tile Types:</span>
+                <div id="tile-type-options"></div>
+            </div>
             <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
             <div id="tile-connections-container">
                 <p>Select which tiles connect to this tile:</p>
+                <button id="one-way-toggle">One-Way Mode: Off</button>
                 <div id="tile-connection-grid" class="mini-map-grid"></div>
             </div>
             <div class="editor-buttons">

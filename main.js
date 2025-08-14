@@ -26,7 +26,7 @@ function ensureSampleMap(targetMapPath) {
             if (!fs.existsSync(tileDataPath)) {
                 const tileData = {
                     name: x === 2 && y === 2 ? 'Start' : `Tile ${x}-${y}`,
-                    type: x === 2 && y === 2 ? 'town' : 'land',
+                    types: [x === 2 && y === 2 ? 'town' : 'land'],
                     start: x === 2 && y === 2
                 };
                 fs.writeFileSync(tileDataPath, JSON.stringify(tileData));
@@ -405,14 +405,17 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                         const x = parseInt(match[1]);
                         const y = parseInt(match[2]);
                         const tileDataPath = path.join(tileDir, 'tile.json');
-                        let tileData = { name: '', type: '', items: [], connections: [] };
+                        let tileData = { name: '', types: [], background: '', items: [], connections: [] };
                         if (fs.existsSync(tileDataPath)) {
                             tileData = JSON.parse(fs.readFileSync(tileDataPath, 'utf-8'));
                         }
-					result.tiles.push({ x, y, name: tileData.name, type: tileData.type, items: tileData.items || [], connections: tileData.connections || []});
-					if (tileData.start) {
-						result.start = { x, y };
-					}
+                        const types = tileData.types && Array.isArray(tileData.types)
+                            ? tileData.types
+                            : (tileData.type ? [tileData.type] : []);
+                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [] });
+                        if (tileData.start) {
+                            result.start = { x, y };
+                        }
                         if (x > result.width) result.width = x;
                         if (y > result.height) result.height = y;
                     }
@@ -556,6 +559,16 @@ ipcMain.handle('save-info', (event, data) => {
     }
 });
 
+ipcMain.handle('list-tile-images', () => {
+    const dir = path.join(__dirname, 'resources', 'map', 'tiles');
+    try {
+        return fs.readdirSync(dir).filter(f => /\.(png|jpg|jpeg|gif)$/.test(f));
+    } catch (err) {
+        console.error('Error listing tile images:', err);
+        return [];
+    }
+});
+
 ipcMain.handle('list-worlds', () => {
     try {
         if (!fs.existsSync(worldRoot)) return [];
@@ -596,7 +609,8 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
             fs.mkdirSync(tileDir, { recursive: true });
             const data = {
                 name: t.name || '',
-                type: t.type || '',
+                types: t.types || [],
+                background: t.background || '',
                 items: t.items || [],
                 connections: t.connections || []
             };

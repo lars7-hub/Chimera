@@ -649,8 +649,8 @@ if (activeLoadout) {
 }
 function openTraitInfo(trait) {
     const modal = document.getElementById('trait-info-modal');
-    document.getElementById('trait-info-name').textContent = trait.name || '';
-    document.getElementById('trait-info-description').textContent = trait.description || '';
+    document.getElementById('trait-info-name').textContent = trait.name || trait.text || '';
+    document.getElementById('trait-info-description').textContent = trait.description || trait.desc || '';
     const statsDiv = document.getElementById('trait-info-stats');
     statsDiv.innerHTML = '';
     (trait.stats || []).forEach(s => {

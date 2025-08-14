@@ -26,6 +26,11 @@
       "content": "Embark on adventures using your characters, navigate the world, and interact with events generated from your world data."
     },
     {
+      "id": "tile-types",
+      "title": "Tile Types",
+      "content": ""
+    },
+    {
       "id": "stats",
       "title": "Stats",
       "content": ""
