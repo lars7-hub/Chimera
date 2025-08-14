@@ -22,16 +22,13 @@ body {
     justify-content: space-between; /* Space out the buttons evenly */
 }
 
-#nav-bar button {
-    background-color: #444;
-    border: none;
-    color: white;
-    padding: 10px;
-    font-size: 16px;
+nav-bar img {
+    width: 80%;
+    height: auto;
+    flex: 1 1 auto;
+    object-fit: contain;
     cursor: pointer;
-    border-radius: 5px;
-    width: 80%; /* Ensure buttons don't stretch across the entire width */
-    margin-bottom: 15px; /* Add space between buttons */
+    margin: 15px 0;
 }
 
 #character-selector-container, #character-creator-container, #loadout-editor-container {
@@ -290,14 +287,16 @@ button:hover {
 }
 
 #interact-module {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-    padding: 10px 0;
+    padding: 10px;
+    box-sizing: border-box;
+    max-width: 300px;
 }
 
 #interact-module button {
-    width: auto;
+    width: 100%;
 }
 
 #prompt-overlay {
@@ -377,6 +376,14 @@ button:hover {
 
 .mini-map-cell.disconnected {
     border-color: #f00;
+}
+
+.mini-map-cell.one-way {
+    border-color: #0f0;
+}
+
+.mini-map-cell.incoming {
+    border-color: #ff0;
 }
 
 #prompt-overlay.hidden {

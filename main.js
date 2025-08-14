@@ -585,7 +585,7 @@ ipcMain.handle('create-world', (event, worldName) => {
     }
 });
 
-ipcMain.handle('save-map-region', (event, regionName, worldName, tiles) => {
+ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) => {
     try {
         const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
         const regionDir = path.join(baseMap, regionName);
@@ -600,6 +600,9 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles) => {
                 items: t.items || [],
                 connections: t.connections || []
             };
+            if (start && start.x === t.x && start.y === t.y) {
+                data.start = true;
+            }
             fs.writeFileSync(path.join(tileDir, 'tile.json'), JSON.stringify(data, null, 2));
         });
         return { success: true };

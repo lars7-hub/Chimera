@@ -28,5 +28,5 @@ contextBridge.exposeInMainWorld('electron', {
     importWorld: (name) => ipcRenderer.invoke('import-world', name),
     listWorlds: () => ipcRenderer.invoke('list-worlds'),
     createWorld: (name) => ipcRenderer.invoke('create-world', name),
-    saveMapRegion: (regionName, worldName, tiles) => ipcRenderer.invoke('save-map-region', regionName, worldName, tiles)
+    saveMapRegion: (regionName, worldName, tiles, start) => ipcRenderer.invoke('save-map-region', regionName, worldName, tiles, start)
 });

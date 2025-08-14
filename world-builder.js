@@ -13,6 +13,7 @@ let gridWidth = 0;
 let gridHeight = 0;
 let tileMap = {};
 let currentKey = '1-1';
+let originKey = '1-1';
 let tileSize = 0;
 let currentWorld = null;
 const tileGap = 4;
@@ -65,6 +66,8 @@ function openTileEditor(data, x, y) {
         itemsInput.value = (data.items || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
         grid.innerHTML = '';
         const connectionState = {};
+        const incoming = {};
+        const removeIncoming = {};
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 const nx = x + dx;
@@ -77,12 +80,47 @@ function openTileEditor(data, x, y) {
                     cell.classList.add('existing');
                 } else if (tileMap[key]) {
                     const connected = (data.connections || []).includes(key);
-                    connectionState[key] = connected;
-                    cell.classList.add('existing', connected ? 'connected' : 'disconnected');
-                    cell.addEventListener('click', () => {
-                        connectionState[key] = !connectionState[key];
-                        cell.classList.toggle('connected', connectionState[key]);
-                        cell.classList.toggle('disconnected', !connectionState[key]);
+                    const neighborConnected = (tileMap[key].data.connections || []).includes(`${x}-${y}`);
+                    let state = 0;
+                    if (connected && neighborConnected) {
+                        state = 1;
+                        cell.classList.add('existing', 'connected');
+                    } else if (connected) {
+                        state = 2;
+                        cell.classList.add('existing', 'one-way');
+                    } else if (neighborConnected) {
+                        state = 0;
+                        incoming[key] = true;
+                        cell.classList.add('existing', 'incoming');
+                    } else {
+                        state = 0;
+                        cell.classList.add('existing', 'disconnected');
+                    }
+                    connectionState[key] = state;
+                    cell.addEventListener('click', (e) => {
+                        let st = connectionState[key];
+                        if (e.shiftKey) {
+                            if (incoming[key] && !removeIncoming[key] && st === 0) {
+                                removeIncoming[key] = true;
+                                cell.classList.remove('incoming');
+                            } else {
+                                st = st === 2 ? 0 : 2;
+                                connectionState[key] = st;
+                                if (st === 2) {
+                                    cell.classList.add('one-way');
+                                } else {
+                                    cell.classList.remove('one-way');
+                                }
+                                cell.classList.remove('connected');
+                                removeIncoming[key] = true;
+                            }
+                        } else {
+                            st = st === 1 ? 0 : 1;
+                            connectionState[key] = st;
+                            cell.classList.toggle('connected', st === 1);
+                            cell.classList.remove('one-way');
+                            removeIncoming[key] = st === 1 ? false : true;
+                        }
                     });
                 } else {
                     cell.classList.add('phantom');
@@ -103,12 +141,14 @@ function openTileEditor(data, x, y) {
                 const [name, ...desc] = l.split(':');
                 return { name: name.trim(), description: desc.join(':').trim() };
             });
-            const connections = Object.keys(connectionState).filter(k => connectionState[k]);
+            const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             const obj = {
                 name: nameInput.value,
                 type: typeInput.value,
                 items,
-                connections
+                connections,
+                connectionStates: connectionState,
+                removeIncoming
             };
             cleanup();
             resolve(obj);
@@ -152,14 +192,6 @@ window.onload = async function () {
     document.getElementById('adventure-btn').addEventListener('click', () => {
         window.location.href = 'adventure.html';
     });
-    document.getElementById('export-world-btn').addEventListener('click', () => {
-        if (currentWorld) window.electron.exportWorld(currentWorld);
-    });
-    document.getElementById('import-world-btn').addEventListener('click', async () => {
-        if (!currentWorld) return;
-        await window.electron.importWorld(currentWorld);
-        await loadWorld();
-    });
 
     await populateWorldChips();
 
@@ -194,6 +226,11 @@ window.onload = async function () {
     document.getElementById('refresh-btn').addEventListener('click', renderGrid);
     document.getElementById('add-item-btn').addEventListener('click', addItemToTile);
     document.getElementById('remove-item-btn').addEventListener('click', removeItemFromTile);
+    document.getElementById('set-origin-btn').addEventListener('click', () => {
+        originKey = currentKey;
+        renderGrid();
+        saveRegion();
+    });
 
     document.getElementById('map-module').addEventListener('click', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
@@ -206,19 +243,18 @@ window.onload = async function () {
         }
         if (!tileMap[key]) return;
         const curEntry = tileMap[currentKey];
-        const targetEntry = tileMap[key];
         const curCons = (curEntry.data.connections || []);
-        const targetCons = (targetEntry.data.connections || []);
-        if (curCons.includes(key) || targetCons.includes(currentKey)) {
-            const prev = tileMap[currentKey];
+        if (curCons.includes(key)) {
+            const prevKey = currentKey;
+            const prev = tileMap[prevKey];
             if (prev) {
                 prev.el.classList.remove('current');
-                updateTileVisual(prev);
+                updateTileVisual(prev, prevKey);
             }
             currentKey = key;
             const cur = tileMap[currentKey];
             cur.el.classList.add('current');
-            updateTileVisual(cur);
+            updateTileVisual(cur, currentKey);
             displayTile(cur.data);
         }
     });
@@ -232,8 +268,9 @@ async function loadWorld() {
     tileMap = {};
     region.tiles.forEach(t => {
         tileMap[`${t.x}-${t.y}`] = { data: t };
+        if (t.start) originKey = `${t.x}-${t.y}`;
     });
-    currentKey = region.start ? `${region.start.x}-${region.start.y}` : '1-1';
+    currentKey = originKey;
     normalizeCoordinates();
     renderGrid();
 }
@@ -263,7 +300,7 @@ function renderGrid() {
                 if (key === currentKey) {
                     div.classList.add('current');
                 }
-                updateTileVisual(entry);
+                updateTileVisual(entry, key);
             } else {
                 div.className = 'map-tile blank';
             }
@@ -276,12 +313,16 @@ function renderGrid() {
     }
 }
 
-function updateTileVisual(entry) {
+function updateTileVisual(entry, key) {
     const icon = tileIcons[entry.data.type] || '';
-    entry.el.textContent = icon;
-    if (entry.el.classList.contains('current')) {
-        entry.el.textContent = '🧍' + icon;
+    let text = icon;
+    if (key === originKey) {
+        text = '⭐' + text;
     }
+    if (entry.el.classList.contains('current')) {
+        text = '🧍' + text;
+    }
+    entry.el.textContent = text;
 }
 
 async function editTile(x, y) {
@@ -296,20 +337,39 @@ async function editTile(x, y) {
 	
     const data = await openTileEditor(entry.data, x, y);
     if (!data) return;
-    entry.data = data;
-    updateTileVisual(entry);
+    entry.data.name = data.name;
+    entry.data.type = data.type;
+    entry.data.items = data.items;
+    entry.data.connections = data.connections;
+    updateTileVisual(entry, key);
+    Object.entries(data.connectionStates).forEach(([k, state]) => {
+        const neighbor = tileMap[k];
+        if (!neighbor) return;
+        if (state === 1) {
+            if (!(neighbor.data.connections || []).includes(key)) {
+                neighbor.data.connections.push(key);
+            }
+        } else if (state === 2) {
+            neighbor.data.connections = (neighbor.data.connections || []).filter(c => c !== key);
+        } else if (data.removeIncoming[k]) {
+            neighbor.data.connections = (neighbor.data.connections || []).filter(c => c !== key);
+        }
+    });
     displayTile(entry.data);
     renderGrid();
-	saveRegion();
+    saveRegion();
 }
 
 function drawConnections() {
     document.querySelectorAll('.map-connection').forEach(el => el.remove());
     const mapGrid = document.getElementById('map-module');
+    const drawn = new Set();
     for (const [key, entry] of Object.entries(tileMap)) {
         const [x, y] = key.split('-').map(Number);
         (entry.data.connections || []).forEach(conn => {
-            if (key >= conn) return; // avoid duplicates
+            const pair = [key, conn].sort().join('|');
+            if (drawn.has(pair)) return;
+            drawn.add(pair);
             const target = tileMap[conn];
             if (!target) return;
             const [nx, ny] = conn.split('-').map(Number);
@@ -417,6 +477,7 @@ function normalizeCoordinates() {
             });
             newMap[newKey] = entry;
             if (currentKey === key) currentKey = newKey;
+            if (originKey === key) originKey = newKey;
         });
         tileMap = newMap;
     }
@@ -424,12 +485,13 @@ function normalizeCoordinates() {
 }
 	
 async function saveRegion() {
-	const tiles = Object.entries(tileMap).map(([key, entry]) => {
-		const [x, y] = key.split('-').map(Number);
-		return { x, y, ...entry.data};
-	});
-	await window.electron.saveMapRegion('region1', currentWorld, tiles);
-}	
+    const tiles = Object.entries(tileMap).map(([key, entry]) => {
+        const [x, y] = key.split('-').map(Number);
+        return { x, y, ...entry.data, start: key === originKey };
+    });
+    const [ox, oy] = originKey.split('-').map(Number);
+    await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
+}
 
 function configureConnections(x, y) {
     const overlay = document.createElement('div');
@@ -448,12 +510,21 @@ function configureConnections(x, y) {
                 cell.textContent = 'N';
                 cell.classList.add('existing');
             } else if (tileMap[key]) {
-                connections[key] = true;
+                connections[key] = 1;
                 cell.classList.add('existing', 'connected');
-                cell.addEventListener('click', () => {
-                    connections[key] = !connections[key];
-                    cell.classList.toggle('connected', connections[key]);
-                    cell.classList.toggle('disconnected', !connections[key]);
+                cell.addEventListener('click', (e) => {
+                    let state = connections[key];
+                    if (e.shiftKey) {
+                        state = state === 2 ? 0 : 2;
+                        connections[key] = state;
+                        cell.classList.toggle('one-way', state === 2);
+                        cell.classList.remove('connected');
+                    } else {
+                        state = state === 1 ? 0 : 1;
+                        connections[key] = state;
+                        cell.classList.toggle('connected', state === 1);
+                        cell.classList.remove('one-way');
+                    }
                 });
             } else {
                 cell.classList.add('phantom');
@@ -481,19 +552,22 @@ function configureConnections(x, y) {
     cancel.addEventListener('click', () => document.body.removeChild(overlay));
     ok.addEventListener('click', () => {
         const key = `${x}-${y}`;
-        tileMap[key] = { data: { name: '', type: '', items: [], connections: Object.keys(connections).filter(k => connections[k]) } };
-        Object.keys(connections).forEach(k => {
-            if (connections[k]) {
-                const entry = tileMap[k];
-		if (entry && !(entry.data.connecions || []).includes(key)) {
-                     entry.data.connections.push(key);
-                    }
+        tileMap[key] = { data: { name: '', type: '', items: [], connections: Object.keys(connections).filter(k => connections[k] > 0) } };
+        Object.entries(connections).forEach(([k, state]) => {
+            const entry = tileMap[k];
+            if (!entry) return;
+            if (state === 1) {
+                if (!(entry.data.connections || []).includes(key)) {
+                    entry.data.connections.push(key);
                 }
+            } else if (state === 2) {
+                entry.data.connections = (entry.data.connections || []).filter(c => c !== key);
+            }
         });
         document.body.removeChild(overlay);
-		normalizeCoordinates();
+        normalizeCoordinates();
         renderGrid();
-		saveRegion();
+        saveRegion();
     });
 }
 
