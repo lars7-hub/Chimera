@@ -405,29 +405,14 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                         const x = parseInt(match[1]);
                         const y = parseInt(match[2]);
                         const tileDataPath = path.join(tileDir, 'tile.json');
-                        let tileData = { name: '', type: '' };
+                        let tileData = { name: '', type: '', items: [], connections: [] };
                         if (fs.existsSync(tileDataPath)) {
                             tileData = JSON.parse(fs.readFileSync(tileDataPath, 'utf-8'));
                         }
-                        const items = [];
-                        const inventoryDir = path.join(tileDir, 'inventory');
-                        if (fs.existsSync(inventoryDir)) {
-                            fs.readdirSync(inventoryDir).forEach(file => {
-                                if (file.endsWith('.json')) {
-                                    const base = path.basename(file, '.json');
-                                    const data = JSON.parse(fs.readFileSync(path.join(inventoryDir, file), 'utf-8'));
-                                    const img = path.join(inventoryDir, `${base}.png`);
-                                    if (fs.existsSync(img)) {
-                                        data.image = pathToFileURL(img).href;
-                                    }
-                                    items.push(data);
-                                }
-                            });
-                        }
-                        result.tiles.push({ x, y, name: tileData.name, type: tileData.type, items });
-                        if (tileData.start) {
-                            result.start = { x, y };
-                        }
+					result.tiles.push({ x, y, name: tileData.name, type: tileData.type, items: tileData.items || [], connections: tileData.connections || []});
+					if (tileData.start) {
+						result.start = { x, y };
+					}
                         if (x > result.width) result.width = x;
                         if (y > result.height) result.height = y;
                     }
@@ -597,5 +582,29 @@ ipcMain.handle('create-world', (event, worldName) => {
     } catch (err) {
         console.error('Error creating world:', err);
         return { success: false, message: 'Error creating world' };
+    }
+});
+
+ipcMain.handle('save-map-region', (event, regionName, worldName, tiles) => {
+    try {
+        const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+        const regionDir = path.join(baseMap, regionName);
+        fs.rmSync(regionDir, { recursive: true, force: true });
+        fs.mkdirSync(regionDir, { recursive: true });
+        tiles.forEach(t => {
+            const tileDir = path.join(regionDir, `tile${t.x}-${t.y}`);
+            fs.mkdirSync(tileDir, { recursive: true });
+            const data = {
+                name: t.name || '',
+                type: t.type || '',
+                items: t.items || [],
+                connections: t.connections || []
+            };
+            fs.writeFileSync(path.join(tileDir, 'tile.json'), JSON.stringify(data, null, 2));
+        });
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving map region:', err);
+        return { success: false };
     }
 });

@@ -16,7 +16,7 @@
     </div>
 
     <div id="world-menu">
-        <button id="load-world-btn">Load World</button>
+        <button id="world-chips">Load World</button>
         <button id="create-world-btn">Create New World</button>
     </div>
 
@@ -62,7 +62,10 @@
             <label>Tile Name:<input id="tile-name-input" /></label>
             <label>Tile Type:<input id="tile-type-input" /></label>
             <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
-            <label>Connections (comma separated x-y):<input id="tile-connections-input" /></label>
+            <div id="tile-connections-container">
+                <p>Select which tiles connect to this tile:</p>
+                <div id="tile-connection-grid" class="mini-map-grid"></div>
+            </div>
             <div class="editor-buttons">
                 <button id="tile-save">Save</button>
                 <button id="tile-cancel">Cancel</button>
