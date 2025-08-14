@@ -18,6 +18,14 @@ let tileSize = 0;
 let currentWorld = null;
 const tileGap = 4;
 
+function startWorldEditing(name) {
+    currentWorld = name;
+    const menu = document.getElementById('world-menu');
+    if (menu) menu.remove();
+    const editor = document.getElementById('editor-container');
+    if (editor) editor.classList.remove('hidden');
+}
+
 async function showPrompt(message, defaultValue = '') {
     return new Promise(resolve => {
         const overlay = document.getElementById('prompt-overlay');
@@ -68,6 +76,20 @@ function openTileEditor(data, x, y) {
         const connectionState = {};
         const incoming = {};
         const removeIncoming = {};
+
+        function updateCellClass(key, cell) {
+            cell.classList.remove('connected', 'one-way', 'incoming', 'disconnected');
+            const st = connectionState[key];
+            if (st === 1) {
+                cell.classList.add('existing', 'connected');
+            } else if (st === 2) {
+                cell.classList.add('existing', 'one-way');
+            } else if (incoming[key] && !removeIncoming[key]) {
+                cell.classList.add('existing', 'incoming');
+            } else {
+                cell.classList.add('existing', 'disconnected');
+            }
+        }
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 const nx = x + dx;
@@ -84,43 +106,32 @@ function openTileEditor(data, x, y) {
                     let state = 0;
                     if (connected && neighborConnected) {
                         state = 1;
-                        cell.classList.add('existing', 'connected');
                     } else if (connected) {
                         state = 2;
-                        cell.classList.add('existing', 'one-way');
                     } else if (neighborConnected) {
                         state = 0;
                         incoming[key] = true;
-                        cell.classList.add('existing', 'incoming');
                     } else {
                         state = 0;
-                        cell.classList.add('existing', 'disconnected');
                     }
                     connectionState[key] = state;
+                    updateCellClass(key, cell);
                     cell.addEventListener('click', (e) => {
                         let st = connectionState[key];
                         if (e.shiftKey) {
                             if (incoming[key] && !removeIncoming[key] && st === 0) {
                                 removeIncoming[key] = true;
-                                cell.classList.remove('incoming');
                             } else {
                                 st = st === 2 ? 0 : 2;
                                 connectionState[key] = st;
-                                if (st === 2) {
-                                    cell.classList.add('one-way');
-                                } else {
-                                    cell.classList.remove('one-way');
-                                }
-                                cell.classList.remove('connected');
                                 removeIncoming[key] = true;
                             }
                         } else {
                             st = st === 1 ? 0 : 1;
                             connectionState[key] = st;
-                            cell.classList.toggle('connected', st === 1);
-                            cell.classList.remove('one-way');
                             removeIncoming[key] = st === 1 ? false : true;
                         }
+                        updateCellClass(key, cell);
                     });
                 } else {
                     cell.classList.add('phantom');
@@ -170,9 +181,7 @@ async function populateWorldChips() {
         btn.textContent = name;
         btn.className = 'adventure-chip';
         btn.addEventListener('click', async () => {
-            currentWorld = name;
-            document.getElementById('world-menu').classList.add('hidden');
-            document.getElementById('editor-container').classList.remove('hidden');
+            startWorldEditing(name);
             await loadWorld();
         });
         container.appendChild(btn);
@@ -203,9 +212,7 @@ window.onload = async function () {
             alert(res.message || 'Failed to create world');
             return;
         }
-        currentWorld = name;
-        document.getElementById('world-menu').classList.add('hidden');
-        document.getElementById('editor-container').classList.remove('hidden');
+        startWorldEditing(name);
         await loadWorld();
     });
 
