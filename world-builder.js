@@ -501,6 +501,7 @@ function deleteAdjacentTile() {
     const [cx, cy] = currentKey.split('-').map(Number);
     const overlay = document.createElement('div');
     overlay.id = 'mini-map-overlay';
+	const container = document.createElement('div');
     const grid = document.createElement('div');
     grid.className = 'mini-map-grid';
     for (let dy = -1; dy <= 1; dy++) {
