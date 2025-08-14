@@ -3,17 +3,27 @@
     {
       "id": "overview",
       "title": "Overview",
-      "content": "This application manages characters and loadouts. Use the navigation buttons to explore." 
+      "content": "This application manages characters and loadouts. Use the navigation buttons to explore."
     },
     {
       "id": "alignment",
       "title": "Alignment System",
-      "content": "Characters have an alignment value between -100 and 100. The profile page shows this on a colored bar." 
+      "content": "Characters have an alignment value between -100 and 100. The profile page shows this on a colored bar."
     },
-{
+    {
       "id": "random",
       "title": "Random Loadouts",
       "content": "The random button jumps to a random character and loadout for quick inspiration."
+    },
+    {
+      "id": "world-builder",
+      "title": "World Builder",
+      "content": "Design and connect tiles to create custom worlds. Use edit mode to modify tiles and export or import your creations."
+    },
+    {
+      "id": "adventure",
+      "title": "Adventure Mode",
+      "content": "Embark on adventures using your characters, navigate the world, and interact with events generated from your world data."
     },
     {
       "id": "stats",
