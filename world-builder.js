@@ -210,13 +210,19 @@ function openTileEditor(data, x, y) {
             bgBtn.removeEventListener('click', pickBackground);
         }
 
-        function onSave() {
+        async function onSave() {
             const items = itemsInput.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
                 const [name, ...desc] = l.split(':');
                 return { name: name.trim(), description: desc.join(':').trim() };
             });
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
+            if (!selectedBg && types.length > 0) {
+                const randomBg = await window.electron.getRandomTileImage(types[0]);
+                if (randomBg) {
+                    selectedBg = randomBg;
+                }
+            }
             const obj = {
                 name: nameInput.value,
                 types,
@@ -537,7 +543,7 @@ function addAdjacentTile() {
 	btns.className = 'editor-buttons';
 	const cancel = document.createElement('button');
 	cancel.textContent = 'Cancel';
-	cancel.addEventListener = 'click', () => document.body.removeChild(overlay);
+	cancel.addEventListener('click', () => document.body.removeChild(overlay));
 	btns.appendChild(cancel);
 	container.appendChild(btns);
 	overlay.appendChild(container);
@@ -699,7 +705,7 @@ function deleteAdjacentTile() {
                 cell.textContent = 'X';
                 cell.classList.add('existing');
             } else if (tileMap[key]) {
-                cell.classList.add('existing');
+                cell.classList.add('existing', 'deletable');
                 cell.addEventListener('click', () => {
                     delete tileMap[key];
                     Object.values(tileMap).forEach(e => {

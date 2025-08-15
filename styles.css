@@ -417,6 +417,11 @@ button:hover {
     cursor: default;
 }
 
+.mini-map-cell.existing.deletable {
+	cursor: pointer;
+	background: #555;
+}
+
 .mini-map-cell.phantom {
     background: #555;
 }

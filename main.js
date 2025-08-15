@@ -569,6 +569,19 @@ ipcMain.handle('list-tile-images', () => {
     }
 });
 
+ipcMain.handle('get-random-tile-image', (event, type) => {
+    const dir = path.join(__dirname, 'resources', 'map', 'tiles', type);
+    try {
+        const files = fs.readdirSync(dir).filter(f => /\.(png|jpg|jpeg|gif)$/.test(f));
+        if (!files.length) return null;
+        const file = files[Math.floor(Math.random() * files.length)];
+        return `${type}/${file}`;
+    } catch (err) {
+        console.error('Error getting random tile image:', err);
+        return null;
+    }
+});
+
 ipcMain.handle('list-worlds', () => {
     try {
         if (!fs.existsSync(worldRoot)) return [];

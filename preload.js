@@ -29,5 +29,6 @@ contextBridge.exposeInMainWorld('electron', {
     listWorlds: () => ipcRenderer.invoke('list-worlds'),
     createWorld: (name) => ipcRenderer.invoke('create-world', name),
     saveMapRegion: (regionName, worldName, tiles, start) => ipcRenderer.invoke('save-map-region', regionName, worldName, tiles, start),
-    listTileImages: () => ipcRenderer.invoke('list-tile-images')
+    listTileImages: () => ipcRenderer.invoke('list-tile-images'),
+	getRandomTileImage: (type) => ipcRenderer.invoke('get-random-tile-image', type)
 });
