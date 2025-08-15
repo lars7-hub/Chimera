@@ -394,6 +394,14 @@ button:hover {
     object-fit: cover;
 }
 
+.image-picker-section {
+    margin-bottom: 20px;
+}
+
+.image-picker-section h3 {
+    margin: 0 0 10px;
+}
+
 .tile-type-row {
     display: flex;
     align-items: center;
@@ -424,6 +432,8 @@ button:hover {
 
 .mini-map-cell.phantom {
     background: #555;
+    color: #0f0;
+    font-size: 24px;
 }
 
 .mini-map-cell.connected {

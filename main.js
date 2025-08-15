@@ -562,10 +562,24 @@ ipcMain.handle('save-info', (event, data) => {
 ipcMain.handle('list-tile-images', () => {
     const dir = path.join(__dirname, 'resources', 'map', 'tiles');
     try {
-        return fs.readdirSync(dir).filter(f => /\.(png|jpg|jpeg|gif)$/.test(f));
+        const sections = { root: [] };
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        entries.forEach(e => {
+            if (e.isDirectory()) {
+                const subDir = path.join(dir, e.name);
+                const files = fs
+                    .readdirSync(subDir)
+                    .filter(f => /\.(png|jpg|jpeg|gif)$/.test(f))
+                    .map(f => path.join(e.name, f).replace(/\\/g, '/'));
+                if (files.length) sections[e.name] = files;
+            } else if (e.isFile() && /\.(png|jpg|jpeg|gif)$/.test(e.name)) {
+                sections.root.push(e.name);
+            }
+        });
+        return sections;
     } catch (err) {
         console.error('Error listing tile images:', err);
-        return [];
+        return {};
     }
 });
 

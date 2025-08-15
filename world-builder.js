@@ -182,22 +182,31 @@ function openTileEditor(data, x, y) {
         overlay.classList.remove('hidden');
 
         async function pickBackground() {
-            const files = await window.electron.listTileImages();
+            const sections = await window.electron.listTileImages();
             const over = document.createElement('div');
             over.id = 'image-picker-overlay';
-            const g = document.createElement('div');
-            g.className = 'image-picker-grid';
-            files.forEach(f => {
-                const img = document.createElement('img');
-                img.src = `resources/map/tiles/${f}`;
-                img.addEventListener('click', () => {
-                    selectedBg = f;
-                    updateBg();
-                    document.body.removeChild(over);
+            Object.entries(sections).forEach(([name, files]) => {
+                if (!files.length) return;
+                const sec = document.createElement('div');
+                sec.className = 'image-picker-section';
+                const header = document.createElement('h3');
+                header.textContent = name === 'root' ? 'Base' : name;
+                sec.appendChild(header);
+                const g = document.createElement('div');
+                g.className = 'image-picker-grid';
+                files.forEach(f => {
+                    const img = document.createElement('img');
+                    img.src = `resources/map/tiles/${f}`;
+                    img.addEventListener('click', () => {
+                        selectedBg = f;
+                        updateBg();
+                        document.body.removeChild(over);
+                    });
+                    g.appendChild(img);
                 });
-                g.appendChild(img);
+                sec.appendChild(g);
+                over.appendChild(sec);
             });
-            over.appendChild(g);
             over.addEventListener('click', e => { if (e.target === over) document.body.removeChild(over); });
             document.body.appendChild(over);
         }
@@ -514,40 +523,64 @@ function addAdjacentTile() {
     const overlay = document.createElement('div');
     overlay.id = 'mini-map-overlay';
     const container = document.createElement('div');
-	const grid = document.createElement('div');
-	grid.className = 'mini-map-grid';
-	for (let dy = -1; dy <= 1; dy++) {
-		for(let dx = -1; dx <= 1; dx++) {
-			const x = cx + dx;
-			const y = cy + dy;
-			const key = `${x}-${y}`;
-			const cell = document.createElement('div');
-			cell.className = 'mini-map-cell';
-			if (dx === 0 && dy === 0) {
-				cell.textContent = 'X';
-				cell.classList.add('existing');
-			} else if (tileMap[key]) {
-				cell.classList.add('existing');
-			} else {
-				cell.classList.add('phantom');
-				cell.addEventListener('click', () => {
-					document.body.removeChild(overlay);
-					configureConnections(x, y);
-				});
-			}
-			grid.appendChild(cell);
-		}
-	}
-	container.appendChild(grid);
-	const btns = document.createElement('div');
-	btns.className = 'editor-buttons';
-	const cancel = document.createElement('button');
-	cancel.textContent = 'Cancel';
-	cancel.addEventListener('click', () => document.body.removeChild(overlay));
-	btns.appendChild(cancel);
-	container.appendChild(btns);
-	overlay.appendChild(container);
-	document.body.appendChild(overlay);
+    const grid = document.createElement('div');
+    grid.className = 'mini-map-grid';
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const x = cx + dx;
+            const y = cy + dy;
+            const key = `${x}-${y}`;
+            const cell = document.createElement('div');
+            cell.className = 'mini-map-cell';
+            if (dx === 0 && dy === 0) {
+                cell.textContent = 'X';
+                cell.classList.add('existing');
+            } else if (tileMap[key]) {
+                cell.classList.add('existing');
+            } else {
+                cell.classList.add('phantom');
+                cell.textContent = '+';
+                cell.addEventListener('click', () => {
+                    document.body.removeChild(overlay);
+                    configureConnections(x, y);
+                });
+            }
+            grid.appendChild(cell);
+        }
+    }
+
+    const coordDiv = document.createElement('div');
+    const xInput = document.createElement('input');
+    xInput.type = 'number';
+    xInput.placeholder = 'X';
+    const yInput = document.createElement('input');
+    yInput.type = 'number';
+    yInput.placeholder = 'Y';
+    const addBtn = document.createElement('button');
+    addBtn.textContent = 'Add';
+    addBtn.addEventListener('click', () => {
+        const x = parseInt(xInput.value, 10);
+        const y = parseInt(yInput.value, 10);
+        if (!isNaN(x) && !isNaN(y) && !tileMap[`${x}-${y}`]) {
+            document.body.removeChild(overlay);
+            configureConnections(x, y);
+        }
+    });
+    coordDiv.appendChild(xInput);
+    coordDiv.appendChild(yInput);
+    coordDiv.appendChild(addBtn);
+
+    container.appendChild(coordDiv);
+    container.appendChild(grid);
+    const btns = document.createElement('div');
+    btns.className = 'editor-buttons';
+    const cancel = document.createElement('button');
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => document.body.removeChild(overlay));
+    btns.appendChild(cancel);
+    container.appendChild(btns);
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
 }
 
 //Update map size to fit all tiles
@@ -605,6 +638,7 @@ async function saveRegion() {
 function configureConnections(x, y) {
     const overlay = document.createElement('div');
     overlay.id = 'connection-overlay';
+    const container = document.createElement('div');
     const grid = document.createElement('div');
     grid.className = 'mini-map-grid';
     const connections = {};

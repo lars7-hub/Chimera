@@ -17,7 +17,8 @@ async function renderInfo() {
     const buttons = document.getElementById('info-buttons');
     content.innerHTML = '';
     buttons.innerHTML = '';
-    const tileImgs = await window.electron.listTileImages();
+    const tileImgsResp = await window.electron.listTileImages();
+    const tileImgs = Array.isArray(tileImgsResp) ? tileImgsResp : Object.values(tileImgsResp).flat();
     const typeDescs = {
         water: 'Bodies of water that may require special means to cross.',
         tree: 'Forested tiles filled with trees.',
