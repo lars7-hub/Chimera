@@ -41,6 +41,17 @@ let currentWorld = null;
 let showTypeIcons = false;
 const tileGap = 2;
 
+function keyToCoords(key) {
+	const idx = key.indexOf('-', 1);
+	const x = parseInt(key.slice(0, idx), 10);
+	const y = parseInt(key.slice(idx + 1), 10);
+	return [x, y];
+}
+
+function coordsToKey(x, y) {
+	return `${x}-${y}`;
+}
+
 function startWorldEditing(name) {
     currentWorld = name;
     const menu = document.getElementById('world-menu');
@@ -367,7 +378,7 @@ window.onload = async function () {
         document.getElementById('edit-btn').textContent = editMode ? 'Play Mode' : 'Edit Mode';
     });
     document.getElementById('edit-current-btn').addEventListener('click', async () => {
-        const [x, y] = currentKey.split('-').map(Number);
+        const [x, y] = keyToCoords(currentKey);
         await editTile(x, y);
     });
     document.getElementById('add-adjacent-btn').addEventListener('click', () => {
@@ -566,14 +577,14 @@ function drawConnections() {
     const mapGrid = document.getElementById('map-module');
     const drawn = new Set();
     for (const [key, entry] of Object.entries(tileMap)) {
-        const [x, y] = key.split('-').map(Number);
+        const [x, y] = keyToCoords(key);
         (entry.data.connections || []).forEach(conn => {
             const pair = [key, conn].sort().join('|');
             if (drawn.has(pair)) return;
             drawn.add(pair);
             const target = tileMap[conn];
             if (!target) return;
-            const [nx, ny] = conn.split('-').map(Number);
+            const [nx, ny] = keyToCoords(conn);
             const x1 = (x - 1) * (tileSize + tileGap) + tileSize / 2;
             const y1 = (y - 1) * (tileSize + tileGap) + tileSize / 2;
             const x2 = (nx - 1) * (tileSize + tileGap) + tileSize / 2;
@@ -605,7 +616,7 @@ function displayTile(tile) {
 }
 
 function addAdjacentTile() {
-    const [cx, cy] = currentKey.split('-').map(Number);
+    const [cx, cy] = keyToCoords(currentKey);
     const overlay = document.createElement('div');
     overlay.id = 'mini-map-overlay';
     const container = document.createElement('div');
@@ -698,7 +709,7 @@ function addAdjacentTile() {
 function updateBounds() {
 	let maxX = 0, maxY = 0;
 	Object.keys(tileMap).forEach(k => {
-		const [x, y] = k.split('-').map(Number);
+		const [x, y] = keyToCoords(k);
 		if (x > maxX) maxX = x;
 		if (y > maxY) maxY = y;
 	});
@@ -709,7 +720,7 @@ function updateBounds() {
 function normalizeCoordinates() {
     let minX = Infinity, minY = Infinity;
     Object.keys(tileMap).forEach(k => {
-        const [x, y] = k.split('-').map(Number);
+        const [x, y] = keyToCoords(k);
         if (x < minX) minX = x;
         if (y < minY) minY = y;
     });
@@ -718,12 +729,12 @@ function normalizeCoordinates() {
     if (shiftX || shiftY) {
         const newMap = {};
         Object.entries(tileMap).forEach(([key, entry]) => {
-            const [x, y] = key.split('-').map(Number);
+            const [x, y] = keyToCoords(key);
             const nx = x + shiftX;
             const ny = y + shiftY;
             const newKey = `${nx}-${ny}`;
             entry.data.connections = (entry.data.connections || []).map(c => {
-                const [cx, cy] = c.split('-').map(Number);
+                const [cx, cy] = keyToCoords(c);
                 return `${cx + shiftX}-${cy + shiftY}`;
             });
             newMap[newKey] = entry;
@@ -737,12 +748,12 @@ function normalizeCoordinates() {
 	
 async function saveRegion() {
     const tiles = Object.entries(tileMap).map(([key, entry]) => {
-        const [x, y] = key.split('-').map(Number);
+        const [x, y] = keyToCoords(key);
         const data = { ...entry.data };
         if (data.type) delete data.type;
         return { x, y, ...data, start: key === originKey };
     });
-    const [ox, oy] = originKey.split('-').map(Number);
+    const [ox, oy] = keyToCoords(originKey);
     await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
 }
 
@@ -833,7 +844,7 @@ function configureConnections(x, y, starterType= '', starterBg = '') {
 }
 
 function deleteAdjacentTile() {
-    const [cx, cy] = currentKey.split('-').map(Number);
+    const [cx, cy] = keyToCoords(currentKey);
     const overlay = document.createElement('div');
     overlay.id = 'mini-map-overlay';
 	const container = document.createElement('div');
