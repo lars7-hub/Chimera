@@ -22,6 +22,14 @@ const tileColors = {
     indoors: '#555555'
 };
 
+const tileModPresets = {
+    Village: {
+        name: 'Village',
+        icon: 'village0.png',
+        message: "Welcome to our village!"
+    }
+};
+
 let editMode = false;
 let gridWidth = 0;
 let gridHeight = 0;
@@ -31,7 +39,7 @@ let originKey = '1-1';
 let tileSize = 0;
 let currentWorld = null;
 let showTypeIcons = false;
-const tileGap = 6;
+const tileGap = 2;
 
 function startWorldEditing(name) {
     currentWorld = name;
@@ -86,6 +94,8 @@ function openTileEditor(data, x, y) {
         const bgBtn = document.getElementById('tile-bg-btn');
         const bgPreview = document.getElementById('tile-bg-preview');
         const oneWayBtn = document.getElementById('one-way-toggle');
+        const modBtn = document.getElementById('tile-mod-btn');
+        const modOverlay = document.getElementById('tile-mod-overlay');
 
         nameInput.value = data.name || '';
         itemsInput.value = (data.items || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
@@ -109,6 +119,55 @@ function openTileEditor(data, x, y) {
             label.appendChild(document.createTextNode(t));
             typeContainer.appendChild(label);
         });
+		
+		let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
+        function openModEditor() {
+            const modOverlay = document.getElementById('tile-mod-overlay');
+            const modList = document.getElementById('tile-mod-list');
+            const presetDiv = document.getElementById('tile-mod-presets');
+            const addCustom = document.getElementById('tile-mod-add-custom');
+            const closeBtn = document.getElementById('tile-mod-close');
+
+            function renderList() {
+                modList.innerHTML = '';
+                modifiers.forEach((m, idx) => {
+                    const row = document.createElement('div');
+                    row.textContent = m.name;
+                    const del = document.createElement('button');
+                    del.textContent = 'X';
+                    del.addEventListener('click', () => { modifiers.splice(idx,1); renderList(); });
+                    row.appendChild(del);
+                    modList.appendChild(row);
+                });
+            }
+
+            presetDiv.innerHTML = '';
+            Object.values(tileModPresets).forEach(p => {
+                const btn = document.createElement('button');
+                btn.textContent = p.name;
+                btn.addEventListener('click', () => { modifiers.push({ ...p }); renderList(); });
+                presetDiv.appendChild(btn);
+            });
+
+            addCustom.onclick = async () => {
+                const name = await showPrompt('Modifier Name:');
+                if (!name) return;
+                const icon = await showPrompt('Image filename (in resources/map/tilemod):');
+                if (icon === null) return;
+                const message = await showPrompt('Message (optional):');
+                modifiers.push({ name, icon, message });
+                renderList();
+            };
+
+            function close() {
+                modOverlay.classList.add('hidden');
+                closeBtn.removeEventListener('click', close);
+            }
+            closeBtn.addEventListener('click', close);
+            renderList();
+            modOverlay.classList.remove('hidden');
+        }
+        modBtn.addEventListener('click', openModEditor);
 
         grid.innerHTML = '';
         const connectionState = {};
@@ -218,9 +277,11 @@ function openTileEditor(data, x, y) {
 
         function cleanup() {
             overlay.classList.add('hidden');
+            modOverlay.classList.add('hidden');
             saveBtn.removeEventListener('click', onSave);
             cancelBtn.removeEventListener('click', onCancel);
             bgBtn.removeEventListener('click', pickBackground);
+            modBtn.removeEventListener('click', openModEditor);
         }
 
         async function onSave() {
@@ -242,6 +303,7 @@ function openTileEditor(data, x, y) {
                 background: selectedBg,
                 items,
                 connections,
+                modifiers,
                 connectionStates: connectionState,
                 removeIncoming
             };
@@ -352,6 +414,9 @@ window.onload = async function () {
             cur.el.classList.add('current');
             updateTileVisual(cur, currentKey);
             displayTile(cur.data);
+            (cur.data.modifiers || []).forEach(m => {
+                if (m.message) alert(m.message);
+            });
         }
     });
     window.addEventListener('resize', renderGrid);
@@ -414,7 +479,13 @@ function renderGrid() {
 
 function updateTileVisual(entry, key) {
     const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
-    entry.el.textContent = entry.el.classList.contains('current') ? '🧍' : '';
+    entry.el.innerHTML = '';
+    if (entry.el.classList.contains('current')) {
+        const cur = document.createElement('div');
+        cur.className = 'current-marker';
+        cur.textContent = '🧍';
+        entry.el.appendChild(cur);
+    }
 
     if (entry.data.background) {
         entry.el.style.backgroundImage = `url(resources/map/tiles/${entry.data.background})`;
@@ -426,11 +497,20 @@ function updateTileVisual(entry, key) {
         entry.el.style.backgroundColor = tileColors[types[0]] || '#111';
     }
 
+    (entry.data.modifiers || []).forEach(m => {
+        if (!m.icon) return;
+        const img = document.createElement('img');
+        img.className = 'tile-mod-img';
+        img.src = `resources/map/tilemod/${m.icon}`;
+        entry.el.appendChild(img);
+    });
+
     if (key === originKey) {
         const star = document.createElement('div');
         star.className = 'origin-marker';
         star.textContent = '⭐';
         star.style.fontSize = `${tileSize * 0.05}px`;
+        star.style.zIndex = 2;
         entry.el.appendChild(star);
     }
 
@@ -439,6 +519,7 @@ function updateTileVisual(entry, key) {
         iconEl.className = 'type-icons';
         iconEl.textContent = types.map(t => tileIcons[t] || '').join('');
         iconEl.style.fontSize = `${tileSize * 0.25}px`;
+        iconEl.style.zIndex = 2;
         entry.el.appendChild(iconEl);
     }
 }
@@ -460,6 +541,7 @@ async function editTile(x, y) {
     entry.data.background = data.background;
     entry.data.items = data.items;
     entry.data.connections = data.connections;
+    entry.data.modifiers = data.modifiers;
     updateTileVisual(entry, key);
     Object.entries(data.connectionStates).forEach(([k, state]) => {
         const neighbor = tileMap[k];

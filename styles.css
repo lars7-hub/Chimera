@@ -337,7 +337,8 @@ button:hover {
 #tile-editor-overlay,
 #mini-map-overlay,
 #connection-overlay,
-#image-picker-overlay {
+#image-picker-overlay,
+#tile-mod-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -350,7 +351,8 @@ button:hover {
     z-index: 2000;
 }
 
-#tile-editor-overlay.hidden {
+#tile-editor-overlay.hidden,
+#tile-mod-overlay.hidden {
     display: none;
 }
 
@@ -362,9 +364,33 @@ button:hover {
     gap: 10px;
 }
 
+#tile-mod-box {
+    background: #333;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .editor-buttons {
     display: flex;
     gap: 10px;
+}
+
+.tile-mod-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.current-marker {
+    position: relative;
+    z-index: 2;
 }
 
 .mini-map-grid {

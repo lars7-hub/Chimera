@@ -412,7 +412,7 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                         const types = tileData.types && Array.isArray(tileData.types)
                             ? tileData.types
                             : (tileData.type ? [tileData.type] : []);
-                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [] });
+                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [] });
                         if (tileData.start) {
                             result.start = { x, y };
                         }
@@ -639,7 +639,8 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
                 types: t.types || [],
                 background: t.background || '',
                 items: t.items || [],
-                connections: t.connections || []
+                connections: t.connections || [],
+				modifiers: t.modifiers || []
             };
             if (start && start.x === t.x && start.y === t.y) {
                 data.start = true;

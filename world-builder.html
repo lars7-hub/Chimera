@@ -69,7 +69,8 @@
                 <span>Tile Types:</span>
                 <div id="tile-type-options"></div>
             </div>
-            <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
+             <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
+            <button id="tile-mod-btn">Tile Modifiers</button>
             <div id="tile-connections-container">
                 <p>Select which tiles connect to this tile:</p>
                 <button id="one-way-toggle">One-Way Mode: Off</button>
@@ -78,6 +79,18 @@
             <div class="editor-buttons">
                 <button id="tile-save">Save</button>
                 <button id="tile-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+	<div id="tile-mod-overlay" class="hidden">
+        <div id="tile-mod-box">
+            <h3>Tile Modifiers</h3>
+            <div id="tile-mod-list"></div>
+            <div id="tile-mod-presets"></div>
+            <div class="editor-buttons">
+                <button id="tile-mod-add-custom">Add Custom</button>
+                <button id="tile-mod-close">Done</button>
             </div>
         </div>
     </div>
