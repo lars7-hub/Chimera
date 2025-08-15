@@ -395,12 +395,13 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
     const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
     const regionDir = path.join(baseMap, regionName);
     const result = { tiles: [], width: 0, height: 0, start: null };
+	let minX = Infinity, minY = Infinity, maxX= -Infinity, maxY = -Infinity
     try {
         if (fs.existsSync(regionDir)) {
             fs.readdirSync(regionDir).forEach(folder => {
                 const tileDir = path.join(regionDir, folder);
                 if (fs.lstatSync(tileDir).isDirectory()) {
-                    const match = folder.match(/^tile(\d+)-(\d+)$/);
+                    const match = folder.match(/^tile(-?\d+)-(-?\d+)$/);
                     if (match) {
                         const x = parseInt(match[1]);
                         const y = parseInt(match[2]);
@@ -417,14 +418,22 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                         if (isStart) {
                             result.start = { x, y };
                         }
-                        if (x > result.width) result.width = x;
-                        if (y > result.height) result.height = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
                     }
                 }
             });
         }
     } catch (err) {
         console.error('Error loading map region:', err);
+    }
+    if (maxX !== -Infinity && maxY !== -Infinity) {
+        result.width = maxX - minX + 1;
+        result.height = maxY - minY + 1;
+        result.minX = minX;
+        result.minY = minY;
     }
     return result;
 });

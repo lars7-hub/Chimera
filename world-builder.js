@@ -40,6 +40,7 @@ let tileSize = 0;
 let currentWorld = null;
 let showTypeIcons = false;
 const tileGap = 2;
+let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
 function keyToCoords(key) {
 	const idx = key.indexOf('-', 1);
@@ -435,8 +436,6 @@ window.onload = async function () {
 
 async function loadWorld() {
     const region = await window.electron.getMapRegion('region1', currentWorld);
-    gridWidth = region.width;
-    gridHeight = region.height;
     tileMap = {};
     region.tiles.forEach(t => {
         const data = { ...t };
@@ -446,7 +445,7 @@ async function loadWorld() {
         if (data.start) originKey = `${t.x}-${t.y}`;
     });
     currentKey = originKey;
-    normalizeCoordinates();
+    updateBounds();
     renderGrid();
 }
 
@@ -462,8 +461,8 @@ function renderGrid() {
     mapGrid.style.gap = `${tileGap}px`;
     mapGrid.style.gridTemplateColumns = `repeat(${gridWidth}, ${tileSize}px)`;
     mapGrid.style.gridTemplateRows = `repeat(${gridHeight}, ${tileSize}px)`;
-    for (let y = 1; y <= gridHeight; y++) {
-        for (let x = 1; x <= gridWidth; x++) {
+    for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
             const key = `${x}-${y}`;
             const entry = tileMap[key];
             const div = document.createElement('div');
@@ -585,10 +584,10 @@ function drawConnections() {
             const target = tileMap[conn];
             if (!target) return;
             const [nx, ny] = keyToCoords(conn);
-            const x1 = (x - 1) * (tileSize + tileGap) + tileSize / 2;
-            const y1 = (y - 1) * (tileSize + tileGap) + tileSize / 2;
-            const x2 = (nx - 1) * (tileSize + tileGap) + tileSize / 2;
-            const y2 = (ny - 1) * (tileSize + tileGap) + tileSize / 2;
+            const x1 = (x - minX) * (tileSize + tileGap) + tileSize / 2;
+            const y1 = (y - minY) * (tileSize + tileGap) + tileSize / 2;
+            const x2 = (nx - minX) * (tileSize + tileGap) + tileSize / 2;
+            const y2 = (ny - minY) * (tileSize + tileGap) + tileSize / 2;
             const length = Math.hypot(x2 - x1, y2 - y1);
             const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
             const line = document.createElement('div');
@@ -602,8 +601,10 @@ function drawConnections() {
     }
 }
 
-function displayTile(tile) {
+function displayTile(tile, key = currentKey) {
+    const [x, y] = keyToCoords(key);
     document.getElementById('tile-name').textContent = tile.name || '';
+    document.getElementById('tile-coords').textContent = `Coordinates: ${x}, ${y}`;
     const types = tile.types || (tile.type ? [tile.type] : []);
     document.getElementById('tile-type').textContent = types.length ? `Type: ${types.join(', ')}` : '';
     const list = document.getElementById('tile-items');
@@ -707,43 +708,25 @@ function addAdjacentTile() {
 
 //Update map size to fit all tiles
 function updateBounds() {
-	let maxX = 0, maxY = 0;
-	Object.keys(tileMap).forEach(k => {
-		const [x, y] = keyToCoords(k);
-		if (x > maxX) maxX = x;
-		if (y > maxY) maxY = y;
-	});
-	gridWidth = maxX;
-	gridHeight = maxY;
-}
-
-function normalizeCoordinates() {
-    let minX = Infinity, minY = Infinity;
+    minX = Infinity;
+    minY = Infinity;
+    maxX = -Infinity;
+    maxY = -Infinity;
     Object.keys(tileMap).forEach(k => {
         const [x, y] = keyToCoords(k);
         if (x < minX) minX = x;
         if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
     });
-    const shiftX = minX < 1 ? 1 - minX : 0;
-    const shiftY = minY < 1 ? 1 - minY : 0;
-    if (shiftX || shiftY) {
-        const newMap = {};
-        Object.entries(tileMap).forEach(([key, entry]) => {
-            const [x, y] = keyToCoords(key);
-            const nx = x + shiftX;
-            const ny = y + shiftY;
-            const newKey = `${nx}-${ny}`;
-            entry.data.connections = (entry.data.connections || []).map(c => {
-                const [cx, cy] = keyToCoords(c);
-                return `${cx + shiftX}-${cy + shiftY}`;
-            });
-            newMap[newKey] = entry;
-            if (currentKey === key) currentKey = newKey;
-            if (originKey === key) originKey = newKey;
-        });
-        tileMap = newMap;
+    if (maxX === -Infinity || maxY === -Infinity) {
+        gridWidth = 0;
+        gridHeight = 0;
+        minX = minY = maxX = maxY = 0;
+    } else {
+        gridWidth = maxX - minX + 1;
+        gridHeight = maxY - minY + 1;
     }
-    updateBounds();
 }
 	
 async function saveRegion() {
@@ -837,7 +820,7 @@ function configureConnections(x, y, starterType= '', starterBg = '') {
             }
         });
         document.body.removeChild(overlay);
-        normalizeCoordinates();
+        updateBounds();
         renderGrid();
         saveRegion();
     });
@@ -868,7 +851,7 @@ function deleteAdjacentTile() {
                         e.data.connections = (e.data.connections || []).filter(c => c !== key);
                     });
                     document.body.removeChild(overlay);
-					normalizeCoordinates();
+					updateBounds();
                     renderGrid();
 					saveRegion();
                 });
