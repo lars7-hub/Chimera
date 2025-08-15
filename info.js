@@ -66,7 +66,7 @@ async function renderInfo() {
         } else if (sec.id === 'tile-types') {
             const container = document.createElement('div');
             tileImgs.forEach(f => {
-                const type = f.split('/')[].replace(/\.[^/.]+$/, '');
+                const type = f.split('/').pop().replace(/\.[^/.]+$/, '');
                 const row = document.createElement('div');
                 row.className = 'tile-type-row';
                 const img = document.createElement('img');
@@ -74,7 +74,7 @@ async function renderInfo() {
                 img.alt = type;
                 row.appendChild(img);
                 const span = document.createElement('span');
-                span.textContent = typeDescs[name] || '';
+                span.textContent = typeDescs[type] || '';
                 row.appendChild(span);
                 container.appendChild(row);
             });

@@ -412,8 +412,9 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                         const types = tileData.types && Array.isArray(tileData.types)
                             ? tileData.types
                             : (tileData.type ? [tileData.type] : []);
-                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [] });
-                        if (tileData.start) {
+                        const isStart = !!tileData.start;
+                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], start: isStart });
+                        if (isStart) {
                             result.start = { x, y };
                         }
                         if (x > result.width) result.width = x;
