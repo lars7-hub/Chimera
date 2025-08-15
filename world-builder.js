@@ -8,6 +8,15 @@ const tileIcons = {
     land: ''
 };
 const tileTypes = Object.keys(tileIcons);
+const tileColors = {
+    water: '#1e90ff',
+    tree: '#228b22',
+    building: '#555555',
+    fish: '#20b2aa',
+    mountain: '#a9a9a9',
+    town: '#cd853f',
+    land: '#c2b280'
+};
 
 let editMode = false;
 let gridWidth = 0;
@@ -17,7 +26,8 @@ let currentKey = '1-1';
 let originKey = '1-1';
 let tileSize = 0;
 let currentWorld = null;
-const tileGap = 4;
+let showTypeIcons = false;
+const tileGap = 6;
 
 function startWorldEditing(name) {
     currentWorld = name;
@@ -293,6 +303,11 @@ window.onload = async function () {
         renderGrid();
         saveRegion();
     });
+    document.getElementById('toggle-icons-btn').addEventListener('click', () => {
+        showTypeIcons = !showTypeIcons;
+        document.getElementById('toggle-icons-btn').textContent = showTypeIcons ? 'Hide Type Icons' : 'Show Type Icons';
+        renderGrid();
+    });
 
     document.getElementById('map-module').addEventListener('click', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
@@ -380,19 +395,32 @@ function renderGrid() {
 
 function updateTileVisual(entry, key) {
     const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
-    const icon = types.map(t => tileIcons[t] || '').join('');
-    let text = icon;
-    if (key === originKey) {
-        text = '⭐' + text;
-    }
-    if (entry.el.classList.contains('current')) {
-        text = '🧍' + text;
-    }
-    entry.el.textContent = text;
+    entry.el.textContent = entry.el.classList.contains('current') ? '🧍' : '';
+
     if (entry.data.background) {
         entry.el.style.backgroundImage = `url(resources/map/tiles/${entry.data.background})`;
+        entry.el.style.backgroundSize = '100% 100%';
+        entry.el.style.backgroundRepeat = 'no-repeat';
+        entry.el.style.backgroundColor = '';
     } else {
         entry.el.style.backgroundImage = 'none';
+        entry.el.style.backgroundColor = tileColors[types[0]] || '#111';
+    }
+
+    if (key === originKey) {
+        const star = document.createElement('div');
+        star.className = 'origin-marker';
+        star.textContent = '⭐';
+        star.style.fontSize = `${tileSize * 0.05}px`;
+        entry.el.appendChild(star);
+    }
+
+    if (showTypeIcons && types.length) {
+        const iconEl = document.createElement('div');
+        iconEl.className = 'type-icons';
+        iconEl.textContent = types.map(t => tileIcons[t] || '').join('');
+        iconEl.style.fontSize = `${tileSize * 0.25}px`;
+        entry.el.appendChild(iconEl);
     }
 }
 
