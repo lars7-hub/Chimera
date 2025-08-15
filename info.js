@@ -20,13 +20,15 @@ async function renderInfo() {
     const tileImgsResp = await window.electron.listTileImages();
     const tileImgs = Array.isArray(tileImgsResp) ? tileImgsResp : Object.values(tileImgsResp).flat();
     const typeDescs = {
-        water: 'Bodies of water that may require special means to cross.',
-        tree: 'Forested tiles filled with trees.',
-        building: 'Structures and buildings.',
-        fish: 'Aquatic areas rich with fish.',
+        grass: 'Grassy plains and fields.',
+        sand: 'Sandy terrain like beaches and deserts.',
+        snow: 'Cold, snow-covered areas.',
+        wasteland: 'Barren, desolate land.',
+        forest: 'Densely wooded areas.',
         mountain: 'High elevation and rough terrain.',
+        water: 'Bodies of water that may require special means to cross.',
         town: 'Populated settlements.',
-        land: 'Generic land or plains.'
+        indoors: 'Interior locations within structures.'
     };
     for (const sec of infoData.sections) {
         const section = document.createElement('div');
@@ -64,12 +66,12 @@ async function renderInfo() {
         } else if (sec.id === 'tile-types') {
             const container = document.createElement('div');
             tileImgs.forEach(f => {
-                const name = f.replace(/\.[^/.]+$/, '');
+                const type = f.split('/')[].replace(/\.[^/.]+$/, '');
                 const row = document.createElement('div');
                 row.className = 'tile-type-row';
                 const img = document.createElement('img');
                 img.src = `resources/map/tiles/${f}`;
-                img.alt = name;
+                img.alt = type;
                 row.appendChild(img);
                 const span = document.createElement('span');
                 span.textContent = typeDescs[name] || '';

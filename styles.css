@@ -374,6 +374,24 @@ button:hover {
     gap: 5px;
 }
 
+.mini-map-container {
+    background: #333;
+    padding: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.tile-type-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-right: 10px;
+}
+
+.tile-type-list button.selected {
+    border: 2px solid #0f0;
+}
+
 #tile-bg-preview {
     width: 50px;
     height: 50px;
