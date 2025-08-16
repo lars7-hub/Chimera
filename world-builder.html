@@ -45,6 +45,22 @@
             <button id="set-origin-btn">Set Origin</button>
             <button id="toggle-icons-btn">Show Type Icons</button>
         </div>
+
+        <div id="paint-panel">
+            <button id="paint-toggle">Paint Mode: Off</button>
+            <div id="paint-options">
+                <div>
+                    <label><input type="checkbox" id="paint-biome-cb">Biome</label>
+                    <select id="paint-biome-select"></select>
+                </div>
+                <label><input type="checkbox" id="paint-name-cb">Regenerate Name</label>
+                <label><input type="checkbox" id="paint-clear-cb">Clear Tile</label>
+                <div>
+                    <label><input type="checkbox" id="paint-mod-cb">Modifiers</label>
+                    <div id="paint-mod-options"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="prompt-overlay" class="hidden">

@@ -321,6 +321,28 @@ button:hover {
     height: 70%;
 }
 
+#paint-panel {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background-color: #222;
+    border: 1px solid #555;
+    padding: 10px;
+    z-index: 2000;
+    width: 200px;
+    box-sizing: border-box;
+}
+
+#paint-options {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+#paint-mod-options label {
+    display: block;
+}
 
 #prompt-overlay {
     position: fixed;

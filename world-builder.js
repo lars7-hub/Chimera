@@ -39,6 +39,7 @@ let originKey = '1-1';
 let tileSize = 0;
 let currentWorld = null;
 let showTypeIcons = false;
+let paintMode = false;
 const tileGap = 2;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
@@ -402,11 +403,38 @@ window.onload = async function () {
         renderGrid();
     });
 
+    const paintToggle = document.getElementById('paint-toggle');
+    const paintBiomeSelect = document.getElementById('paint-biome-select');
+    tileTypes.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        paintBiomeSelect.appendChild(opt);
+    });
+    const paintModOptions = document.getElementById('paint-mod-options');
+    Object.entries(tileModPresets).forEach(([key, p]) => {
+        const label = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = key;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(p.name));
+        paintModOptions.appendChild(label);
+    });
+    paintToggle.addEventListener('click', () => {
+        paintMode = !paintMode;
+        paintToggle.textContent = paintMode ? 'Paint Mode: On' : 'Paint Mode: Off';
+    });
+
     document.getElementById('map-module').addEventListener('click', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
         const key = `${x}-${y}`;
+        if (paintMode) {
+            await paintTile(x, y);
+            return;
+        }
         if (editMode) {
             await editTile(x, y);
             return;
@@ -614,6 +642,51 @@ function displayTile(tile, key = currentKey) {
         li.textContent = item.name || 'Item';
         list.appendChild(li);
     });
+}
+
+async function paintTile(x, y) {
+    const key = `${x}-${y}`;
+    const biomeChecked = document.getElementById('paint-biome-cb').checked;
+    const nameChecked = document.getElementById('paint-name-cb').checked;
+    const clearChecked = document.getElementById('paint-clear-cb').checked;
+    const modChecked = document.getElementById('paint-mod-cb').checked;
+
+    if (clearChecked) {
+        if (tileMap[key]) {
+            delete tileMap[key];
+            Object.values(tileMap).forEach(e => {
+                e.data.connections = (e.data.connections || []).filter(c => c !== key);
+            });
+        }
+        renderGrid();
+        saveRegion();
+        return;
+    }
+
+    let entry = tileMap[key];
+    if (!entry) {
+        entry = { data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [], modifiers: [] } };
+        tileMap[key] = entry;
+    }
+
+    if (nameChecked) {
+        entry.data.name = `Tile ${x}-${y}`;
+    }
+    if (biomeChecked) {
+        const t = document.getElementById('paint-biome-select').value;
+        if (t) {
+            entry.data.types = [t];
+            const bg = await window.electron.getRandomTileImage(t);
+            if (bg) entry.data.background = bg;
+        }
+    }
+    if (modChecked) {
+        const mods = Array.from(document.querySelectorAll('#paint-mod-options input:checked')).map(cb => ({ ...tileModPresets[cb.value] }));
+        entry.data.modifiers = mods;
+    }
+
+    renderGrid();
+    saveRegion();
 }
 
 function addAdjacentTile() {
