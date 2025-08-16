@@ -30,6 +30,7 @@ const tileModPresets = {
     }
 };
 
+const resourceDefs = window.RESOURCE_TYPES || [];
 const resourceDefs = window.RESOURCES || [];
 const resourceByKey = {};
 resourceDefs.forEach(r => { resourceByKey[r.key] = r; });
@@ -44,6 +45,7 @@ let tileSize = 0;
 let currentWorld = null;
 let showTypeIcons = false;
 let paintMode = false;
+let activePaintTab = 'basic';
 const tileGap = 2;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
@@ -478,6 +480,21 @@ window.onload = async function () {
     });
 
     const paintToggle = document.getElementById('paint-toggle');
+    const paintTabs = Array.from(document.querySelectorAll('.paint-tab-btn'));
+    const paintTabContents = {
+        basic: document.getElementById('paint-tab-basic'),
+        mod: document.getElementById('paint-tab-mod'),
+        res: document.getElementById('paint-tab-res')
+    };
+    paintTabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            activePaintTab = btn.dataset.tab;
+            Object.entries(paintTabContents).forEach(([key, el]) => {
+                if (key === activePaintTab) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+        });
+    });
     const paintBiomeSelect = document.getElementById('paint-biome-select');
     tileTypes.forEach(t => {
         const opt = document.createElement('option');
@@ -485,22 +502,49 @@ window.onload = async function () {
         opt.textContent = t;
         paintBiomeSelect.appendChild(opt);
     });
-    const paintModOptions = document.getElementById('paint-mod-options');
+    const paintModSelect = document.getElementById('paint-mod-select');
     Object.entries(tileModPresets).forEach(([key, p]) => {
-        const label = document.createElement('label');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.value = key;
-        label.appendChild(cb);
-        label.appendChild(document.createTextNode(p.name));
-        paintModOptions.appendChild(label);
-    });
-    const paintResourceSelect = document.getElementById('paint-resource-select');
-    resourceDefs.forEach(r => {
         const opt = document.createElement('option');
-        opt.value = r.key;
-        opt.textContent = r.name;
-        paintResourceSelect.appendChild(opt);
+        opt.value = key;
+        opt.textContent = p.name;
+        paintModSelect.appendChild(opt);
+    });
+    document.querySelectorAll('input[name="paint-mod-mode"]').forEach(r => {
+        r.addEventListener('change', () => {
+            const sel = document.getElementById('paint-mod-select');
+            if (r.value === 'clear' && r.checked) sel.classList.add('hidden');
+            else if (r.checked) sel.classList.remove('hidden');
+        });
+    });
+    const paintResCategory = document.getElementById('paint-res-category');
+    const paintResSelect = document.getElementById('paint-res-select');
+    function updateResOptions() {
+        const type = paintResCategory.value;
+        const info = resourceTypes[type];
+        paintResSelect.innerHTML = '';
+        if (info) {
+            info.resources.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.key;
+                opt.textContent = r.name;
+                paintResSelect.appendChild(opt);
+            });
+        }
+    }
+    Object.entries(resourceTypes).forEach(([key, info]) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = info.name;
+        paintResCategory.appendChild(opt);
+    });
+    paintResCategory.addEventListener('change', updateResOptions);
+    updateResOptions();
+    document.querySelectorAll('input[name="paint-res-mode"]').forEach(r => {
+        r.addEventListener('change', () => {
+            const extra = document.getElementById('paint-res-extra');
+            if (r.value === 'clear' && r.checked) extra.classList.add('hidden');
+            else if (r.checked) extra.classList.remove('hidden');
+        });
     });
     paintToggle.addEventListener('click', () => {
         paintMode = !paintMode;
@@ -792,78 +836,87 @@ function regenerateConnections(x, y) {
 
 async function paintTile(x, y) {
     const key = `${x}-${y}`;
-    const biomeChecked = document.getElementById('paint-biome-cb').checked;
-    const nameChecked = document.getElementById('paint-name-cb').checked;
-    const clearChecked = document.getElementById('paint-clear-cb').checked;
-    const modChecked = document.getElementById('paint-mod-cb').checked;
-    const connChecked = document.getElementById('paint-conn-cb').checked;
-    const resModeEl = document.querySelector('input[name="paint-resource-mode"]:checked');
-    const resMode = resModeEl ? resModeEl.value : null;
-    const resKey = document.getElementById('paint-resource-select').value;
-    const resAmt = parseInt(document.getElementById('paint-resource-amount').value, 10) || 0;
-    const resRenew = document.getElementById('paint-resource-renewable').checked;
 
-    if (clearChecked) {
-        if (tileMap[key]) {
-            delete tileMap[key];
-            Object.values(tileMap).forEach(e => {
-                e.data.connections = (e.data.connections || []).filter(c => c !== key);
-            });
+    function ensureEntry() {
+        if (!tileMap[key]) {
+            tileMap[key] = { data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], resources: [], connections: [], modifiers: [] } };
         }
-        renderGrid();
-        saveRegion();
-        return;
+        return tileMap[key];
     }
 
-    let entry = tileMap[key];
-    if (!entry) {
-        entry = { data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], resources: [], connections: [], modifiers: [] } };
-        tileMap[key] = entry;
-    }
+    if (activePaintTab === 'basic') {
+        const biomeChecked = document.getElementById('paint-biome-enable').checked;
+        const nameChecked = document.getElementById('paint-name-enable').checked;
+        const clearChecked = document.getElementById('paint-clear-enable').checked;
+        const connChecked = document.getElementById('paint-conn-enable').checked;
 
-    if (nameChecked) {
-        entry.data.name = `Tile ${x}-${y}`;
-    }
-    if (biomeChecked) {
-        const t = document.getElementById('paint-biome-select').value;
-        if (t) {
-            entry.data.types = [t];
-            const bg = await window.electron.getRandomTileImage(t);
-            if (bg) entry.data.background = bg;
+        if (clearChecked) {
+            if (tileMap[key]) {
+                delete tileMap[key];
+                Object.values(tileMap).forEach(e => {
+                    e.data.connections = (e.data.connections || []).filter(c => c !== key);
+                });
+            }
+            renderGrid();
+            saveRegion();
+            return;
         }
-    }
-    if (modChecked) {
-        const mods = Array.from(document.querySelectorAll('#paint-mod-options input:checked')).map(cb => ({ ...tileModPresets[cb.value] }));
-        entry.data.modifiers = mods;
-    }
 
-    if (resMode) {
-        if (resMode === 'clear') {
-            entry.data.resources = [];
-        } else {
-            const def = resourceByKey[resKey];
-            if (def) {
-                entry.data.resources = entry.data.resources || [];
-                let r = entry.data.resources.find(rr => rr.key === resKey);
-                if (!r) {
-                    r = { key: def.key, name: def.name, type: def.type, renewable: resRenew, amount: 0 };
-                    entry.data.resources.push(r);
-                }
-                if (resMode === 'add') {
-                    r.amount += resAmt;
-                    r.renewable = resRenew;
-                } else if (resMode === 'remove') {
-                    r.amount -= resAmt;
-                    if (r.amount <= 0) {
-                        if (r.renewable) r.amount = 0; else entry.data.resources = entry.data.resources.filter(rr => rr !== r);
-                    }
+        const entry = ensureEntry();
+        if (nameChecked) {
+            entry.data.name = `Tile ${x}-${y}`;
+        }
+        if (biomeChecked) {
+            const t = document.getElementById('paint-biome-select').value;
+            if (t) {
+                entry.data.types = [t];
+                const bg = await window.electron.getRandomTileImage(t);
+                if (bg) entry.data.background = bg;
+            }
+        }
+        if (connChecked) {
+            regenerateConnections(x, y);
+        }
+    } else if (activePaintTab === 'mod') {
+        const modEnabled = document.getElementById('paint-mod-enable').checked;
+        if (modEnabled) {
+            const modeEl = document.querySelector('input[name="paint-mod-mode"]:checked');
+            const mode = modeEl ? modeEl.value : 'add';
+            const entry = ensureEntry();
+            if (mode === 'clear') {
+                entry.data.modifiers = [];
+            } else {
+                const keySel = document.getElementById('paint-mod-select').value;
+                const preset = tileModPresets[keySel];
+                if (preset) {
+                    entry.data.modifiers = entry.data.modifiers || [];
+                    entry.data.modifiers.push({ ...preset });
                 }
             }
         }
-    }
-
-    if (connChecked) {
-        regenerateConnections(x, y);
+    } else if (activePaintTab === 'res') {
+        const resEnabled = document.getElementById('paint-res-enable').checked;
+        if (resEnabled) {
+            const modeEl = document.querySelector('input[name="paint-res-mode"]:checked');
+            const mode = modeEl ? modeEl.value : 'add';
+            const entry = ensureEntry();
+            if (mode === 'clear') {
+                entry.data.resources = [];
+            } else {
+                const resKey = document.getElementById('paint-res-select').value;
+                const amt = parseInt(document.getElementById('paint-res-amount').value, 10) || 0;
+                const def = resourceByKey[resKey];
+                if (def) {
+                    entry.data.resources = entry.data.resources || [];
+                    let r = entry.data.resources.find(rr => rr.key === resKey);
+                    if (!r) {
+                        r = { key: def.key, name: def.name, type: def.type, amount: 0 };
+                        entry.data.resources.push(r);
+                    }
+                    r.amount += amt;
+                }
+            }
+        }
     }
 
     renderGrid();

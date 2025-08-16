@@ -347,6 +347,20 @@ button:hover {
     margin-top: 5px;
 }
 
+#paint-tabs {
+	display: flex;
+	gap: 5px;
+	margin-top: 5px;
+}
+
+.paint-tab-content {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	margin-top;
+}
+
+
 #paint-mod-options label {
     display: block;
 }

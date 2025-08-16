@@ -54,26 +54,53 @@
 
         <div id="paint-panel">
             <button id="paint-toggle">Paint Mode: Off</button>
+            <div id="paint-tabs">
+                <button class="paint-tab-btn" data-tab="basic">Basic</button>
+                <button class="paint-tab-btn" data-tab="mod">Modifiers</button>
+                <button class="paint-tab-btn" data-tab="res">Resources</button>
+            </div>
             <div id="paint-options">
-                <div>
-                    <label><input type="checkbox" id="paint-biome-cb">Biome</label>
-                    <select id="paint-biome-select"></select>
-                <div>
-                    <label><input type="checkbox" id="paint-mod-cb">Modifiers</label>
-                    <div id="paint-mod-options"></div>
+                <div id="paint-tab-basic" class="paint-tab-content">
+                    <div>
+                        <label><input type="checkbox" id="paint-biome-enable">Biome</label>
+                        <select id="paint-biome-select"></select>
+                    </div>
+                    <div>
+                        <label><input type="checkbox" id="paint-name-enable">Regenerate Name</label>
+                    </div>
+                    <div>
+                        <label><input type="checkbox" id="paint-clear-enable">Clear Tile</label>
+                    </div>
+                    <div>
+                        <label><input type="checkbox" id="paint-conn-enable">Regenerate Connections</label>
+                    </div>
                 </div>
-                <div id="paint-resource-section">
-                    <h4>Resources</h4>
-                    <select id="paint-resource-select"></select>
-                    <input type="number" id="paint-resource-amount" value="1" />
-                    <label><input type="radio" name="paint-resource-mode" value="add" checked>Add</label>
-                    <label><input type="radio" name="paint-resource-mode" value="remove">Remove</label>
-                    <label><input type="radio" name="paint-resource-mode" value="clear">Clear</label>
-                    <label><input type="checkbox" id="paint-resource-renewable">Renewable</label>
+                <div id="paint-tab-mod" class="paint-tab-content hidden">
+                    <div>
+                        <label><input type="checkbox" id="paint-mod-enable">Modifier Action</label>
+                        <div id="paint-mod-controls">
+                            <label><input type="radio" name="paint-mod-mode" value="add" checked>Add modifier</label>
+                            <label><input type="radio" name="paint-mod-mode" value="clear">Clear all modifiers</label>
+                            <select id="paint-mod-select"></select>
+                        </div>
+                    </div>
+                </div>
+                <div id="paint-tab-res" class="paint-tab-content hidden">
+                    <div>
+                        <label><input type="checkbox" id="paint-res-enable">Resource Action</label>
+                        <div id="paint-res-controls">
+                            <label><input type="radio" name="paint-res-mode" value="add" checked>Add resource to tile</label>
+                            <label><input type="radio" name="paint-res-mode" value="clear">Clear all resources</label>
+                            <div id="paint-res-extra">
+                                <select id="paint-res-category"></select>
+                                <select id="paint-res-select"></select>
+                                <input type="number" id="paint-res-amount" value="1" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
     <div id="prompt-overlay" class="hidden">
         <div id="prompt-box">
