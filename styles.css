@@ -283,28 +283,36 @@ button:hover {
 }
 
 #info-panel {
-    margin-left: 20px;
-    flex: 1;
+    grid-area: info;
+    margin-left: 0;
+    align-self: start;
+    width: 200px;
 }
 
 #main-content {
     margin-left: 7.4%;
     margin-right: 7.4%;
     width: 85%;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+        "map info"
+        "interact paint";
+    gap: 10px;
     height: 100vh;
     box-sizing: border-box;
 }
 
 #map-view {
-    flex: 1;
+    grid-area: map;
     display: flex;
     align-items: flex-start;
     margin-top: 10px;
 }
 
 #interact-module {
+    grid-area: interact;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-template-rows: repeat(2, 1fr);
@@ -313,7 +321,6 @@ button:hover {
     box-sizing: border-box;
     max-height: 15vh;
     width: 100%;
-    margin-top: auto;
 }
 
 #interact-module button {
@@ -322,13 +329,10 @@ button:hover {
 }
 
 #paint-panel {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
+    grid-area: paint;
     background-color: #222;
     border: 1px solid #555;
     padding: 10px;
-    z-index: 2000;
     width: 200px;
     box-sizing: border-box;
 }
