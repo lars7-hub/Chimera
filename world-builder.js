@@ -644,12 +644,59 @@ function displayTile(tile, key = currentKey) {
     });
 }
 
+function regenerateConnections(x, y) {
+    const targets = [[x, y]];
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx;
+            const ny = y + dy;
+            if (tileMap[`${nx}-${ny}`]) targets.push([nx, ny]);
+        }
+    }
+
+    targets.forEach(([tx, ty]) => {
+        const key = `${tx}-${ty}`;
+        const entry = tileMap[key];
+        if (!entry) return;
+        const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
+        const isWater = types.includes('water');
+        const isMountain = types.includes('mountain');
+        const conns = [];
+        for (let dy2 = -1; dy2 <= 1; dy2++) {
+            for (let dx2 = -1; dx2 <= 1; dx2++) {
+                if (dx2 === 0 && dy2 === 0) continue;
+                const nx = tx + dx2;
+                const ny = ty + dy2;
+                const nKey = `${nx}-${ny}`;
+                const neighbor = tileMap[nKey];
+                if (!neighbor) continue;
+                const nTypes = neighbor.data.types || (neighbor.data.type ? [neighbor.data.type] : []);
+                const nWater = nTypes.includes('water');
+                const nMountain = nTypes.includes('mountain');
+                if ((isWater && !nWater) || (nWater && !isWater) ||
+                    (isMountain && !nMountain) || (nMountain && !isMountain)) {
+                    neighbor.data.connections = (neighbor.data.connections || []).filter(c => c !== key);
+                    continue;
+                }
+                conns.push(nKey);
+                neighbor.data.connections = neighbor.data.connections || [];
+                if (!neighbor.data.connections.includes(key)) {
+                    neighbor.data.connections.push(key);
+                }
+            }
+        }
+        entry.data.connections = [...new Set(conns)];
+    });
+}
+
 async function paintTile(x, y) {
     const key = `${x}-${y}`;
     const biomeChecked = document.getElementById('paint-biome-cb').checked;
     const nameChecked = document.getElementById('paint-name-cb').checked;
     const clearChecked = document.getElementById('paint-clear-cb').checked;
     const modChecked = document.getElementById('paint-mod-cb').checked;
+    const connChecked = document.getElementById('paint-conn-cb').checked;
 
     if (clearChecked) {
         if (tileMap[key]) {
@@ -683,6 +730,10 @@ async function paintTile(x, y) {
     if (modChecked) {
         const mods = Array.from(document.querySelectorAll('#paint-mod-options input:checked')).map(cb => ({ ...tileModPresets[cb.value] }));
         entry.data.modifiers = mods;
+    }
+
+    if (connChecked) {
+        regenerateConnections(x, y);
     }
 
     renderGrid();
@@ -813,90 +864,22 @@ async function saveRegion() {
     await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
 }
 
-function configureConnections(x, y, starterType= '', starterBg = '') {
-    const overlay = document.createElement('div');
-    overlay.id = 'connection-overlay';
-    const container = document.createElement('div');
-    const grid = document.createElement('div');
-    grid.className = 'mini-map-grid';
-    const connections = {};
-    let oneWayMode = false;
-    for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-            const nx = x + dx;
-            const ny = y + dy;
-            const key = `${nx}-${ny}`;
-            const cell = document.createElement('div');
-            cell.className = 'mini-map-cell';
-            if (dx === 0 && dy === 0) {
-                cell.textContent = 'N';
-                cell.classList.add('existing');
-            } else if (tileMap[key]) {
-                connections[key] = 1;
-                cell.classList.add('existing', 'connected');
-                cell.addEventListener('click', (e) => {
-                    let state = connections[key];
-                    if (oneWayMode) {
-                        state = state === 2 ? 0 : 2;
-                        connections[key] = state;
-                        cell.classList.toggle('one-way', state === 2);
-                        cell.classList.remove('connected');
-                    } else {
-                        state = state === 1 ? 0 : 1;
-                        connections[key] = state;
-                        cell.classList.toggle('connected', state === 1);
-                        cell.classList.remove('one-way');
-                    }
-                });
-            } else {
-                cell.classList.add('phantom');
-            }
-            grid.appendChild(cell);
+function configureConnections(x, y, starterType = '', starterBg = '') {
+    const key = `${x}-${y}`;
+    tileMap[key] = {
+        data: {
+            name: `Tile ${x}-${y}`,
+            types: starterType ? [starterType] : [],
+            background: starterBg,
+            items: [],
+            connections: [],
+            modifiers: []
         }
-    }
-    const btns = document.createElement('div');
-    btns.className = 'editor-buttons';
-    const ok = document.createElement('button');
-    ok.textContent = 'Create';
-    const cancel = document.createElement('button');
-    cancel.textContent = 'Cancel';
-    btns.appendChild(ok);
-    btns.appendChild(cancel);
-    const instr = document.createElement('p');
-    instr.textContent = 'Select which tiles will connect to the new tile:';
-    const toggle = document.createElement('button');
-    toggle.textContent = 'One-Way Mode: Off';
-    toggle.addEventListener('click', () => {
-        oneWayMode = !oneWayMode;
-        toggle.textContent = `One-Way Mode: ${oneWayMode ? 'On' : 'Off'}`;
-    });
-    container.appendChild(instr);
-    container.appendChild(toggle);
-    container.appendChild(grid);
-    container.appendChild(btns);
-    overlay.appendChild(container);
-    document.body.appendChild(overlay);
-
-    cancel.addEventListener('click', () => document.body.removeChild(overlay));
-    ok.addEventListener('click', () => {
-        const key = `${x}-${y}`;
-        tileMap[key] = { data: { name: `Tile ${x}-${y}`, types: starterType ? [starterType]: [], background: starterBg, items: [], connections: Object.keys(connections).filter(k => connections[k] > 0) } };
-        Object.entries(connections).forEach(([k, state]) => {
-            const entry = tileMap[k];
-            if (!entry) return;
-            if (state === 1) {
-                if (!(entry.data.connections || []).includes(key)) {
-                    entry.data.connections.push(key);
-                }
-            } else if (state === 2) {
-                entry.data.connections = (entry.data.connections || []).filter(c => c !== key);
-            }
-        });
-        document.body.removeChild(overlay);
-        updateBounds();
-        renderGrid();
-        saveRegion();
-    });
+    };
+    regenerateConnections(x, y);
+    updateBounds();
+    renderGrid();
+    saveRegion();
 }
 
 function deleteAdjacentTile() {
