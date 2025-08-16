@@ -227,8 +227,8 @@ button:hover {
 }
 
 #map-module {
-    width: 60vw;
-    height: 60vh;
+    width: 100%;
+    height: 100%;
     display: grid;
     background-color: #222;
     border: 1px solid #555;
@@ -282,59 +282,65 @@ button:hover {
     z-index: 0;
 }
 
-#info-panel {
-    grid-area: info;
-    margin-left: 0;
-    align-self: start;
-    width: 200px;
-}
-
 #main-content {
     margin-left: 7.4%;
     margin-right: 7.4%;
     width: 85%;
-    display: grid;
-    grid-template-columns: 1fr 200px;
-    grid-template-rows: 1fr auto;
-    grid-template-areas:
-        "map info"
-        "interact paint";
-    gap: 10px;
     height: 100vh;
+    display: flex;
     box-sizing: border-box;
+    gap: 10px;
+}
+
+#left-column, #right-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#left-column {
+    flex: 0 0 80%;
+}
+
+#right-column {
+    flex: 0 0 20%;
 }
 
 #map-view {
-    grid-area: map;
+    flex: 0 0 80%;
     display: flex;
-    align-items: flex-start;
-    margin-top: 10px;
+    overflow: hidden;
 }
 
 #interact-module {
-    grid-area: interact;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    flex: 0 0 20%;
+    display: flex;
+    flex-wrap: wrap;
     gap: 5px;
     padding: 5px;
     box-sizing: border-box;
-    max-height: 15vh;
-    width: 100%;
+    overflow: hidden;
+    align-content: flex-start;
+    justify-content: center;
 }
 
 #interact-module button {
-    width: 100%;
-    height: 70%;
+    flex: 1 1 30%;
+}
+
+#info-panel {
+    flex: 0 0 70%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 #paint-panel {
-    grid-area: paint;
+    flex: 0 0 30%;
     background-color: #222;
     border: 1px solid #555;
     padding: 10px;
-    width: 200px;
     box-sizing: border-box;
+    overflow: auto;
 }
 
 .resource-icon {
@@ -1251,12 +1257,7 @@ button:hover {
     margin: 0;
     width: 100%;
     height: 100%;
-    display: grid;
-    grid-template-columns: 1fr 200px;
-    grid-template-rows: 1fr auto;
-    grid-template-areas:
-        "map info"
-        "interact paint";
+    display: flex;
     gap: 10px;
     box-sizing: border-box;
     overflow: hidden;

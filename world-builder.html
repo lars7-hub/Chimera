@@ -21,80 +21,79 @@
    </div>
 
     <div id="editor-container" class="hidden">
-    <div id="main-content">
-        <div id="map-view">
-            <div id="map-module"></div>
-		</div>
-        <div id="info-panel" class="info-box">
-            <h3 id="tile-name"></h3>
-            <p id="tile-coords"></p>
-            <p id="tile-type"></p>
-            <div>
-                <h4>Ground Items</h4>
-                <ul id="tile-items"></ul>
+        <div id="main-content">
+            <div id="left-column">
+                <div id="map-view">
+                    <div id="map-module"></div>
+                </div>
+                <div id="interact-module">
+                    <button id="edit-btn">Edit Mode</button>
+                    <button id="edit-current-btn">Edit Current Tile</button>
+                    <button id="add-adjacent-btn">Add Adjacent Tile</button>
+                    <button id="delete-adjacent-btn">Delete Adjacent Tile</button>
+                    <button id="refresh-btn">Refresh Map</button>
+                    <button id="add-item-btn">Add Item to Tile</button>
+                    <button id="remove-item-btn">Remove Item from Tile</button>
+                    <button id="add-resource-btn">Add Resource to Tile</button>
+                    <button id="remove-resource-btn">Remove Resource from Tile</button>
+                    <button id="set-origin-btn">Set Origin</button>
+                    <button id="toggle-icons-btn">Show Type Icons</button>
+                </div>
             </div>
-            <div>
-                <h4>Resources</h4>
-                <ul id="tile-resources"></ul>
-            </div>
-        </div>
-        <div id="interact-module">
-            <button id="edit-btn">Edit Mode</button>
-            <button id="edit-current-btn">Edit Current Tile</button>
-            <button id="add-adjacent-btn">Add Adjacent Tile</button>
-            <button id="delete-adjacent-btn">Delete Adjacent Tile</button>
-            <button id="refresh-btn">Refresh Map</button>
-            <button id="add-item-btn">Add Item to Tile</button>
-            <button id="remove-item-btn">Remove Item from Tile</button>
-            <button id="add-resource-btn">Add Resource to Tile</button>
-            <button id="remove-resource-btn">Remove Resource from Tile</button>
-            <button id="set-origin-btn">Set Origin</button>
-            <button id="toggle-icons-btn">Show Type Icons</button>
-        </div>
-
-        <div id="paint-panel" class="hidden">
-            <button id="paint-toggle">Paint Mode: Off</button>
-            <div id="paint-tabs">
-                <button class="paint-tab-btn" data-tab="basic">Basic</button>
-                <button class="paint-tab-btn" data-tab="mod">Modifiers</button>
-                <button class="paint-tab-btn" data-tab="res">Resources</button>
-            </div>
-            <div id="paint-options">
-                <div id="paint-tab-basic" class="paint-tab-content">
+            <div id="right-column">
+                <div id="info-panel" class="info-box">
+                    <h3 id="tile-name"></h3>
+                    <p id="tile-coords"></p>
+                    <p id="tile-type"></p>
                     <div>
-                        <label><input type="checkbox" id="paint-biome-enable">Biome</label>
-                        <select id="paint-biome-select"></select>
+                        <h4>Ground Items</h4>
+                        <ul id="tile-items"></ul>
                     </div>
                     <div>
-                        <label><input type="checkbox" id="paint-name-enable">Regenerate Name</label>
-                    </div>
-                    <div>
-                        <label><input type="checkbox" id="paint-clear-enable">Clear Tile</label>
-                    </div>
-                    <div>
-                        <label><input type="checkbox" id="paint-conn-enable">Regenerate Connections</label>
+                        <h4>Resources</h4>
+                        <ul id="tile-resources"></ul>
                     </div>
                 </div>
-                <div id="paint-tab-mod" class="paint-tab-content hidden">
-                    <div>
-                        <label><input type="checkbox" id="paint-mod-enable">Modifier Action</label>
-                        <div id="paint-mod-controls">
-                            <label><input type="radio" name="paint-mod-mode" value="add" checked>Add modifier</label>
-                            <label><input type="radio" name="paint-mod-mode" value="clear">Clear all modifiers</label>
-                            <select id="paint-mod-select"></select>
+                <div id="paint-panel" class="hidden">
+                    <button id="paint-toggle">Paint Mode: Off</button>
+                    <div id="paint-options">
+                        <div id="paint-tab-basic" class="paint-tab-content">
+                            <div>
+                                <label><input type="checkbox" id="paint-biome-enable">Biome</label>
+                                <select id="paint-biome-select"></select>
+                            </div>
+                            <div>
+                                <label><input type="checkbox" id="paint-name-enable">Regenerate Name</label>
+                            </div>
+                            <div>
+                                <label><input type="checkbox" id="paint-clear-enable">Clear Tile</label>
+                            </div>
+                            <div>
+                                <label><input type="checkbox" id="paint-conn-enable">Regenerate Connections</label>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div id="paint-tab-res" class="paint-tab-content hidden">
-                    <div>
-                        <label><input type="checkbox" id="paint-res-enable">Resource Action</label>
-                        <div id="paint-res-controls">
-                            <label><input type="radio" name="paint-res-mode" value="add" checked>Add resource to tile</label>
-                            <label><input type="radio" name="paint-res-mode" value="clear">Clear all resources</label>
-                            <div id="paint-res-extra">
-                                <select id="paint-res-category"></select>
-                                <select id="paint-res-select"></select>
-                                <input type="number" id="paint-res-amount" value="1" />
+                        <div id="paint-tab-mod" class="paint-tab-content hidden">
+                            <div>
+                                <label><input type="checkbox" id="paint-mod-enable">Modifier Action</label>
+                                <div id="paint-mod-controls">
+                                    <label><input type="radio" name="paint-mod-mode" value="add" checked>Add modifier</label>
+                                    <label><input type="radio" name="paint-mod-mode" value="clear">Clear all modifiers</label>
+                                    <select id="paint-mod-select"></select>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="paint-tab-res" class="paint-tab-content hidden">
+                            <div>
+                                <label><input type="checkbox" id="paint-res-enable">Resource Action</label>
+                                <div id="paint-res-controls">
+                                    <label><input type="radio" name="paint-res-mode" value="add" checked>Add resource to tile</label>
+                                    <label><input type="radio" name="paint-res-mode" value="clear">Clear all resources</label>
+                                    <div id="paint-res-extra">
+                                        <select id="paint-res-category"></select>
+                                        <select id="paint-res-select"></select>
+                                        <input type="number" id="paint-res-amount" value="1" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -102,68 +101,66 @@
             </div>
         </div>
 
-    <div id="prompt-overlay" class="hidden">
-        <div id="prompt-box">
-            <p id="prompt-message"></p>
-            <input id="prompt-input" />
-            <div class="prompt-buttons">
-                <button id="prompt-ok">OK</button>
-                <button id="prompt-cancel">Cancel</button>
+        <div id="prompt-overlay" class="hidden">
+            <div id="prompt-box">
+                <p id="prompt-message"></p>
+                <input id="prompt-input" />
+                <div class="prompt-buttons">
+                    <button id="prompt-ok">OK</button>
+                    <button id="prompt-cancel">Cancel</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div id="tile-editor-overlay" class="hidden">
-        <div id="tile-editor-box">
-            <label>Tile Name:<input id="tile-name-input" /></label>
-            <div id="tile-bg-control">
-                <span>Background:</span>
-                <button id="tile-bg-btn">Select</button>
-                <img id="tile-bg-preview" alt="" />
-            </div>
-            <div id="tile-type-select">
-                <span>Tile Types:</span>
-                <div id="tile-type-options"></div>
-            </div>
-            <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
-			<button id="tile-resource-btn">Resources</button>
-            <button id="tile-mod-btn">Tile Modifiers</button>
-            <div id="tile-connections-container">
-                <p>Select which tiles connect to this tile:</p>
-                <button id="one-way-toggle">One-Way Mode: Off</button>
-                <div id="tile-connection-grid" class="mini-map-grid"></div>
-            </div>
-            <div class="editor-buttons">
-                <button id="tile-save">Save</button>
-                <button id="tile-cancel">Cancel</button>
+        <div id="tile-editor-overlay" class="hidden">
+            <div id="tile-editor-box">
+                <label>Tile Name:<input id="tile-name-input" /></label>
+                <div id="tile-bg-control">
+                    <span>Background:</span>
+                    <button id="tile-bg-btn">Select</button>
+                    <img id="tile-bg-preview" alt="" />
+                </div>
+                <div id="tile-type-select">
+                    <span>Tile Types:</span>
+                    <div id="tile-type-options"></div>
+                </div>
+                <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
+                <button id="tile-resource-btn">Resources</button>
+                <button id="tile-mod-btn">Tile Modifiers</button>
+                <div id="tile-connections-container">
+                    <p>Select which tiles connect to this tile:</p>
+                    <button id="one-way-toggle">One-Way Mode: Off</button>
+                    <div id="tile-connection-grid" class="mini-map-grid"></div>
+                </div>
+                <div class="editor-buttons">
+                    <button id="tile-save">Save</button>
+                    <button id="tile-cancel">Cancel</button>
+                </div>
             </div>
         </div>
-    </div>
 
-	<div id="tile-mod-overlay" class="hidden">
-        <div id="tile-mod-box">
-            <h3>Tile Modifiers</h3>
-            <div id="tile-mod-list"></div>
-            <div id="tile-mod-presets"></div>
-            <div class="editor-buttons">
-                <button id="tile-mod-add-custom">Add Custom</button>
-                <button id="tile-mod-close">Done</button>
+        <div id="tile-mod-overlay" class="hidden">
+            <div id="tile-mod-box">
+                <h3>Tile Modifiers</h3>
+                <div id="tile-mod-list"></div>
+                <div id="tile-mod-presets"></div>
+                <div class="editor-buttons">
+                    <button id="tile-mod-add-custom">Add Custom</button>
+                    <button id="tile-mod-close">Done</button>
+                </div>
             </div>
         </div>
-    </div>
 
         <div id="tile-resource-overlay" class="hidden">
-        <div id="tile-resource-box">
-            <h3>Tile Resources</h3>
-            <div id="tile-resource-list"></div>
-            <div class="editor-buttons">
-                <button id="tile-resource-add">Add Resource</button>
-                <button id="tile-resource-close">Done</button>
+            <div id="tile-resource-box">
+                <h3>Tile Resources</h3>
+                <div id="tile-resource-list"></div>
+                <div class="editor-buttons">
+                    <button id="tile-resource-add">Add Resource</button>
+                    <button id="tile-resource-close">Done</button>
+                </div>
             </div>
         </div>
-    </div>
-
-    </div>
     </div>
 	
 
