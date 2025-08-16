@@ -30,8 +30,9 @@ const tileModPresets = {
     }
 };
 
-const resourceTypes = window.RESOURCE_TYPES || [];
 const resourceDefs = window.RESOURCES || [];
+const resourceTypeCategories = window.RESOURCE_TYPES || [];
+
 const resourceByKey = {};
 resourceDefs.forEach(r => { resourceByKey[r.key] = r; });
 
@@ -520,7 +521,7 @@ window.onload = async function () {
     const paintResSelect = document.getElementById('paint-res-select');
     function updateResOptions() {
         const type = paintResCategory.value;
-        const info = resourceTypes[type];
+        const info = resourceTypeCategories[type];
         paintResSelect.innerHTML = '';
         if (info) {
             info.resources.forEach(r => {
@@ -531,7 +532,7 @@ window.onload = async function () {
             });
         }
     }
-    Object.entries(resourceTypes).forEach(([key, info]) => {
+    Object.entries(resourceTypeCategories).forEach(([key, info]) => {
         const opt = document.createElement('option');
         opt.value = key;
         opt.textContent = info.name;
