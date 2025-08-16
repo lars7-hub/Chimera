@@ -30,7 +30,7 @@ const tileModPresets = {
     }
 };
 
-const resourceDefs = window.RESOURCE_TYPES || [];
+const resourceTypes = window.RESOURCE_TYPES || [];
 const resourceDefs = window.RESOURCES || [];
 const resourceByKey = {};
 resourceDefs.forEach(r => { resourceByKey[r.key] = r; });
