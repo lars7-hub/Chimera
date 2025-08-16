@@ -30,6 +30,10 @@ const tileModPresets = {
     }
 };
 
+const resourceDefs = window.RESOURCES || [];
+const resourceByKey = {};
+resourceDefs.forEach(r => { resourceByKey[r.key] = r; });
+
 let editMode = false;
 let gridWidth = 0;
 let gridHeight = 0;
@@ -100,7 +104,7 @@ function openTileEditor(data, x, y) {
         const overlay = document.getElementById('tile-editor-overlay');
         const nameInput = document.getElementById('tile-name-input');
         const itemsInput = document.getElementById('tile-items-input');
-		const resourcesInput = document.getElementById('tile-resources-input');
+        const resBtn = document.getElementById('tile-resource-btn');
         const grid = document.getElementById('tile-connection-grid');
         const saveBtn = document.getElementById('tile-save');
         const cancelBtn = document.getElementById('tile-cancel');
@@ -113,7 +117,7 @@ function openTileEditor(data, x, y) {
 
         nameInput.value = data.name || '';
         itemsInput.value = (data.items || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
-		resourcesInput.value = (data.resources || []).map(r => `${r.name}:${r.renewable ? 'renewable' : 'finite'}:${r.amount || 0}:${r.rate || 0}`).join('\n');
+        let resources = JSON.parse(JSON.stringify(data.resources || []));
 
         let selectedBg = data.background || '';
         function updateBg() {
@@ -135,7 +139,70 @@ function openTileEditor(data, x, y) {
             typeContainer.appendChild(label);
         });
 		
-		let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
+        let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
+        function openResourceEditor() {
+            const overlay = document.getElementById('tile-resource-overlay');
+            const list = document.getElementById('tile-resource-list');
+            const addBtn = document.getElementById('tile-resource-add');
+            const closeBtn = document.getElementById('tile-resource-close');
+
+            function render() {
+                list.innerHTML = '';
+                resources.forEach((r, idx) => {
+                    const row = document.createElement('div');
+                    const img = document.createElement('img');
+                    const def = resourceByKey[r.key] || resourceDefs.find(d => d.name === r.name) || resourceDefs[0];
+                    r.key = def.key;
+                    r.name = def.name;
+                    img.src = `resources/ui/resources/${def.icon}`;
+                    img.className = 'resource-icon';
+                    row.appendChild(img);
+                    const sel = document.createElement('select');
+                    resourceDefs.forEach(def2 => {
+                        const opt = document.createElement('option');
+                        opt.value = def2.key;
+                        opt.textContent = def2.name;
+                        if (def2.key === r.key) opt.selected = true;
+                        sel.appendChild(opt);
+                    });
+                    sel.addEventListener('change', () => {
+                        const d = resourceByKey[sel.value];
+                        r.key = d.key; r.name = d.name;
+                        img.src = `resources/ui/resources/${d.icon}`;
+                    });
+                    row.appendChild(sel);
+                    const amt = document.createElement('input');
+                    amt.type = 'number';
+                    amt.value = r.amount || 0;
+                    amt.addEventListener('change', () => { r.amount = parseInt(amt.value,10) || 0; });
+                    row.appendChild(amt);
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.checked = !!r.renewable;
+                    cb.addEventListener('change', () => { r.renewable = cb.checked; });
+                    row.appendChild(cb);
+                    const del = document.createElement('button');
+                    del.textContent = 'X';
+                    del.addEventListener('click', () => { resources.splice(idx,1); render(); });
+                    row.appendChild(del);
+                    list.appendChild(row);
+                });
+            }
+            addBtn.onclick = () => {
+                const d = resourceDefs[0];
+                resources.push({ key: d.key, name: d.name, amount: 0, renewable: false });
+                render();
+            };
+            function close() {
+                overlay.classList.add('hidden');
+                addBtn.onclick = null;
+                closeBtn.onclick = null;
+            }
+            closeBtn.onclick = () => { close(); };
+            render();
+            overlay.classList.remove('hidden');
+        }
+        resBtn.addEventListener('click', openResourceEditor);
         function openModEditor() {
             const modOverlay = document.getElementById('tile-mod-overlay');
             const modList = document.getElementById('tile-mod-list');
@@ -297,6 +364,7 @@ function openTileEditor(data, x, y) {
             cancelBtn.removeEventListener('click', onCancel);
             bgBtn.removeEventListener('click', pickBackground);
             modBtn.removeEventListener('click', openModEditor);
+            resBtn.removeEventListener('click', openResourceEditor);
         }
 
         async function onSave() {
@@ -304,16 +372,7 @@ function openTileEditor(data, x, y) {
                 const [name, ...desc] = l.split(':');
                 return { name: name.trim(), description: desc.join(':').trim() };
             });
-            const resources = resourcesInput.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
-                const [name, type, amount, rate] = l.split(':');
-                const renewable = (type || '').trim().toLowerCase() === 'renewable' || (type || '').trim().toLowerCase() === 'r';
-                return {
-                    name: (name || '').trim(),
-                    renewable,
-                    amount: parseInt(amount, 10) || 0,
-                    rate: parseInt(rate, 10) || 0
-                };
-            });
+            const resourcesOut = resources.map(r => ({ key: r.key, name: r.name, type: resourceByKey[r.key].type, renewable: !!r.renewable, amount: r.amount || 0 }));
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
             if (!selectedBg && types.length > 0) {
@@ -327,7 +386,7 @@ function openTileEditor(data, x, y) {
                 types,
                 background: selectedBg,
                 items,
-				resources,
+                resources: resourcesOut,
                 connections,
                 modifiers,
                 connectionStates: connectionState,
@@ -435,6 +494,13 @@ window.onload = async function () {
         label.appendChild(cb);
         label.appendChild(document.createTextNode(p.name));
         paintModOptions.appendChild(label);
+    });
+    const paintResourceSelect = document.getElementById('paint-resource-select');
+    resourceDefs.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.key;
+        opt.textContent = r.name;
+        paintResourceSelect.appendChild(opt);
     });
     paintToggle.addEventListener('click', () => {
         paintMode = !paintMode;
@@ -664,7 +730,15 @@ function displayTile(tile, key = currentKey) {
         resList.innerHTML = '';
         (tile.resources || []).forEach(r => {
             const li = document.createElement('li');
-            li.textContent = r.renewable ? `${r.name} (Renewable)` : `${r.name} (Finite)`;
+            const def = resourceByKey[r.key] || resourceDefs.find(d => d.name === r.name);
+            if (def) {
+                const img = document.createElement('img');
+                img.src = `resources/ui/resources/${def.icon}`;
+                img.className = 'resource-icon';
+                li.appendChild(img);
+            }
+            const text = document.createTextNode(`${r.name} x${r.amount || 0} ${r.renewable ? '(Renewable)' : '(Finite)'}`);
+            li.appendChild(text);
             resList.appendChild(li);
         });
     }
@@ -723,6 +797,11 @@ async function paintTile(x, y) {
     const clearChecked = document.getElementById('paint-clear-cb').checked;
     const modChecked = document.getElementById('paint-mod-cb').checked;
     const connChecked = document.getElementById('paint-conn-cb').checked;
+    const resModeEl = document.querySelector('input[name="paint-resource-mode"]:checked');
+    const resMode = resModeEl ? resModeEl.value : null;
+    const resKey = document.getElementById('paint-resource-select').value;
+    const resAmt = parseInt(document.getElementById('paint-resource-amount').value, 10) || 0;
+    const resRenew = document.getElementById('paint-resource-renewable').checked;
 
     if (clearChecked) {
         if (tileMap[key]) {
@@ -756,6 +835,31 @@ async function paintTile(x, y) {
     if (modChecked) {
         const mods = Array.from(document.querySelectorAll('#paint-mod-options input:checked')).map(cb => ({ ...tileModPresets[cb.value] }));
         entry.data.modifiers = mods;
+    }
+
+    if (resMode) {
+        if (resMode === 'clear') {
+            entry.data.resources = [];
+        } else {
+            const def = resourceByKey[resKey];
+            if (def) {
+                entry.data.resources = entry.data.resources || [];
+                let r = entry.data.resources.find(rr => rr.key === resKey);
+                if (!r) {
+                    r = { key: def.key, name: def.name, type: def.type, renewable: resRenew, amount: 0 };
+                    entry.data.resources.push(r);
+                }
+                if (resMode === 'add') {
+                    r.amount += resAmt;
+                    r.renewable = resRenew;
+                } else if (resMode === 'remove') {
+                    r.amount -= resAmt;
+                    if (r.amount <= 0) {
+                        if (r.renewable) r.amount = 0; else entry.data.resources = entry.data.resources.filter(rr => rr !== r);
+                    }
+                }
+            }
+        }
     }
 
     if (connChecked) {
@@ -980,21 +1084,17 @@ async function removeItemFromTile() {
 async function addResourceToTile() {
     const entry = tileMap[currentKey];
     if (!entry) return;
-    const name = await showPrompt('Resource name:');
-    if (!name) return;
+    const key = await showPrompt('Resource key:\n' + resourceDefs.map(r => r.key).join(', '));
+    if (!key) return;
+    const def = resourceByKey[key];
+    if (!def) return;
     const renewableStr = await showPrompt('Is it renewable? (yes/no):', 'yes');
     if (renewableStr === null) return;
     const amountStr = await showPrompt('Amount:', '0');
     if (amountStr === null) return;
-    let rate = 0;
     const renewable = renewableStr.toLowerCase().startsWith('y');
-    if (renewable) {
-        const rateStr = await showPrompt('Regeneration rate:', '0');
-        if (rateStr === null) return;
-        rate = parseInt(rateStr, 10) || 0;
-    }
     entry.data.resources = entry.data.resources || [];
-    entry.data.resources.push({ name, renewable, amount: parseInt(amountStr, 10) || 0, rate });
+    entry.data.resources.push({ key: def.key, name: def.name, type: def.type, renewable, amount: parseInt(amountStr, 10) || 0 });
     displayTile(entry.data);
     saveRegion();
 }
@@ -1002,9 +1102,9 @@ async function addResourceToTile() {
 async function removeResourceFromTile() {
     const entry = tileMap[currentKey];
     if (!entry || !(entry.data.resources || []).length) return;
-    const name = await showPrompt('Resource name to remove:');
-    if (!name) return;
-    entry.data.resources = entry.data.resources.filter(r => r.name !== name);
+    const key = await showPrompt('Resource key to remove:');
+    if (!key) return;
+    entry.data.resources = entry.data.resources.filter(r => r.key !== key && r.name !== key);
     displayTile(entry.data);
     saveRegion();
 }

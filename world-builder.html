@@ -58,13 +58,18 @@
                 <div>
                     <label><input type="checkbox" id="paint-biome-cb">Biome</label>
                     <select id="paint-biome-select"></select>
-                </div>
-                <label><input type="checkbox" id="paint-name-cb">Regenerate Name</label>
-                <label><input type="checkbox" id="paint-clear-cb">Clear Tile</label>
-                <label><input type="checkbox" id="paint-conn-cb">Regenerate Connections</label>
                 <div>
                     <label><input type="checkbox" id="paint-mod-cb">Modifiers</label>
                     <div id="paint-mod-options"></div>
+                </div>
+                <div id="paint-resource-section">
+                    <h4>Resources</h4>
+                    <select id="paint-resource-select"></select>
+                    <input type="number" id="paint-resource-amount" value="1" />
+                    <label><input type="radio" name="paint-resource-mode" value="add" checked>Add</label>
+                    <label><input type="radio" name="paint-resource-mode" value="remove">Remove</label>
+                    <label><input type="radio" name="paint-resource-mode" value="clear">Clear</label>
+                    <label><input type="checkbox" id="paint-resource-renewable">Renewable</label>
                 </div>
             </div>
         </div>
@@ -93,8 +98,8 @@
                 <span>Tile Types:</span>
                 <div id="tile-type-options"></div>
             </div>
-             <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
-             <label>Resources (name:type:amount:rate per line):<textarea id="tile-resources-input"></textarea></label>
+            <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
+			<button id="tile-resource-btn">Resources</button>
             <button id="tile-mod-btn">Tile Modifiers</button>
             <div id="tile-connections-container">
                 <p>Select which tiles connect to this tile:</p>
@@ -120,8 +125,20 @@
         </div>
     </div>
 
+        <div id="tile-resource-overlay" class="hidden">
+        <div id="tile-resource-box">
+            <h3>Tile Resources</h3>
+            <div id="tile-resource-list"></div>
+            <div class="editor-buttons">
+                <button id="tile-resource-add">Add Resource</button>
+                <button id="tile-resource-close">Done</button>
+            </div>
+        </div>
     </div>
 
+    </div>
+
+    <script src="resources-data.js"></script>
     <script src="world-builder.js"></script>
 </body>
 </html>
