@@ -48,7 +48,7 @@ let showTypeIcons = false;
 let paintMode = false;
 let activePaintTab = 'basic';
 let paintPanel = null;
-const tileGap = 2;
+const tileGap = 4;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
 function keyToCoords(key) {
