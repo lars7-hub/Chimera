@@ -47,6 +47,7 @@ let currentWorld = null;
 let showTypeIcons = false;
 let paintMode = false;
 let activePaintTab = 'basic';
+let paintPanel = null;
 const tileGap = 2;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
@@ -67,6 +68,7 @@ function startWorldEditing(name) {
     if (menu) menu.remove();
     const editor = document.getElementById('editor-container');
     if (editor) editor.classList.remove('hidden');
+	if (paintPanel) paintPanel.classList.add('hidden');
 }
 
 async function showPrompt(message, defaultValue = '') {
@@ -480,6 +482,7 @@ window.onload = async function () {
         renderGrid();
     });
 
+    paintPanel = document.getElementById('paint-panel');
     const paintToggle = document.getElementById('paint-toggle');
     const paintTabs = Array.from(document.querySelectorAll('.paint-tab-btn'));
     const paintTabContents = {
@@ -490,9 +493,9 @@ window.onload = async function () {
     paintTabs.forEach(btn => {
         btn.addEventListener('click', () => {
             activePaintTab = btn.dataset.tab;
+            paintTabs.forEach(b => b.classList.toggle('active', b === btn));
             Object.entries(paintTabContents).forEach(([key, el]) => {
-                if (key === activePaintTab) el.classList.remove('hidden');
-                else el.classList.add('hidden');
+                el.classList.toggle('hidden', key !== activePaintTab);
             });
         });
     });
@@ -602,6 +605,7 @@ async function loadWorld() {
     currentKey = originKey;
     updateBounds();
     renderGrid();
+    if (paintPanel) paintPanel.classList.remove('hidden');
 }
 
 function renderGrid() {
@@ -840,84 +844,103 @@ async function paintTile(x, y) {
 
     function ensureEntry() {
         if (!tileMap[key]) {
-            tileMap[key] = { data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], resources: [], connections: [], modifiers: [] } };
+            tileMap[key] = {
+                data: {
+                    name: `Tile ${x}-${y}`,
+                    types: [],
+                    background: '',
+                    items: [],
+                    resources: [],
+                    connections: [],
+                    modifiers: []
+                }
+            };
         }
         return tileMap[key];
     }
 
-    if (activePaintTab === 'basic') {
-        const biomeChecked = document.getElementById('paint-biome-enable').checked;
-        const nameChecked = document.getElementById('paint-name-enable').checked;
-        const clearChecked = document.getElementById('paint-clear-enable').checked;
-        const connChecked = document.getElementById('paint-conn-enable').checked;
+    switch (activePaintTab) {
+        case 'basic': {
+            const biomeChecked = document.getElementById('paint-biome-enable').checked;
+            const nameChecked = document.getElementById('paint-name-enable').checked;
+            const clearChecked = document.getElementById('paint-clear-enable').checked;
+            const connChecked = document.getElementById('paint-conn-enable').checked;
 
-        if (clearChecked) {
-            if (tileMap[key]) {
-                delete tileMap[key];
-                Object.values(tileMap).forEach(e => {
-                    e.data.connections = (e.data.connections || []).filter(c => c !== key);
-                });
+            if (clearChecked) {
+                if (tileMap[key]) {
+                    delete tileMap[key];
+                    Object.values(tileMap).forEach(e => {
+                        e.data.connections = (e.data.connections || []).filter(c => c !== key);
+                    });
+                }
+                renderGrid();
+                saveRegion();
+                return;
             }
-            renderGrid();
-            saveRegion();
-            return;
-        }
 
-        const entry = ensureEntry();
-        if (nameChecked) {
-            entry.data.name = `Tile ${x}-${y}`;
-        }
-        if (biomeChecked) {
-            const t = document.getElementById('paint-biome-select').value;
-            if (t) {
-                entry.data.types = [t];
-                const bg = await window.electron.getRandomTileImage(t);
-                if (bg) entry.data.background = bg;
-            }
-        }
-        if (connChecked) {
-            regenerateConnections(x, y);
-        }
-    } else if (activePaintTab === 'mod') {
-        const modEnabled = document.getElementById('paint-mod-enable').checked;
-        if (modEnabled) {
-            const modeEl = document.querySelector('input[name="paint-mod-mode"]:checked');
-            const mode = modeEl ? modeEl.value : 'add';
             const entry = ensureEntry();
-            if (mode === 'clear') {
-                entry.data.modifiers = [];
-            } else {
-                const keySel = document.getElementById('paint-mod-select').value;
-                const preset = tileModPresets[keySel];
-                if (preset) {
-                    entry.data.modifiers = entry.data.modifiers || [];
-                    entry.data.modifiers.push({ ...preset });
+            if (nameChecked) {
+                entry.data.name = `Tile ${x}-${y}`;
+            }
+            if (biomeChecked) {
+                const t = document.getElementById('paint-biome-select').value;
+                if (t) {
+                    entry.data.types = [t];
+                    const bg = await window.electron.getRandomTileImage(t);
+                    if (bg) entry.data.background = bg;
                 }
             }
+            if (connChecked) {
+                regenerateConnections(x, y);
+            }
+            break;
         }
-    } else if (activePaintTab === 'res') {
-        const resEnabled = document.getElementById('paint-res-enable').checked;
-        if (resEnabled) {
-            const modeEl = document.querySelector('input[name="paint-res-mode"]:checked');
-            const mode = modeEl ? modeEl.value : 'add';
-            const entry = ensureEntry();
-            if (mode === 'clear') {
-                entry.data.resources = [];
-            } else {
-                const resKey = document.getElementById('paint-res-select').value;
-                const amt = parseInt(document.getElementById('paint-res-amount').value, 10) || 0;
-                const def = resourceByKey[resKey];
-                if (def) {
-                    entry.data.resources = entry.data.resources || [];
-                    let r = entry.data.resources.find(rr => rr.key === resKey);
-                    if (!r) {
-                        r = { key: def.key, name: def.name, type: def.type, amount: 0 };
-                        entry.data.resources.push(r);
+        case 'mod': {
+            const modEnabled = document.getElementById('paint-mod-enable').checked;
+            if (modEnabled) {
+                const modeEl = document.querySelector('input[name="paint-mod-mode"]:checked');
+                const mode = modeEl ? modeEl.value : 'add';
+                const entry = ensureEntry();
+                if (mode === 'clear') {
+                    entry.data.modifiers = [];
+                } else {
+                    const keySel = document.getElementById('paint-mod-select').value;
+                    const preset = tileModPresets[keySel];
+                    if (preset) {
+                        entry.data.modifiers = entry.data.modifiers || [];
+                        entry.data.modifiers.push({ ...preset });
                     }
-                    r.amount += amt;
                 }
             }
+            break;
         }
+        case 'res': {
+            const resEnabled = document.getElementById('paint-res-enable').checked;
+            if (resEnabled) {
+                const modeEl = document.querySelector('input[name="paint-res-mode"]:checked');
+                const mode = modeEl ? modeEl.value : 'add';
+                const entry = ensureEntry();
+                if (mode === 'clear') {
+                    entry.data.resources = [];
+                } else {
+                    const resKey = document.getElementById('paint-res-select').value;
+                    const amt = parseInt(document.getElementById('paint-res-amount').value, 10) || 0;
+                    const def = resourceByKey[resKey];
+                    if (def) {
+                        entry.data.resources = entry.data.resources || [];
+                        let r = entry.data.resources.find(rr => rr.key === resKey);
+                        if (!r) {
+                            r = { key: def.key, name: def.name, type: def.type, amount: 0 };
+                            entry.data.resources.push(r);
+                        }
+                        r.amount += amt;
+                    }
+                }
+            }
+            break;
+        }
+        default:
+            return;
     }
 
     renderGrid();
