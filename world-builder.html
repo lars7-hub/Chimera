@@ -27,10 +27,14 @@
             <div id="info-panel" class="info-box">
                 <h3 id="tile-name"></h3>
                 <p id="tile-coords"></p>
-                <p id="tile-type"></p>
+                 <p id="tile-type"></p>
                 <div>
                     <h4>Ground Items</h4>
                     <ul id="tile-items"></ul>
+                </div>
+                <div>
+                    <h4>Resources</h4>
+                    <ul id="tile-resources"></ul>
                 </div>
             </div>
         </div>
@@ -42,6 +46,8 @@
             <button id="refresh-btn">Refresh Map</button>
             <button id="add-item-btn">Add Item to Tile</button>
             <button id="remove-item-btn">Remove Item from Tile</button>
+            <button id="add-resource-btn">Add Resource to Tile</button>
+            <button id="remove-resource-btn">Remove Resource from Tile</button>
             <button id="set-origin-btn">Set Origin</button>
             <button id="toggle-icons-btn">Show Type Icons</button>
         </div>
@@ -88,6 +94,7 @@
                 <div id="tile-type-options"></div>
             </div>
              <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
+             <label>Resources (name:type:amount:rate per line):<textarea id="tile-resources-input"></textarea></label>
             <button id="tile-mod-btn">Tile Modifiers</button>
             <div id="tile-connections-container">
                 <p>Select which tiles connect to this tile:</p>

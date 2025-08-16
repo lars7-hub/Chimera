@@ -100,6 +100,7 @@ function openTileEditor(data, x, y) {
         const overlay = document.getElementById('tile-editor-overlay');
         const nameInput = document.getElementById('tile-name-input');
         const itemsInput = document.getElementById('tile-items-input');
+		const resourcesInput = document.getElementById('tile-resources-input');
         const grid = document.getElementById('tile-connection-grid');
         const saveBtn = document.getElementById('tile-save');
         const cancelBtn = document.getElementById('tile-cancel');
@@ -112,6 +113,7 @@ function openTileEditor(data, x, y) {
 
         nameInput.value = data.name || '';
         itemsInput.value = (data.items || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
+		resourcesInput.value = (data.resources || []).map(r => `${r.name}:${r.renewable ? 'renewable' : 'finite'}:${r.amount || 0}:${r.rate || 0}`).join('\n');
 
         let selectedBg = data.background || '';
         function updateBg() {
@@ -302,6 +304,16 @@ function openTileEditor(data, x, y) {
                 const [name, ...desc] = l.split(':');
                 return { name: name.trim(), description: desc.join(':').trim() };
             });
+            const resources = resourcesInput.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+                const [name, type, amount, rate] = l.split(':');
+                const renewable = (type || '').trim().toLowerCase() === 'renewable' || (type || '').trim().toLowerCase() === 'r';
+                return {
+                    name: (name || '').trim(),
+                    renewable,
+                    amount: parseInt(amount, 10) || 0,
+                    rate: parseInt(rate, 10) || 0
+                };
+            });
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
             if (!selectedBg && types.length > 0) {
@@ -315,6 +327,7 @@ function openTileEditor(data, x, y) {
                 types,
                 background: selectedBg,
                 items,
+				resources,
                 connections,
                 modifiers,
                 connectionStates: connectionState,
@@ -392,6 +405,8 @@ window.onload = async function () {
     document.getElementById('refresh-btn').addEventListener('click', renderGrid);
     document.getElementById('add-item-btn').addEventListener('click', addItemToTile);
     document.getElementById('remove-item-btn').addEventListener('click', removeItemFromTile);
+    document.getElementById('add-resource-btn').addEventListener('click', addResourceToTile);
+    document.getElementById('remove-resource-btn').addEventListener('click', removeResourceFromTile);
     document.getElementById('set-origin-btn').addEventListener('click', () => {
         originKey = currentKey;
         renderGrid();
@@ -469,6 +484,7 @@ async function loadWorld() {
         const data = { ...t };
         if (data.type && !data.types) data.types = [data.type];
         delete data.type;
+		data.resources = data.resources || [];
         tileMap[`${t.x}-${t.y}`] = { data };
         if (data.start) originKey = `${t.x}-${t.y}`;
     });
@@ -568,7 +584,7 @@ async function editTile(x, y) {
     if (!entry) {
         const div = document.querySelector(`.map-tile[data-x='${x}'][data-y='${y}']`);
         if (div) div.classList.remove('blank');
-        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [] } };
+        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], resources: [], connections: [] } };
         tileMap[key] = entry;
     }
 
@@ -578,6 +594,7 @@ async function editTile(x, y) {
     entry.data.types = data.types;
     entry.data.background = data.background;
     entry.data.items = data.items;
+	entry.data.resources = data.resources;
     entry.data.connections = data.connections;
     entry.data.modifiers = data.modifiers;
     updateTileVisual(entry, key);
@@ -642,6 +659,15 @@ function displayTile(tile, key = currentKey) {
         li.textContent = item.name || 'Item';
         list.appendChild(li);
     });
+    const resList = document.getElementById('tile-resources');
+    if (resList) {
+        resList.innerHTML = '';
+        (tile.resources || []).forEach(r => {
+            const li = document.createElement('li');
+            li.textContent = r.renewable ? `${r.name} (Renewable)` : `${r.name} (Finite)`;
+            resList.appendChild(li);
+        });
+    }
 }
 
 function regenerateConnections(x, y) {
@@ -712,7 +738,7 @@ async function paintTile(x, y) {
 
     let entry = tileMap[key];
     if (!entry) {
-        entry = { data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [], modifiers: [] } };
+        entry = { data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], resources: [], connections: [], modifiers: [] } };
         tileMap[key] = entry;
     }
 
@@ -872,6 +898,7 @@ function configureConnections(x, y, starterType = '', starterBg = '') {
             types: starterType ? [starterType] : [],
             background: starterBg,
             items: [],
+			resources: [],
             connections: [],
             modifiers: []
         }
@@ -947,7 +974,39 @@ async function removeItemFromTile() {
     if (!name) return;
     entry.data.items = entry.data.items.filter(i => i.name !== name);
     displayTile(entry.data);
-	saveRegion();
+        saveRegion();
+}
+
+async function addResourceToTile() {
+    const entry = tileMap[currentKey];
+    if (!entry) return;
+    const name = await showPrompt('Resource name:');
+    if (!name) return;
+    const renewableStr = await showPrompt('Is it renewable? (yes/no):', 'yes');
+    if (renewableStr === null) return;
+    const amountStr = await showPrompt('Amount:', '0');
+    if (amountStr === null) return;
+    let rate = 0;
+    const renewable = renewableStr.toLowerCase().startsWith('y');
+    if (renewable) {
+        const rateStr = await showPrompt('Regeneration rate:', '0');
+        if (rateStr === null) return;
+        rate = parseInt(rateStr, 10) || 0;
+    }
+    entry.data.resources = entry.data.resources || [];
+    entry.data.resources.push({ name, renewable, amount: parseInt(amountStr, 10) || 0, rate });
+    displayTile(entry.data);
+    saveRegion();
+}
+
+async function removeResourceFromTile() {
+    const entry = tileMap[currentKey];
+    if (!entry || !(entry.data.resources || []).length) return;
+    const name = await showPrompt('Resource name to remove:');
+    if (!name) return;
+    entry.data.resources = entry.data.resources.filter(r => r.name !== name);
+    displayTile(entry.data);
+    saveRegion();
 }
 
 async function goRandom() {

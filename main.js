@@ -27,7 +27,8 @@ function ensureSampleMap(targetMapPath) {
                 const tileData = {
                     name: x === 2 && y === 2 ? 'Start' : `Tile ${x}-${y}`,
                     types: [x === 2 && y === 2 ? 'town' : 'land'],
-                    start: x === 2 && y === 2
+                    start: x === 2 && y === 2,
+                    resources: []
                 };
                 fs.writeFileSync(tileDataPath, JSON.stringify(tileData));
             }
@@ -414,7 +415,7 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                             ? tileData.types
                             : (tileData.type ? [tileData.type] : []);
                         const isStart = !!tileData.start;
-                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], start: isStart });
+                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], resources: tileData.resources || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], start: isStart });
                         if (isStart) {
                             result.start = { x, y };
                         }
@@ -649,8 +650,9 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
                 types: t.types || [],
                 background: t.background || '',
                 items: t.items || [],
+                resources: t.resources || [],
                 connections: t.connections || [],
-				modifiers: t.modifiers || []
+                                modifiers: t.modifiers || []
             };
             if (start && start.x === t.x && start.y === t.y) {
                 data.start = true;
