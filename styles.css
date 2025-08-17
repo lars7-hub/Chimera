@@ -373,7 +373,8 @@ button:hover {
 #mini-map-overlay,
 #connection-overlay,
 #image-picker-overlay,
-#tile-mod-overlay {
+#tile-mod-overlay,
+#tile-item-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -387,7 +388,8 @@ button:hover {
 }
 
 #tile-editor-overlay.hidden,
-#tile-mod-overlay.hidden {
+#tile-mod-overlay.hidden,
+#tile-item-overlay.hidden {
     display: none;
 }
 
@@ -405,6 +407,14 @@ button:hover {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+#tile-item-box {
+	background: #333;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap:10px;
 }
 
 .editor-buttons {
