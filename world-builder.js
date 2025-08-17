@@ -35,16 +35,42 @@ const itemDefs = window.ITEMS || [];
 const itemByKey = {};
 itemDefs.forEach(i => { itemByKey[i.key] = i; });
 
-function openItemsPopup(items) {
+function openTileItemsPopup(groundItems, items) {
     return new Promise(resolve => {
         const overlay = document.getElementById('tile-item-overlay');
         const list = document.getElementById('tile-item-list');
         const addBtn = document.getElementById('tile-item-add');
         const closeBtn = document.getElementById('tile-item-close');
         const form = document.getElementById('tile-item-form');
-		
+
         function render() {
             list.innerHTML = '';
+
+            const gHeader = document.createElement('h4');
+            gHeader.textContent = 'Ground Items';
+            list.appendChild(gHeader);
+            groundItems.forEach((g, gIdx) => {
+                const row = document.createElement('div');
+                const name = document.createElement('input');
+                name.value = g.name || '';
+                name.placeholder = 'Name';
+                name.addEventListener('change', () => { g.name = name.value; });
+                row.appendChild(name);
+                const desc = document.createElement('input');
+                desc.value = g.description || '';
+                desc.placeholder = 'Description';
+                desc.addEventListener('change', () => { g.description = desc.value; });
+                row.appendChild(desc);
+                const del = document.createElement('button');
+                del.textContent = 'X';
+                del.addEventListener('click', () => { groundItems.splice(gIdx,1); render(); });
+                row.appendChild(del);
+                list.appendChild(row);
+            });
+
+            const rHeader = document.createElement('h4');
+            rHeader.textContent = 'Items';
+            list.appendChild(rHeader);
             items.forEach((r, idx) => {
                 const row = document.createElement('div');
                 const def = itemByKey[r.key] || itemDefs[0];
@@ -125,18 +151,28 @@ function openItemsPopup(items) {
             });
         }
 
-        addBtn.onclick = () => {
-            const firstCat = Object.keys(itemCategories)[0];
-            const firstItem = itemCategories[firstCat].items[0];
-            items.push({ key: firstItem.key, name: firstItem.name, category: firstCat, amount: 0, renewable: false });
-            render();
+        addBtn.onclick = async () => {
+            const type = await showPrompt('Item type (ground/item):', 'ground');
+            if (!type) return;
+            if (type.toLowerCase().startsWith('g')) {
+                const name = await showPrompt('Item name:');
+                if (!name) return;
+                const desc = await showPrompt('Item description:', '') || '';
+                groundItems.push({ name, description: desc });
+                render();
+            } else {
+                const firstCat = Object.keys(itemCategories)[0];
+                const firstItem = itemCategories[firstCat].items[0];
+                items.push({ key: firstItem.key, name: firstItem.name, category: firstCat, amount: 0, renewable: false });
+                render();
+            }
         };
         function close() {
             overlay.classList.add('hidden');
             addBtn.onclick = null;
             closeBtn.removeEventListener('click', onSubmit);
             form.removeEventListener('submit', onSubmit);
-            resolve(items);
+            resolve();
         }
         function onSubmit(e) {
             e.preventDefault();
@@ -220,8 +256,6 @@ function openTileEditor(data, x, y) {
     return new Promise(resolve => {
         const overlay = document.getElementById('tile-editor-overlay');
         const nameInput = document.getElementById('tile-name-input');
-        const groundItemsInput = document.getElementById('tile-ground-items-input');
-        const itemBtn = document.getElementById('tile-item-btn');
         const grid = document.getElementById('tile-connection-grid');
         const saveBtn = document.getElementById('tile-save');
         const cancelBtn = document.getElementById('tile-cancel');
@@ -233,7 +267,6 @@ function openTileEditor(data, x, y) {
         const modOverlay = document.getElementById('tile-mod-overlay');
 
         nameInput.value = data.name || '';
-        groundItemsInput.value = (data.groundItems || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
         let items = JSON.parse(JSON.stringify(data.items || []));
 
         let selectedBg = data.background || '';
@@ -257,8 +290,6 @@ function openTileEditor(data, x, y) {
         });
 		
         let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
-        const openItems = () => { openItemsPopup(items); };
-        itemBtn.addEventListener('click', openItems);
         function openModEditor() {
             const modOverlay = document.getElementById('tile-mod-overlay');
             const modList = document.getElementById('tile-mod-list');
@@ -420,14 +451,10 @@ function openTileEditor(data, x, y) {
             cancelBtn.removeEventListener('click', onCancel);
             bgBtn.removeEventListener('click', pickBackground);
             modBtn.removeEventListener('click', openModEditor);
-            itemBtn.removeEventListener('click', openItems);
         }
 
         async function onSave() {
-            const groundItems = groundItemsInput.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
-                const [name, ...desc] = l.split(':');
-                return { name: name.trim(), description: desc.join(':').trim() };
-            });
+            const groundItemsOut = groundItems;
             const itemsOut = items.map(r => ({ key: r.key, name: r.name, category: itemByKey[r.key].category, renewable: !!r.renewable, amount: r.amount || 0 }));
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
@@ -441,7 +468,7 @@ function openTileEditor(data, x, y) {
                 name: nameInput.value,
                 types,
                 background: selectedBg,
-                groundItems,
+                groundItems: groundItemsOut,
                 items: itemsOut,
                 connections,
                 modifiers,
@@ -518,10 +545,7 @@ window.onload = async function () {
         deleteAdjacentTile();
     });
     document.getElementById('refresh-btn').addEventListener('click', renderGrid);
-    document.getElementById('add-ground-item-btn').addEventListener('click', addGroundItemToTile);
-    document.getElementById('remove-ground-item-btn').addEventListener('click', removeGroundItemFromTile);
-    document.getElementById('add-item-btn').addEventListener('click', editTileItems);
-    document.getElementById('remove-item-btn').addEventListener('click', editTileItems);
+    document.getElementById('tile-items-btn').addEventListener('click', editTileItems);
     document.getElementById('set-origin-btn').addEventListener('click', () => {
         originKey = currentKey;
         renderGrid();
@@ -700,7 +724,6 @@ async function editTile(x, y) {
     entry.data.name = data.name;
     entry.data.types = data.types;
     entry.data.background = data.background;
-    entry.data.items = data.items;
     entry.data.groundItems = data.groundItems;
     entry.data.items = data.items;
     entry.data.connections = data.connections;
@@ -1079,32 +1102,12 @@ function deleteAdjacentTile() {
     document.body.appendChild(overlay);
 }
 
-async function addGroundItemToTile() {
-    const entry = tileMap[currentKey];
-    if (!entry) return;
-    const name = await showPrompt('Item name:');
-    if (!name) return;
-    const desc = await showPrompt('Item description:', '') || '';
-    entry.data.groundItems.push({ name, description: desc });
-    displayTile(entry.data);
-        saveRegion();
-}
-
-async function removeGroundItemFromTile() {
-    const entry = tileMap[currentKey];
-    if (!entry || !(entry.data.groundItems || []).length) return;
-    const name = await showPrompt('Item name to remove:');
-    if (!name) return;
-    entry.data.groundItems = entry.data.groundItems.filter(i => i.name !== name);
-    displayTile(entry.data);
-        saveRegion();
-}
-
 async function editTileItems() {
     const entry = tileMap[currentKey];
     if (!entry) return;
     entry.data.items = entry.data.items || [];
-    await openItemsPopup(entry.data.items);
+	entry.data.groundItems = entry.data.groundItems || [];
+    await openTileItemsPopup(entry.data.groundItems, entry.data.items);
     displayTile(entry.data);
     saveRegion();
 }
