@@ -22,6 +22,24 @@ const tileColors = {
     indoors: '#555555'
 };
 
+let editMode = false;
+let gridWidth = 0;
+let gridHeight = 0;
+let tileMap = {};
+let currentKey = '1-1';
+let originKey = '1-1';
+let tileSize = 0;
+let currentWorld = null;
+let showTypeIcons = false;
+let biomePaintMode = false;
+let itemPaintMode = false;
+let biomePanel = null;
+let itemPanel = null;
+let isPainting = false;
+let lastKey = null;
+const tileGap = 1;
+let minX = 1, minY = 1, maxX = 0, maxY = 0;
+
 const tileModPresets = {
     Village: {
         name: 'Village',
@@ -151,23 +169,6 @@ function openTileItemsPopup(items) {
     });
 }
 
-let editMode = false;
-let gridWidth = 0;
-let gridHeight = 0;
-let tileMap = {};
-let currentKey = '1-1';
-let originKey = '1-1';
-let tileSize = 0;
-let currentWorld = null;
-let showTypeIcons = false;
-let biomePaintMode = false;
-let itemPaintMode = false;
-let biomePanel = null;
-let itemPanel = null;
-let isPainting = false;
-let lastKey = null;
-const tileGap = 4;
-let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
 function keyToCoords(key) {
 	const idx = key.indexOf('-', 1);
@@ -1030,69 +1031,58 @@ function drawDirectionArrows() {
     const baseX = (cx - minX) * (tileSize + tileGap);
     const baseY = (cy - minY) * (tileSize + tileGap);
     const size = Math.floor(tileSize * 0.3);
-    if (dirs.up) {
+
+    function placeArrow(symbol, colorClass, left, top) {
         const arrow = document.createElement('div');
-        arrow.textContent = '▲';
-        arrow.className = `direction-arrow ${dirs.up.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX + tileSize / 2 - size / 2}px`;
-        arrow.style.top = `${baseY - size / 2}px`;
+        arrow.textContent = symbol;
+        arrow.className = `direction-arrow ${colorClass}`;
+        arrow.style.width = `${size}px`;
+        arrow.style.height = `${size}px`;
+        arrow.style.fontSize = `${size}px`;
+        arrow.style.left = `${left}px`;
+        arrow.style.top = `${top}px`;
         mapGrid.appendChild(arrow);
+    }
+
+    if (dirs.up) {
+        placeArrow('↑', dirs.up.dist > 1 ? 'blue' : 'yellow',
+            baseX + tileSize / 2 - size / 2,
+            baseY - size / 2);
     }
     if (dirs.down) {
-        const arrow = document.createElement('div');
-        arrow.textContent = '▼';
-        arrow.className = `direction-arrow ${dirs.down.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX + tileSize / 2 - size / 2}px`;
-        arrow.style.top = `${baseY + tileSize - size / 2}px`;
-        mapGrid.appendChild(arrow);
+        placeArrow('↓', dirs.down.dist > 1 ? 'blue' : 'yellow',
+            baseX + tileSize / 2 - size / 2,
+            baseY + tileSize - size / 2);
     }
     if (dirs.left) {
-        const arrow = document.createElement('div');
-        arrow.textContent = '◀';
-        arrow.className = `direction-arrow ${dirs.left.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX - size / 2}px`;
-        arrow.style.top = `${baseY + tileSize / 2 - size / 2}px`;
-        mapGrid.appendChild(arrow);
+        placeArrow('←', dirs.left.dist > 1 ? 'blue' : 'yellow',
+            baseX - size / 2,
+            baseY + tileSize / 2 - size / 2);
     }
     if (dirs.right) {
-        const arrow = document.createElement('div');
-        arrow.textContent = '▶';
-        arrow.className = `direction-arrow ${dirs.right.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX + tileSize - size / 2}px`;
-        arrow.style.top = `${baseY + tileSize / 2 - size / 2}px`;
-        mapGrid.appendChild(arrow);
+        placeArrow('→', dirs.right.dist > 1 ? 'blue' : 'yellow',
+            baseX + tileSize - size / 2,
+            baseY + tileSize / 2 - size / 2);
     }
     if (dirs.upLeft) {
-        const arrow = document.createElement('div');
-        arrow.textContent = '↖';
-        arrow.className = `direction-arrow ${dirs.upLeft.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX - size / 2}px`;
-        arrow.style.top = `${baseY - size / 2}px`;
-        mapGrid.appendChild(arrow);
+        placeArrow('↖', dirs.upLeft.dist > 1 ? 'blue' : 'yellow',
+            baseX - size / 2,
+            baseY - size / 2);
     }
     if (dirs.upRight) {
-        const arrow = document.createElement('div');
-        arrow.textContent = '↗';
-        arrow.className = `direction-arrow ${dirs.upRight.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX + tileSize - size / 2}px`;
-        arrow.style.top = `${baseY - size / 2}px`;
-        mapGrid.appendChild(arrow);
+        placeArrow('↗', dirs.upRight.dist > 1 ? 'blue' : 'yellow',
+            baseX + tileSize - size / 2,
+            baseY - size / 2);
     }
     if (dirs.downLeft) {
-        const arrow = document.createElement('div');
-        arrow.textContent = '↙';
-        arrow.className = `direction-arrow ${dirs.downLeft.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX - size / 2}px`;
-        arrow.style.top = `${baseY + tileSize - size / 2}px`;
-        mapGrid.appendChild(arrow);
+        placeArrow('↙', dirs.downLeft.dist > 1 ? 'blue' : 'yellow',
+            baseX - size / 2,
+            baseY + tileSize - size / 2);
     }
     if (dirs.downRight) {
-        const arrow = document.createElement('div');
-        arrow.textContent = '↘';
-        arrow.className = `direction-arrow ${dirs.downRight.dist > 1 ? 'blue' : 'yellow'}`;
-        arrow.style.left = `${baseX + tileSize - size / 2}px`;
-        arrow.style.top = `${baseY + tileSize - size / 2}px`;
-        mapGrid.appendChild(arrow);
+        placeArrow('↘', dirs.downRight.dist > 1 ? 'blue' : 'yellow',
+            baseX + tileSize - size / 2,
+            baseY + tileSize - size / 2);
     }
 }
 

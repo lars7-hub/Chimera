@@ -500,9 +500,11 @@ button:hover {
 
 .direction-arrow {
     position: absolute;
-    font-size: 24px;
     pointer-events: none;
     z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .direction-arrow.yellow {
