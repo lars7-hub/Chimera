@@ -35,6 +35,8 @@
                     <button id="tile-items-btn">Tile Items</button>
                     <button id="set-origin-btn">Set Origin</button>
                     <button id="toggle-icons-btn">Show Type Icons</button>
+                    <button id="biome-painter-btn">Biome Painter</button>
+                    <button id="item-painter-btn">Item Painter</button>
                 </div>
             </div>
             <div id="right-column">
@@ -43,30 +45,8 @@
                     <p id="tile-coords"></p>
                     <p id="tile-type"></p>
                     <div>
-                        <h4>Ground Items</h4>
-                        <ul id="tile-ground-items"></ul>
-                    </div>
-                    <div>
-                        <h4>Resources</h4>
+                        <h4>Items</h4>
                         <ul id="tile-items"></ul>
-                    </div>
-                </div>
-                <div id="paint-panel" class="hidden">
-                    <button id="paint-toggle">Paint Mode: Off</button>
-                    <div id="paint-options">
-                        <div>
-                            <label><input type="checkbox" id="paint-biome-enable">Biome</label>
-                            <select id="paint-biome-select"></select>
-                        </div>
-                        <div>
-                            <label><input type="checkbox" id="paint-name-enable">Regenerate Name</label>
-                        </div>
-                        <div>
-                            <label><input type="checkbox" id="paint-clear-enable">Clear Tile</label>
-                        </div>
-                        <div>
-                            <label><input type="checkbox" id="paint-conn-enable">Regenerate Connections</label>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -130,6 +110,52 @@
                         <button id="tile-item-close" type="submit">Done</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <div id="biome-paint-panel" class="painter-popup hidden">
+            <button id="biome-paint-toggle">Paint Mode: Off</button>
+            <div id="biome-paint-options">
+                <div>
+                    <label><input type="checkbox" id="paint-biome-enable">Biome</label>
+                    <select id="paint-biome-select"></select>
+                </div>
+                <div>
+                    <label><input type="checkbox" id="paint-name-enable">Regenerate Name</label>
+                </div>
+                <div>
+                    <label><input type="checkbox" id="paint-clear-enable">Clear Tile</label>
+                </div>
+                <div>
+                    <label><input type="checkbox" id="paint-conn-enable">Regenerate Connections</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="item-paint-panel" class="painter-popup hidden">
+            <button id="item-paint-toggle">Item Paint Mode: Off</button>
+            <div id="item-paint-options">
+                <div>
+                    <label>Category:
+                        <select id="item-paint-category"></select>
+                    </label>
+                </div>
+                <div>
+                    <label>Item:
+                        <select id="item-paint-item"></select>
+                    </label>
+                </div>
+                <div>
+                    <label>Quantity:
+                        <input type="number" id="item-paint-quantity" value="0" />
+                    </label>
+                </div>
+                <div>
+                    <label><input type="checkbox" id="item-paint-renewable">Renewable</label>
+                </div>
+                <div>
+                    <label><input type="checkbox" id="item-paint-clear">Clear Items</label>
+                </div>
             </div>
         </div>
     </div>

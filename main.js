@@ -28,7 +28,6 @@ function ensureSampleMap(targetMapPath) {
                     name: x === 2 && y === 2 ? 'Start' : `Tile ${x}-${y}`,
                     types: [x === 2 && y === 2 ? 'town' : 'land'],
                     start: x === 2 && y === 2,
-                    groundItems: [],
 					items: [],
                 };
                 fs.writeFileSync(tileDataPath, JSON.stringify(tileData));
@@ -408,7 +407,7 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                         const x = parseInt(match[1]);
                         const y = parseInt(match[2]);
                         const tileDataPath = path.join(tileDir, 'tile.json');
-                        let tileData = { name: '', types: [], background: '', groundItems: [], items: [], connections: [] };
+                        let tileData = { name: '', types: [], background: '', items: [], connections: [] };
                         if (fs.existsSync(tileDataPath)) {
                             tileData = JSON.parse(fs.readFileSync(tileDataPath, 'utf-8'));
                         }
@@ -416,7 +415,7 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                             ? tileData.types
                             : (tileData.type ? [tileData.type] : []);
                         const isStart = !!tileData.start;
-                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || [], groundItems: tileData.groundItems || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], start: isStart });
+                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], start: isStart });
                         if (isStart) {
                             result.start = { x, y };
                         }
@@ -650,11 +649,10 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
                 name: t.name || '',
                 types: t.types || [],
                 background: t.background || '',
-                groundItems: t.groundItems || [],
                 items: t.items || [],
                 resources: t.resources || [],
                 connections: t.connections || [],
-                                modifiers: t.modifiers || []
+                modifiers: t.modifiers || []
             };
             if (start && start.x === t.x && start.y === t.y) {
                 data.start = true;

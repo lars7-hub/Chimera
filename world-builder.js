@@ -35,7 +35,7 @@ const itemDefs = window.ITEMS || [];
 const itemByKey = {};
 itemDefs.forEach(i => { itemByKey[i.key] = i; });
 
-function openTileItemsPopup(groundItems, items) {
+function openTileItemsPopup(items) {
     return new Promise(resolve => {
         const overlay = document.getElementById('tile-item-overlay');
         const list = document.getElementById('tile-item-list');
@@ -45,32 +45,6 @@ function openTileItemsPopup(groundItems, items) {
 
         function render() {
             list.innerHTML = '';
-
-            const gHeader = document.createElement('h4');
-            gHeader.textContent = 'Ground Items';
-            list.appendChild(gHeader);
-            groundItems.forEach((g, gIdx) => {
-                const row = document.createElement('div');
-                const name = document.createElement('input');
-                name.value = g.name || '';
-                name.placeholder = 'Name';
-                name.addEventListener('change', () => { g.name = name.value; });
-                row.appendChild(name);
-                const desc = document.createElement('input');
-                desc.value = g.description || '';
-                desc.placeholder = 'Description';
-                desc.addEventListener('change', () => { g.description = desc.value; });
-                row.appendChild(desc);
-                const del = document.createElement('button');
-                del.textContent = 'X';
-                del.addEventListener('click', () => { groundItems.splice(gIdx,1); render(); });
-                row.appendChild(del);
-                list.appendChild(row);
-            });
-
-            const rHeader = document.createElement('h4');
-            rHeader.textContent = 'Items';
-            list.appendChild(rHeader);
             items.forEach((r, idx) => {
                 const row = document.createElement('div');
                 const def = itemByKey[r.key] || itemDefs[0];
@@ -152,20 +126,12 @@ function openTileItemsPopup(groundItems, items) {
         }
 
         addBtn.onclick = async () => {
-            const type = await showPrompt('Item type (ground/item):', 'ground');
-            if (!type) return;
-            if (type.toLowerCase().startsWith('g')) {
-                const name = await showPrompt('Item name:');
-                if (!name) return;
-                const desc = await showPrompt('Item description:', '') || '';
-                groundItems.push({ name, description: desc });
-                render();
-            } else {
-                const firstCat = Object.keys(itemCategories)[0];
-                const firstItem = itemCategories[firstCat].items[0];
-                items.push({ key: firstItem.key, name: firstItem.name, category: firstCat, amount: 0, renewable: false });
-                render();
-            }
+			const firstCat = Object.keys(itemCategories)[0];
+			const firstItem = itemCategories[firstCat].items[0];
+			if (firstItem) {
+				items.push({ key: firstItem.key, name: firstItem.name, category: firstCat, amount: 0, renewable: false});
+				render();
+			}
         };
         function close() {
             overlay.classList.add('hidden');
@@ -194,8 +160,10 @@ let originKey = '1-1';
 let tileSize = 0;
 let currentWorld = null;
 let showTypeIcons = false;
-let paintMode = false;
-let paintPanel = null;
+let biomePaintMode = false;
+let itemPaintMode = false;
+let biomePanel = null;
+let itemPanel = null;
 const tileGap = 4;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
@@ -216,7 +184,8 @@ function startWorldEditing(name) {
     if (menu) menu.remove();
     const editor = document.getElementById('editor-container');
     if (editor) editor.classList.remove('hidden');
-	if (paintPanel) paintPanel.classList.add('hidden');
+	if (biomePanel) biomePanel.classList.add('hidden');
+	if (itemPanel) itemPanel.classList.add('hidden');
 }
 
 async function showPrompt(message, defaultValue = '') {
@@ -454,7 +423,6 @@ function openTileEditor(data, x, y) {
         }
 
         async function onSave() {
-            const groundItemsOut = groundItems;
             const itemsOut = items.map(r => ({ key: r.key, name: r.name, category: itemByKey[r.key].category, renewable: !!r.renewable, amount: r.amount || 0 }));
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
@@ -468,7 +436,6 @@ function openTileEditor(data, x, y) {
                 name: nameInput.value,
                 types,
                 background: selectedBg,
-                groundItems: groundItemsOut,
                 items: itemsOut,
                 connections,
                 modifiers,
@@ -557,18 +524,74 @@ window.onload = async function () {
         renderGrid();
     });
 
-    paintPanel = document.getElementById('paint-panel');
-    const paintToggle = document.getElementById('paint-toggle');
-    const paintBiomeSelect = document.getElementById('paint-biome-select');
+    biomePanel = document.getElementById('biome-paint-panel');
+    itemPanel = document.getElementById('item-paint-panel');
+
+    const biomeToggle = document.getElementById('biome-paint-toggle');
+    const biomeSelect = document.getElementById('paint-biome-select');
     tileTypes.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
-        paintBiomeSelect.appendChild(opt);
+        biomeSelect.appendChild(opt);
     });
-    paintToggle.addEventListener('click', () => {
-        paintMode = !paintMode;
-        paintToggle.textContent = paintMode ? 'Paint Mode: On' : 'Paint Mode: Off';
+    biomeToggle.addEventListener('click', () => {
+        biomePaintMode = !biomePaintMode;
+        biomeToggle.textContent = biomePaintMode ? 'Paint Mode: On' : 'Paint Mode: Off';
+    });
+
+    const itemToggle = document.getElementById('item-paint-toggle');
+    const itemCat = document.getElementById('item-paint-category');
+    const itemSel = document.getElementById('item-paint-item');
+    function populateItemSelect(cat) {
+        itemSel.innerHTML = '';
+        (itemCategories[cat].items || []).forEach(it => {
+            const opt = document.createElement('option');
+            opt.value = it.key;
+            opt.textContent = it.name;
+            itemSel.appendChild(opt);
+        });
+    }
+    Object.entries(itemCategories).forEach(([k, v]) => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = v.name;
+        itemCat.appendChild(opt);
+    });
+    itemCat.addEventListener('change', () => { populateItemSelect(itemCat.value); });
+    populateItemSelect(Object.keys(itemCategories)[0]);
+    itemToggle.addEventListener('click', () => {
+        itemPaintMode = !itemPaintMode;
+        itemToggle.textContent = itemPaintMode ? 'Item Paint Mode: On' : 'Item Paint Mode: Off';
+    });
+
+    const biomeBtn = document.getElementById('biome-painter-btn');
+    const itemBtn = document.getElementById('item-painter-btn');
+    biomeBtn.addEventListener('click', () => {
+        const hidden = biomePanel.classList.contains('hidden');
+        if (hidden) {
+            biomePanel.classList.remove('hidden');
+            itemPanel.classList.add('hidden');
+            itemPaintMode = false;
+            itemToggle.textContent = 'Item Paint Mode: Off';
+        } else {
+            biomePanel.classList.add('hidden');
+            biomePaintMode = false;
+            biomeToggle.textContent = 'Paint Mode: Off';
+        }
+    });
+    itemBtn.addEventListener('click', () => {
+        const hidden = itemPanel.classList.contains('hidden');
+        if (hidden) {
+            itemPanel.classList.remove('hidden');
+            biomePanel.classList.add('hidden');
+            biomePaintMode = false;
+            biomeToggle.textContent = 'Paint Mode: Off';
+        } else {
+            itemPanel.classList.add('hidden');
+            itemPaintMode = false;
+            itemToggle.textContent = 'Item Paint Mode: Off';
+        }
     });
 
     document.getElementById('map-module').addEventListener('click', async (e) => {
@@ -576,8 +599,12 @@ window.onload = async function () {
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
         const key = `${x}-${y}`;
-        if (paintMode) {
+        if (biomePaintMode) {
             await paintTile(x, y);
+            return;
+        }
+        if (itemPaintMode) {
+            await paintItem(x, y);
             return;
         }
         if (editMode) {
@@ -621,7 +648,8 @@ async function loadWorld() {
     currentKey = originKey;
     updateBounds();
     renderGrid();
-    if (paintPanel) paintPanel.classList.remove('hidden');
+    if (biomePanel) biomePanel.classList.add('hidden');
+    if (itemPanel) itemPanel.classList.add('hidden');
 }
 
 function renderGrid() {
@@ -715,7 +743,7 @@ async function editTile(x, y) {
     if (!entry) {
         const div = document.querySelector(`.map-tile[data-x='${x}'][data-y='${y}']`);
         if (div) div.classList.remove('blank');
-        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', groundItems: [], items: [], connections: [] } };
+        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [] } };
         tileMap[key] = entry;
     }
 
@@ -724,7 +752,6 @@ async function editTile(x, y) {
     entry.data.name = data.name;
     entry.data.types = data.types;
     entry.data.background = data.background;
-    entry.data.groundItems = data.groundItems;
     entry.data.items = data.items;
     entry.data.connections = data.connections;
     entry.data.modifiers = data.modifiers;
@@ -783,13 +810,6 @@ function displayTile(tile, key = currentKey) {
     document.getElementById('tile-coords').textContent = `Coordinates: ${x}, ${y}`;
     const types = tile.types || (tile.type ? [tile.type] : []);
     document.getElementById('tile-type').textContent = types.length ? `Type: ${types.join(', ')}` : '';
-    const list = document.getElementById('tile-ground-items');
-    list.innerHTML = '';
-    (tile.groundItems || []).forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = item.name || 'Item';
-        list.appendChild(li);
-    });
     const itemList = document.getElementById('tile-items');
     if (itemList) {
         itemList.innerHTML = '';
@@ -865,7 +885,6 @@ async function paintTile(x, y) {
                     name: `Tile ${x}-${y}`,
                     types: [],
                     background: '',
-                    groundItems: [],
                     items: [],
                     connections: [],
                     modifiers: []
@@ -909,6 +928,52 @@ async function paintTile(x, y) {
     }
 
     renderGrid();
+    saveRegion();
+}
+
+async function paintItem(x, y) {
+    const key = `${x}-${y}`;
+
+    function ensureEntry() {
+        if (!tileMap[key]) {
+            tileMap[key] = {
+                data: {
+                    name: `Tile ${x}-${y}`,
+                    types: [],
+                    background: '',
+                    items: [],
+                    connections: [],
+                    modifiers: []
+                }
+            };
+        }
+        return tileMap[key];
+    }
+
+    const clearChecked = document.getElementById('item-paint-clear').checked;
+    const entry = ensureEntry();
+    if (clearChecked) {
+        entry.data.items = [];
+    } else {
+        const keySel = document.getElementById('item-paint-item').value;
+        const qty = parseInt(document.getElementById('item-paint-quantity').value, 10) || 0;
+        const renewable = document.getElementById('item-paint-renewable').checked;
+        const def = itemByKey[keySel];
+        if (def) {
+            entry.data.items = entry.data.items || [];
+            const existing = entry.data.items.find(i => i.key === keySel);
+            if (existing) {
+                existing.amount = qty;
+                existing.renewable = renewable;
+                existing.name = def.name;
+                existing.category = def.category;
+            } else {
+                entry.data.items.push({ key: def.key, name: def.name, category: def.category, amount: qty, renewable });
+            }
+        }
+    }
+    updateTileVisual(entry, key);
+    displayTile(entry.data, key);
     saveRegion();
 }
 
@@ -1043,7 +1108,6 @@ function configureConnections(x, y, starterType = '', starterBg = '') {
             name: `Tile ${x}-${y}`,
             types: starterType ? [starterType] : [],
             background: starterBg,
-            groundItems: [],
             items: [],
             connections: [],
             modifiers: []
@@ -1106,8 +1170,7 @@ async function editTileItems() {
     const entry = tileMap[currentKey];
     if (!entry) return;
     entry.data.items = entry.data.items || [];
-	entry.data.groundItems = entry.data.groundItems || [];
-    await openTileItemsPopup(entry.data.groundItems, entry.data.items);
+    await openTileItemsPopup(entry.data.items);
     displayTile(entry.data);
     saveRegion();
 }
