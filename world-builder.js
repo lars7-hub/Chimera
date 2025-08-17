@@ -46,7 +46,6 @@ let tileSize = 0;
 let currentWorld = null;
 let showTypeIcons = false;
 let paintMode = false;
-let activePaintTab = 'basic';
 let paintPanel = null;
 const tileGap = 4;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
@@ -484,71 +483,12 @@ window.onload = async function () {
 
     paintPanel = document.getElementById('paint-panel');
     const paintToggle = document.getElementById('paint-toggle');
-    const paintTabs = Array.from(document.querySelectorAll('.paint-tab-btn'));
-    const paintTabContents = {
-        basic: document.getElementById('paint-tab-basic'),
-        mod: document.getElementById('paint-tab-mod'),
-        res: document.getElementById('paint-tab-res')
-    };
-    paintTabs.forEach(btn => {
-        btn.addEventListener('click', () => {
-            activePaintTab = btn.dataset.tab;
-            paintTabs.forEach(b => b.classList.toggle('active', b === btn));
-            Object.entries(paintTabContents).forEach(([key, el]) => {
-                el.classList.toggle('hidden', key !== activePaintTab);
-            });
-        });
-    });
     const paintBiomeSelect = document.getElementById('paint-biome-select');
     tileTypes.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
         paintBiomeSelect.appendChild(opt);
-    });
-    const paintModSelect = document.getElementById('paint-mod-select');
-    Object.entries(tileModPresets).forEach(([key, p]) => {
-        const opt = document.createElement('option');
-        opt.value = key;
-        opt.textContent = p.name;
-        paintModSelect.appendChild(opt);
-    });
-    document.querySelectorAll('input[name="paint-mod-mode"]').forEach(r => {
-        r.addEventListener('change', () => {
-            const sel = document.getElementById('paint-mod-select');
-            if (r.value === 'clear' && r.checked) sel.classList.add('hidden');
-            else if (r.checked) sel.classList.remove('hidden');
-        });
-    });
-    const paintResCategory = document.getElementById('paint-res-category');
-    const paintResSelect = document.getElementById('paint-res-select');
-    function updateResOptions() {
-        const type = paintResCategory.value;
-        const info = resourceTypeCategories[type];
-        paintResSelect.innerHTML = '';
-        if (info) {
-            info.resources.forEach(r => {
-                const opt = document.createElement('option');
-                opt.value = r.key;
-                opt.textContent = r.name;
-                paintResSelect.appendChild(opt);
-            });
-        }
-    }
-    Object.entries(resourceTypeCategories).forEach(([key, info]) => {
-        const opt = document.createElement('option');
-        opt.value = key;
-        opt.textContent = info.name;
-        paintResCategory.appendChild(opt);
-    });
-    paintResCategory.addEventListener('change', updateResOptions);
-    updateResOptions();
-    document.querySelectorAll('input[name="paint-res-mode"]').forEach(r => {
-        r.addEventListener('change', () => {
-            const extra = document.getElementById('paint-res-extra');
-            if (r.value === 'clear' && r.checked) extra.classList.add('hidden');
-            else if (r.checked) extra.classList.remove('hidden');
-        });
     });
     paintToggle.addEventListener('click', () => {
         paintMode = !paintMode;
@@ -859,88 +799,37 @@ async function paintTile(x, y) {
         return tileMap[key];
     }
 
-    switch (activePaintTab) {
-        case 'basic': {
-            const biomeChecked = document.getElementById('paint-biome-enable').checked;
-            const nameChecked = document.getElementById('paint-name-enable').checked;
-            const clearChecked = document.getElementById('paint-clear-enable').checked;
-            const connChecked = document.getElementById('paint-conn-enable').checked;
+    const biomeChecked = document.getElementById('paint-biome-enable').checked;
+    const nameChecked = document.getElementById('paint-name-enable').checked;
+    const clearChecked = document.getElementById('paint-clear-enable').checked;
+    const connChecked = document.getElementById('paint-conn-enable').checked;
 
-            if (clearChecked) {
-                if (tileMap[key]) {
-                    delete tileMap[key];
-                    Object.values(tileMap).forEach(e => {
-                        e.data.connections = (e.data.connections || []).filter(c => c !== key);
-                    });
-                }
-                renderGrid();
-                saveRegion();
-                return;
-            }
+    if (clearChecked) {
+        if (tileMap[key]) {
+            delete tileMap[key];
+            Object.values(tileMap).forEach(e => {
+                e.data.connections = (e.data.connections || []).filter(c => c !== key);
+            });
+        }
+        renderGrid();
+        saveRegion();
+        return;
+    }
 
-            const entry = ensureEntry();
-            if (nameChecked) {
-                entry.data.name = `Tile ${x}-${y}`;
-            }
-            if (biomeChecked) {
-                const t = document.getElementById('paint-biome-select').value;
-                if (t) {
-                    entry.data.types = [t];
-                    const bg = await window.electron.getRandomTileImage(t);
-                    if (bg) entry.data.background = bg;
-                }
-            }
-            if (connChecked) {
-                regenerateConnections(x, y);
-            }
-            break;
+    const entry = ensureEntry();
+    if (nameChecked) {
+        entry.data.name = `Tile ${x}-${y}`;
+    }
+    if (biomeChecked) {
+        const t = document.getElementById('paint-biome-select').value;
+        if (t) {
+            entry.data.types = [t];
+            const bg = await window.electron.getRandomTileImage(t);
+            if (bg) entry.data.background = bg;
         }
-        case 'mod': {
-            const modEnabled = document.getElementById('paint-mod-enable').checked;
-            if (modEnabled) {
-                const modeEl = document.querySelector('input[name="paint-mod-mode"]:checked');
-                const mode = modeEl ? modeEl.value : 'add';
-                const entry = ensureEntry();
-                if (mode === 'clear') {
-                    entry.data.modifiers = [];
-                } else {
-                    const keySel = document.getElementById('paint-mod-select').value;
-                    const preset = tileModPresets[keySel];
-                    if (preset) {
-                        entry.data.modifiers = entry.data.modifiers || [];
-                        entry.data.modifiers.push({ ...preset });
-                    }
-                }
-            }
-            break;
-        }
-        case 'res': {
-            const resEnabled = document.getElementById('paint-res-enable').checked;
-            if (resEnabled) {
-                const modeEl = document.querySelector('input[name="paint-res-mode"]:checked');
-                const mode = modeEl ? modeEl.value : 'add';
-                const entry = ensureEntry();
-                if (mode === 'clear') {
-                    entry.data.resources = [];
-                } else {
-                    const resKey = document.getElementById('paint-res-select').value;
-                    const amt = parseInt(document.getElementById('paint-res-amount').value, 10) || 0;
-                    const def = resourceByKey[resKey];
-                    if (def) {
-                        entry.data.resources = entry.data.resources || [];
-                        let r = entry.data.resources.find(rr => rr.key === resKey);
-                        if (!r) {
-                            r = { key: def.key, name: def.name, type: def.type, amount: 0 };
-                            entry.data.resources.push(r);
-                        }
-                        r.amount += amt;
-                    }
-                }
-            }
-            break;
-        }
-        default:
-            return;
+    }
+    if (connChecked) {
+        regenerateConnections(x, y);
     }
 
     renderGrid();
