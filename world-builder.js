@@ -31,7 +31,6 @@ const tileModPresets = {
 };
 
 const itemDefs = window.ITEMS || [];
-const itemCategories = window.ITEM_CATEGORIES || [];
 
 const itemByKey = {};
 itemDefs.forEach(i => { itemByKey[i.key] = i; });
@@ -42,7 +41,8 @@ function openItemsPopup(items) {
         const list = document.getElementById('tile-item-list');
         const addBtn = document.getElementById('tile-item-add');
         const closeBtn = document.getElementById('tile-item-close');
-
+        const form = document.getElementById('tile-item-form');
+		
         function render() {
             list.innerHTML = '';
             items.forEach((r, idx) => {
@@ -134,10 +134,16 @@ function openItemsPopup(items) {
         function close() {
             overlay.classList.add('hidden');
             addBtn.onclick = null;
-            closeBtn.onclick = null;
+            closeBtn.removeEventListener('click', onSubmit);
+            form.removeEventListener('submit', onSubmit);
             resolve(items);
         }
-        closeBtn.onclick = close;
+        function onSubmit(e) {
+            e.preventDefault();
+            close();
+        }
+        form.addEventListener('submit', onSubmit);
+        closeBtn.addEventListener('click', onSubmit);
         render();
         overlay.classList.remove('hidden');
     });
@@ -514,8 +520,8 @@ window.onload = async function () {
     document.getElementById('refresh-btn').addEventListener('click', renderGrid);
     document.getElementById('add-ground-item-btn').addEventListener('click', addGroundItemToTile);
     document.getElementById('remove-ground-item-btn').addEventListener('click', removeGroundItemFromTile);
-    document.getElementById('add-item-btn').addEventListener('click', addItemToTile);
-    document.getElementById('remove-item-btn').addEventListener('click', removeItemFromTile);
+    document.getElementById('add-item-btn').addEventListener('click', editTileItems);
+    document.getElementById('remove-item-btn').addEventListener('click', editTileItems);
     document.getElementById('set-origin-btn').addEventListener('click', () => {
         originKey = currentKey;
         renderGrid();
@@ -1094,17 +1100,13 @@ async function removeGroundItemFromTile() {
         saveRegion();
 }
 
-async function addItemToTile() {
+async function editTileItems() {
     const entry = tileMap[currentKey];
     if (!entry) return;
     entry.data.items = entry.data.items || [];
     await openItemsPopup(entry.data.items);
     displayTile(entry.data);
     saveRegion();
-}
-
-async function removeItemFromTile() {
-    await addItemToTile();
 }
 
 async function goRandom() {

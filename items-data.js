@@ -30,7 +30,7 @@ const itemCategories = {
       { key: 'herbs', name: 'Herbs', icon: 'herbs.png' },
       { key: 'fur', name: 'Fur', icon: 'fur.png' },
       { key: 'leather', name: 'Leather', icon: 'leather.png' },
-      { key: 'bone', name: 'Bone', icon: 'bone.png' }
+      { key: 'bone', name: 'Bone', icon: 'bone.png' },
       { key: 'fish', name: 'Fish', icon: 'fish.png' },
       { key: 'meat', name: 'Meat', icon: 'meat.png' },
       { key: 'grain', name: 'Grain', icon: 'grain.png' }
