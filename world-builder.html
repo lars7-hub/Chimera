@@ -80,7 +80,13 @@
                 <div id="tile-connections-container">
                     <p>Select which tiles connect to this tile:</p>
                     <button id="one-way-toggle">One-Way Mode: Off</button>
-                    <div id="tile-connection-grid" class="mini-map-grid"></div>
+                    <div id="tile-connection-wrapper">
+                        <div id="tile-connection-grid" class="mini-map-grid"></div>
+                        <div id="manual-connection-container">
+                            <div id="manual-connection-list"></div>
+                            <button id="manual-connection-add">Add Connection</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="editor-buttons">
                     <button id="tile-save">Save</button>

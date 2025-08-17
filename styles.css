@@ -477,6 +477,42 @@ button:hover {
     gap: 5px;
 }
 
+#tile-connection-wrapper {
+    display: flex;
+    gap: 10px;
+}
+
+#manual-connection-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.manual-connection-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.manual-connection-row input {
+    width: 40px;
+}
+
+.direction-arrow {
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.direction-arrow.yellow {
+    color: yellow;
+}
+
+.direction-arrow.blue {
+    color: blue;
+}
+
 .mini-map-container {
     background: #333;
     padding: 20px;

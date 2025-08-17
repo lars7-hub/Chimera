@@ -262,6 +262,8 @@ function openTileEditor(data, x, y) {
         const modBtn = document.getElementById('tile-mod-btn');
         const modOverlay = document.getElementById('tile-mod-overlay');
         const stickerBtn = document.getElementById('tile-sticker-btn');
+        const manualList = document.getElementById('manual-connection-list');
+        const manualAddBtn = document.getElementById('manual-connection-add');
 
         nameInput.value = data.name || '';
         let items = JSON.parse(JSON.stringify(data.items || []));
@@ -288,6 +290,15 @@ function openTileEditor(data, x, y) {
 		
         let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
         let stickers = JSON.parse(JSON.stringify(data.stickers || []));
+        let farConnections = (data.connections || [])
+            .filter(k => {
+                const [nx, ny] = keyToCoords(k);
+                return Math.abs(nx - x) > 1 || Math.abs(ny - y) > 1;
+            })
+            .map(k => {
+                const [nx, ny] = keyToCoords(k);
+                return { x: nx, y: ny };
+            });
         function openModEditor() {
             const modOverlay = document.getElementById('tile-mod-overlay');
             const modList = document.getElementById('tile-mod-list');
@@ -372,6 +383,34 @@ function openTileEditor(data, x, y) {
             over.classList.remove('hidden');
         }
         stickerBtn.addEventListener('click', openStickerEditor);
+
+        function renderManualConnections() {
+            manualList.innerHTML = '';
+            farConnections.forEach((c, idx) => {
+                const row = document.createElement('div');
+                row.className = 'manual-connection-row';
+                const xInput = document.createElement('input');
+                xInput.type = 'number';
+                xInput.value = c.x;
+                xInput.addEventListener('change', () => { c.x = parseInt(xInput.value, 10) || 0; });
+                const yInput = document.createElement('input');
+                yInput.type = 'number';
+                yInput.value = c.y;
+                yInput.addEventListener('change', () => { c.y = parseInt(yInput.value, 10) || 0; });
+                const del = document.createElement('button');
+                del.textContent = 'X';
+                del.addEventListener('click', () => { farConnections.splice(idx,1); renderManualConnections(); });
+                row.appendChild(xInput);
+                row.appendChild(yInput);
+                row.appendChild(del);
+                manualList.appendChild(row);
+            });
+        }
+        manualAddBtn.onclick = () => {
+            farConnections.push({ x: x + 2, y: y });
+            renderManualConnections();
+        };
+        renderManualConnections();
 
         grid.innerHTML = '';
         const connectionState = {};
@@ -488,11 +527,16 @@ function openTileEditor(data, x, y) {
             bgBtn.removeEventListener('click', pickBackground);
             modBtn.removeEventListener('click', openModEditor);
             stickerBtn.removeEventListener('click', openStickerEditor);
+            manualAddBtn.onclick = null;
         }
 
         async function onSave() {
             const itemsOut = items.map(r => ({ key: r.key, name: r.name, category: itemByKey[r.key].category, renewable: !!r.renewable, amount: r.amount || 0 }));
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
+            farConnections.forEach(c => {
+                const key = `${c.x}-${c.y}`;
+                if (!connections.includes(key)) connections.push(key);
+            });
             const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
             if (!selectedBg && types.length > 0) {
                 const randomBg = await window.electron.getRandomTileImage(types[0]);
@@ -726,6 +770,19 @@ window.onload = async function () {
         isPainting = false;
         lastKey = null;
     });
+    window.addEventListener('keydown', (e) => {
+        if (!document.getElementById('tile-editor-overlay').classList.contains('hidden')) return;
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+        let dir = null;
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') dir = 'up';
+        else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') dir = 'down';
+        else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') dir = 'left';
+        else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dir = 'right';
+        if (dir) {
+            e.preventDefault();
+            moveDirection(dir);
+        }
+    });
     window.addEventListener('resize', renderGrid);
 };
 
@@ -851,6 +908,7 @@ async function editTile(x, y) {
         tileMap[key] = entry;
     }
 
+    const oldConnections = new Set(entry.data.connections || []);
     const data = await openTileEditor(entry.data, x, y);
     if (!data) return;
     entry.data.name = data.name;
@@ -872,6 +930,29 @@ async function editTile(x, y) {
             neighbor.data.connections = (neighbor.data.connections || []).filter(c => c !== key);
         } else if (data.removeIncoming[k]) {
             neighbor.data.connections = (neighbor.data.connections || []).filter(c => c !== key);
+        }
+    });
+    const handled = new Set(Object.keys(data.connectionStates));
+    const newConnections = new Set(entry.data.connections || []);
+    oldConnections.forEach(k => {
+        if (handled.has(k)) return;
+        if (!newConnections.has(k)) {
+            const neighbor = tileMap[k];
+            if (neighbor) {
+                neighbor.data.connections = (neighbor.data.connections || []).filter(c => c !== key);
+            }
+        }
+    });
+    newConnections.forEach(k => {
+        if (handled.has(k)) return;
+        if (!oldConnections.has(k)) {
+            const neighbor = tileMap[k];
+            if (neighbor) {
+                neighbor.data.connections = neighbor.data.connections || [];
+                if (!neighbor.data.connections.includes(key)) {
+                    neighbor.data.connections.push(key);
+                }
+            }
         }
     });
     displayTile(entry.data);
@@ -909,6 +990,100 @@ function drawConnections() {
     }
 }
 
+function drawDirectionArrows() {
+    document.querySelectorAll('.direction-arrow').forEach(el => el.remove());
+    const entry = tileMap[currentKey];
+    if (!entry) return;
+    const [cx, cy] = keyToCoords(currentKey);
+    const dirs = {};
+    (entry.data.connections || []).forEach(k => {
+        const [nx, ny] = keyToCoords(k);
+        const dx = nx - cx;
+        const dy = ny - cy;
+        if (dx === 0 && dy < 0) {
+            const dist = -dy;
+            if (!dirs.up || dist < dirs.up.dist) dirs.up = { dist };
+        } else if (dx === 0 && dy > 0) {
+            const dist = dy;
+            if (!dirs.down || dist < dirs.down.dist) dirs.down = { dist };
+        } else if (dy === 0 && dx > 0) {
+            const dist = dx;
+            if (!dirs.right || dist < dirs.right.dist) dirs.right = { dist };
+        } else if (dy === 0 && dx < 0) {
+            const dist = -dx;
+            if (!dirs.left || dist < dirs.left.dist) dirs.left = { dist };
+        }
+    });
+    const mapGrid = document.getElementById('map-module');
+    const baseX = (cx - minX) * (tileSize + tileGap);
+    const baseY = (cy - minY) * (tileSize + tileGap);
+    const size = Math.floor(tileSize * 0.3);
+    if (dirs.up) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '▲';
+        arrow.className = `direction-arrow ${dirs.up.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX + tileSize / 2 - size / 2}px`;
+        arrow.style.top = `${baseY - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+    if (dirs.down) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '▼';
+        arrow.className = `direction-arrow ${dirs.down.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX + tileSize / 2 - size / 2}px`;
+        arrow.style.top = `${baseY + tileSize - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+    if (dirs.left) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '◀';
+        arrow.className = `direction-arrow ${dirs.left.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX - size / 2}px`;
+        arrow.style.top = `${baseY + tileSize / 2 - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+    if (dirs.right) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '▶';
+        arrow.className = `direction-arrow ${dirs.right.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX + tileSize - size / 2}px`;
+        arrow.style.top = `${baseY + tileSize / 2 - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+}
+
+function moveDirection(dir) {
+    const entry = tileMap[currentKey];
+    if (!entry) return;
+    const [cx, cy] = keyToCoords(currentKey);
+    let target = null;
+    let best = Infinity;
+    (entry.data.connections || []).forEach(k => {
+        const [nx, ny] = keyToCoords(k);
+        const dx = nx - cx;
+        const dy = ny - cy;
+        if (dir === 'up' && dx === 0 && dy < 0 && -dy < best) { best = -dy; target = k; }
+        if (dir === 'down' && dx === 0 && dy > 0 && dy < best) { best = dy; target = k; }
+        if (dir === 'left' && dy === 0 && dx < 0 && -dx < best) { best = -dx; target = k; }
+        if (dir === 'right' && dy === 0 && dx > 0 && dx < best) { best = dx; target = k; }
+    });
+    if (!target) return;
+    const prevKey = currentKey;
+    const prev = tileMap[prevKey];
+    if (prev) {
+        prev.el.classList.remove('current');
+        updateTileVisual(prev, prevKey);
+    }
+    currentKey = target;
+    const cur = tileMap[currentKey];
+    if (cur) {
+        cur.el.classList.add('current');
+        updateTileVisual(cur, currentKey);
+        displayTile(cur.data);
+        (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
+    }
+}
+
 function displayTile(tile, key = currentKey) {
     const [x, y] = keyToCoords(key);
     document.getElementById('tile-name').textContent = tile.name || '';
@@ -932,6 +1107,7 @@ function displayTile(tile, key = currentKey) {
             itemList.appendChild(li);
         });
     }
+    drawDirectionArrows();
 }
 
 function regenerateConnections(x, y) {
