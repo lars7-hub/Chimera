@@ -41,7 +41,6 @@ const tileGap = 1;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 let autoMoveTimer = null;
 let isAutoMoving = false;
-let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
 const tileModPresets = {
     Village: {
