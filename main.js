@@ -415,7 +415,7 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                             ? tileData.types
                             : (tileData.type ? [tileData.type] : []);
                         const isStart = !!tileData.start;
-                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], start: isStart });
+                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], stickers: tileData.stickers || [], start: isStart });
                         if (isStart) {
                             result.start = { x, y };
                         }
@@ -607,6 +607,16 @@ ipcMain.handle('get-random-tile-image', (event, type) => {
     }
 });
 
+ipcMain.handle('get-sticker-images', (event, type) => {
+    const dir = path.join(__dirname, 'resources', 'map', 'stickers', type);
+    try {
+        return fs.readdirSync(dir).filter(f => /\.(png|jpg|jpeg|gif)$/.test(f));
+    } catch (err) {
+        console.error('Error listing sticker images:', err);
+        return [];
+    }
+});
+
 ipcMain.handle('list-worlds', () => {
     try {
         if (!fs.existsSync(worldRoot)) return [];
@@ -652,7 +662,8 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
                 items: t.items || [],
                 resources: t.resources || [],
                 connections: t.connections || [],
-                modifiers: t.modifiers || []
+                modifiers: t.modifiers || [],
+                stickers: t.stickers || []
             };
             if (start && start.x === t.x && start.y === t.y) {
                 data.start = true;

@@ -385,7 +385,8 @@ button:hover {
 #connection-overlay,
 #image-picker-overlay,
 #tile-mod-overlay,
-#tile-item-overlay {
+#tile-item-overlay,
+#tile-sticker-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -400,7 +401,8 @@ button:hover {
 
 #tile-editor-overlay.hidden,
 #tile-mod-overlay.hidden,
-#tile-item-overlay.hidden {
+#tile-item-overlay.hidden,
+#tile-sticker-overlay.hidden {
     display: none;
 }
 
@@ -413,6 +415,14 @@ button:hover {
 }
 
 #tile-mod-box {
+    background: #333;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#tile-sticker-box {
     background: #333;
     padding: 20px;
     display: flex;
@@ -441,6 +451,17 @@ button:hover {
     height: 100%;
     object-fit: fill;
     z-index: 1;
+    pointer-events: none;
+}
+
+.tile-sticker-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    z-index: 0;
     pointer-events: none;
 }
 

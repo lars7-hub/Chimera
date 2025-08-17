@@ -76,6 +76,7 @@
                     <div id="tile-type-options"></div>
                 </div>
                 <button id="tile-mod-btn">Tile Modifiers</button>
+                <button id="tile-sticker-btn">Tile Stickers</button>
                 <div id="tile-connections-container">
                     <p>Select which tiles connect to this tile:</p>
                     <button id="one-way-toggle">One-Way Mode: Off</button>
@@ -96,6 +97,17 @@
                 <div class="editor-buttons">
                     <button id="tile-mod-add-custom">Add Custom</button>
                     <button id="tile-mod-close">Done</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tile-sticker-overlay" class="hidden">
+            <div id="tile-sticker-box">
+                <h3>Tile Stickers</h3>
+                <div id="tile-sticker-list"></div>
+                <div class="editor-buttons">
+                    <button id="tile-sticker-add">Add Sticker</button>
+                    <button id="tile-sticker-close">Done</button>
                 </div>
             </div>
         </div>
@@ -128,6 +140,9 @@
                 </div>
                 <div>
                     <label><input type="checkbox" id="paint-conn-enable">Regenerate Connections</label>
+                </div>
+                <div>
+                    <label><input type="checkbox" id="paint-sticker-enable">Regenerate Stickers</label>
                 </div>
             </div>
         </div>

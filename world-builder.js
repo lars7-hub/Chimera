@@ -175,7 +175,32 @@ function keyToCoords(key) {
 }
 
 function coordsToKey(x, y) {
-	return `${x}-${y}`;
+        return `${x}-${y}`;
+}
+
+async function getRandomStickers(type) {
+    const files = await window.electron.getStickerImages(type);
+    if (!files || !files.length) return [];
+    const groups = {};
+    files.forEach(f => {
+        const base = f.replace(/\.[^.]+$/, '');
+        const idx = base.lastIndexOf('_');
+        const g = idx >= 0 ? base.slice(0, idx) : base;
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(f);
+    });
+    const keys = Object.keys(groups);
+    const count = Math.floor(Math.random() * 3);
+    const chosen = [];
+    const available = [...keys];
+    for (let i = 0; i < count && available.length; i++) {
+        const tIdx = Math.floor(Math.random() * available.length);
+        const g = available.splice(tIdx, 1)[0];
+        const variants = groups[g];
+        const file = variants[Math.floor(Math.random() * variants.length)];
+        chosen.push({ icon: `${type}/${file}` });
+    }
+    return chosen;
 }
 
 function startWorldEditing(name) {
@@ -234,6 +259,7 @@ function openTileEditor(data, x, y) {
         const oneWayBtn = document.getElementById('one-way-toggle');
         const modBtn = document.getElementById('tile-mod-btn');
         const modOverlay = document.getElementById('tile-mod-overlay');
+        const stickerBtn = document.getElementById('tile-sticker-btn');
 
         nameInput.value = data.name || '';
         let items = JSON.parse(JSON.stringify(data.items || []));
@@ -259,6 +285,7 @@ function openTileEditor(data, x, y) {
         });
 		
         let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
+        let stickers = JSON.parse(JSON.stringify(data.stickers || []));
         function openModEditor() {
             const modOverlay = document.getElementById('tile-mod-overlay');
             const modList = document.getElementById('tile-mod-list');
@@ -306,6 +333,43 @@ function openTileEditor(data, x, y) {
             modOverlay.classList.remove('hidden');
         }
         modBtn.addEventListener('click', openModEditor);
+
+        function openStickerEditor() {
+            const over = document.getElementById('tile-sticker-overlay');
+            const list = document.getElementById('tile-sticker-list');
+            const addBtn = document.getElementById('tile-sticker-add');
+            const closeBtn = document.getElementById('tile-sticker-close');
+
+            function renderList() {
+                list.innerHTML = '';
+                stickers.forEach((s, idx) => {
+                    const row = document.createElement('div');
+                    row.textContent = s.icon;
+                    const del = document.createElement('button');
+                    del.textContent = 'X';
+                    del.addEventListener('click', () => { stickers.splice(idx,1); renderList(); });
+                    row.appendChild(del);
+                    list.appendChild(row);
+                });
+            }
+
+            addBtn.onclick = async () => {
+                const icon = await showPrompt('Image filename (in resources/map/stickers):');
+                if (!icon) return;
+                stickers.push({ icon });
+                renderList();
+            };
+
+            function close() {
+                over.classList.add('hidden');
+                closeBtn.removeEventListener('click', close);
+                addBtn.onclick = null;
+            }
+            closeBtn.addEventListener('click', close);
+            renderList();
+            over.classList.remove('hidden');
+        }
+        stickerBtn.addEventListener('click', openStickerEditor);
 
         grid.innerHTML = '';
         const connectionState = {};
@@ -416,10 +480,12 @@ function openTileEditor(data, x, y) {
         function cleanup() {
             overlay.classList.add('hidden');
             modOverlay.classList.add('hidden');
+            document.getElementById('tile-sticker-overlay').classList.add('hidden');
             saveBtn.removeEventListener('click', onSave);
             cancelBtn.removeEventListener('click', onCancel);
             bgBtn.removeEventListener('click', pickBackground);
             modBtn.removeEventListener('click', openModEditor);
+            stickerBtn.removeEventListener('click', openStickerEditor);
         }
 
         async function onSave() {
@@ -439,6 +505,7 @@ function openTileEditor(data, x, y) {
                 items: itemsOut,
                 connections,
                 modifiers,
+                stickers,
                 connectionStates: connectionState,
                 removeIncoming
             };
@@ -641,7 +708,8 @@ async function loadWorld() {
         const data = { ...t };
         if (data.type && !data.types) data.types = [data.type];
         delete data.type;
-            data.items = data.items || [];
+        data.items = data.items || [];
+        data.stickers = data.stickers || [];
         tileMap[`${t.x}-${t.y}`] = { data };
         if (data.start) originKey = `${t.x}-${t.y}`;
     });
@@ -710,6 +778,14 @@ function updateTileVisual(entry, key) {
         entry.el.style.backgroundColor = tileColors[types[0]] || '#111';
     }
 
+    (entry.data.stickers || []).forEach(s => {
+        if (!s.icon) return;
+        const img = document.createElement('img');
+        img.className = 'tile-sticker-img';
+        img.src = `resources/map/stickers/${s.icon}`;
+        entry.el.appendChild(img);
+    });
+
     (entry.data.modifiers || []).forEach(m => {
         if (!m.icon) return;
         const img = document.createElement('img');
@@ -743,7 +819,7 @@ async function editTile(x, y) {
     if (!entry) {
         const div = document.querySelector(`.map-tile[data-x='${x}'][data-y='${y}']`);
         if (div) div.classList.remove('blank');
-        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [] } };
+        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [], modifiers: [], stickers: [] } };
         tileMap[key] = entry;
     }
 
@@ -755,6 +831,7 @@ async function editTile(x, y) {
     entry.data.items = data.items;
     entry.data.connections = data.connections;
     entry.data.modifiers = data.modifiers;
+    entry.data.stickers = data.stickers;
     updateTileVisual(entry, key);
     Object.entries(data.connectionStates).forEach(([k, state]) => {
         const neighbor = tileMap[k];
@@ -877,9 +954,11 @@ function regenerateConnections(x, y) {
 
 async function paintTile(x, y) {
     const key = `${x}-${y}`;
+    let created = false;
 
     function ensureEntry() {
         if (!tileMap[key]) {
+            created = true;
             tileMap[key] = {
                 data: {
                     name: `Tile ${x}-${y}`,
@@ -887,7 +966,8 @@ async function paintTile(x, y) {
                     background: '',
                     items: [],
                     connections: [],
-                    modifiers: []
+                    modifiers: [],
+                    stickers: []
                 }
             };
         }
@@ -898,6 +978,7 @@ async function paintTile(x, y) {
     const nameChecked = document.getElementById('paint-name-enable').checked;
     const clearChecked = document.getElementById('paint-clear-enable').checked;
     const connChecked = document.getElementById('paint-conn-enable').checked;
+    const stickerChecked = document.getElementById('paint-sticker-enable').checked;
 
     if (clearChecked) {
         if (tileMap[key]) {
@@ -921,6 +1002,14 @@ async function paintTile(x, y) {
             entry.data.types = [t];
             const bg = await window.electron.getRandomTileImage(t);
             if (bg) entry.data.background = bg;
+            if (created || stickerChecked) {
+                entry.data.stickers = await getRandomStickers(t);
+            }
+        }
+    } else if (stickerChecked) {
+        const t = entry.data.types && entry.data.types[0];
+        if (t) {
+            entry.data.stickers = await getRandomStickers(t);
         }
     }
     if (connChecked) {
@@ -943,7 +1032,8 @@ async function paintItem(x, y) {
                     background: '',
                     items: [],
                     connections: [],
-                    modifiers: []
+                    modifiers: [],
+                    stickers: []
                 }
             };
         }
@@ -1101,8 +1191,9 @@ async function saveRegion() {
     await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
 }
 
-function configureConnections(x, y, starterType = '', starterBg = '') {
+async function configureConnections(x, y, starterType = '', starterBg = '') {
     const key = `${x}-${y}`;
+    const stickers = starterType ? await getRandomStickers(starterType) : [];
     tileMap[key] = {
         data: {
             name: `Tile ${x}-${y}`,
@@ -1110,7 +1201,8 @@ function configureConnections(x, y, starterType = '', starterBg = '') {
             background: starterBg,
             items: [],
             connections: [],
-            modifiers: []
+            modifiers: [],
+            stickers
         }
     };
     regenerateConnections(x, y);
