@@ -1012,6 +1012,18 @@ function drawDirectionArrows() {
         } else if (dy === 0 && dx < 0) {
             const dist = -dx;
             if (!dirs.left || dist < dirs.left.dist) dirs.left = { dist };
+        } else if (dx < 0 && dy < 0) {
+            const dist = Math.max(-dx, -dy);
+            if (!dirs.upLeft || dist < dirs.upLeft.dist) dirs.upLeft = { dist };
+        } else if (dx > 0 && dy < 0) {
+            const dist = Math.max(dx, -dy);
+            if (!dirs.upRight || dist < dirs.upRight.dist) dirs.upRight = { dist };
+        } else if (dx < 0 && dy > 0) {
+            const dist = Math.max(-dx, dy);
+            if (!dirs.downLeft || dist < dirs.downLeft.dist) dirs.downLeft = { dist };
+        } else if (dx > 0 && dy > 0) {
+            const dist = Math.max(dx, dy);
+            if (!dirs.downRight || dist < dirs.downRight.dist) dirs.downRight = { dist };
         }
     });
     const mapGrid = document.getElementById('map-module');
@@ -1050,6 +1062,55 @@ function drawDirectionArrows() {
         arrow.style.top = `${baseY + tileSize / 2 - size / 2}px`;
         mapGrid.appendChild(arrow);
     }
+    if (dirs.upLeft) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '↖';
+        arrow.className = `direction-arrow ${dirs.upLeft.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX - size / 2}px`;
+        arrow.style.top = `${baseY - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+    if (dirs.upRight) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '↗';
+        arrow.className = `direction-arrow ${dirs.upRight.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX + tileSize - size / 2}px`;
+        arrow.style.top = `${baseY - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+    if (dirs.downLeft) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '↙';
+        arrow.className = `direction-arrow ${dirs.downLeft.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX - size / 2}px`;
+        arrow.style.top = `${baseY + tileSize - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+    if (dirs.downRight) {
+        const arrow = document.createElement('div');
+        arrow.textContent = '↘';
+        arrow.className = `direction-arrow ${dirs.downRight.dist > 1 ? 'blue' : 'yellow'}`;
+        arrow.style.left = `${baseX + tileSize - size / 2}px`;
+        arrow.style.top = `${baseY + tileSize - size / 2}px`;
+        mapGrid.appendChild(arrow);
+    }
+}
+
+function goToTile(target) {
+    const prevKey = currentKey;
+    const prev = tileMap[prevKey];
+    if (prev) {
+        prev.el.classList.remove('current');
+        updateTileVisual(prev, prevKey);
+    }
+    currentKey = target;
+    const cur = tileMap[currentKey];
+    if (cur) {
+        cur.el.classList.add('current');
+        updateTileVisual(cur, currentKey);
+        displayTile(cur.data);
+        (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
+    }
 }
 
 function moveDirection(dir) {
@@ -1068,20 +1129,7 @@ function moveDirection(dir) {
         if (dir === 'right' && dy === 0 && dx > 0 && dx < best) { best = dx; target = k; }
     });
     if (!target) return;
-    const prevKey = currentKey;
-    const prev = tileMap[prevKey];
-    if (prev) {
-        prev.el.classList.remove('current');
-        updateTileVisual(prev, prevKey);
-    }
-    currentKey = target;
-    const cur = tileMap[currentKey];
-    if (cur) {
-        cur.el.classList.add('current');
-        updateTileVisual(cur, currentKey);
-        displayTile(cur.data);
-        (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
-    }
+    goToTile(target);
 }
 
 function displayTile(tile, key = currentKey) {
@@ -1106,6 +1154,30 @@ function displayTile(tile, key = currentKey) {
             li.appendChild(text);
             itemList.appendChild(li);
         });
+    }
+    const shortDiv = document.getElementById('tile-shortcuts');
+    const shortList = document.getElementById('shortcut-list');
+    if (shortDiv && shortList) {
+        shortList.innerHTML = '';
+        const [cx, cy] = keyToCoords(key);
+        const far = (tile.connections || []).filter(k => {
+            const [nx, ny] = keyToCoords(k);
+            return Math.abs(nx - cx) > 1 || Math.abs(ny - cy) > 1;
+        });
+        if (far.length) {
+            shortDiv.classList.remove('hidden');
+            far.forEach(k => {
+                const [nx, ny] = keyToCoords(k);
+                const li = document.createElement('li');
+                const btn = document.createElement('button');
+                btn.textContent = `(${nx}, ${ny})`;
+                btn.addEventListener('click', () => goToTile(k));
+                li.appendChild(btn);
+                shortList.appendChild(li);
+            });
+        } else {
+            shortDiv.classList.add('hidden');
+        }
     }
     drawDirectionArrows();
 }
