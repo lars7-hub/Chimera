@@ -39,6 +39,9 @@ let isPainting = false;
 let lastKey = null;
 const tileGap = 1;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
+let autoMoveTimer = null;
+let isAutoMoving = false;
+let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
 const tileModPresets = {
     Village: {
@@ -734,6 +737,7 @@ window.onload = async function () {
         const curEntry = tileMap[currentKey];
         const curCons = (curEntry.data.connections || []);
         if (curCons.includes(key)) {
+            stopAutoMove();
             const prevKey = currentKey;
             const prev = tileMap[prevKey];
             if (prev) {
@@ -748,6 +752,12 @@ window.onload = async function () {
             (cur.data.modifiers || []).forEach(m => {
                 if (m.message) alert(m.message);
             });
+        } else {
+            const path = findPath(currentKey, key);
+            if (path && path.length > 1) {
+                stopAutoMove();
+                startAutoMove(path);
+            }
         }
     });
     mapModule.addEventListener('mousemove', async (e) => {
@@ -1103,6 +1113,43 @@ function goToTile(target) {
     }
 }
 
+function findPath(startKey, targetKey) {
+    const queue = [[startKey]];
+    const visited = new Set([startKey]);
+    while (queue.length) {
+        const path = queue.shift();
+        const last = path[path.length - 1];
+        if (last === targetKey) return path;
+        const entry = tileMap[last];
+        if (!entry) continue;
+        (entry.data.connections || []).forEach(next => {
+            if (!visited.has(next)) {
+                visited.add(next);
+                queue.push([...path, next]);
+            }
+        });
+    }
+    return null;
+}
+
+function stopAutoMove() {
+    if (autoMoveTimer) {
+        clearTimeout(autoMoveTimer);
+        autoMoveTimer = null;
+    }
+    isAutoMoving = false;
+}
+
+function startAutoMove(path, index = 1) {
+    if (index >= path.length) {
+        isAutoMoving = false;
+        return;
+    }
+    isAutoMoving = true;
+    goToTile(path[index]);
+    autoMoveTimer = setTimeout(() => startAutoMove(path, index + 1), 250);
+}
+
 function moveDirection(dir) {
     const entry = tileMap[currentKey];
     if (!entry) return;
@@ -1119,6 +1166,7 @@ function moveDirection(dir) {
         if (dir === 'right' && dy === 0 && dx > 0 && dx < best) { best = dx; target = k; }
     });
     if (!target) return;
+    stopAutoMove();
     goToTile(target);
 }
 
