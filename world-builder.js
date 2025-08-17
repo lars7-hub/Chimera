@@ -164,6 +164,8 @@ let biomePaintMode = false;
 let itemPaintMode = false;
 let biomePanel = null;
 let itemPanel = null;
+let isPainting = false;
+let lastKey = null;
 const tileGap = 4;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
@@ -661,21 +663,26 @@ window.onload = async function () {
         }
     });
 
-    document.getElementById('map-module').addEventListener('click', async (e) => {
+    const mapModule = document.getElementById('map-module');
+    mapModule.addEventListener('mousedown', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
         const key = `${x}-${y}`;
+        isPainting = true;
         if (biomePaintMode) {
             await paintTile(x, y);
+            lastKey = key;
             return;
         }
         if (itemPaintMode) {
             await paintItem(x, y);
+            lastKey = key;
             return;
         }
         if (editMode) {
             await editTile(x, y);
+            lastKey = key;
             return;
         }
         if (!tileMap[key]) return;
@@ -697,6 +704,27 @@ window.onload = async function () {
                 if (m.message) alert(m.message);
             });
         }
+    });
+    mapModule.addEventListener('mousemove', async (e) => {
+        if (!isPainting || !e.target.classList.contains('map-tile')) return;
+        const x = parseInt(e.target.dataset.x);
+        const y = parseInt(e.target.dataset.y);
+        const key = `${x}-${y}`;
+        if (key === lastKey) return;
+        lastKey = key;
+        if (biomePaintMode) {
+            await paintTile(x, y);
+        } else if (itemPaintMode) {
+            await paintItem(x, y);
+        }
+    });
+    mapModule.addEventListener('mouseup', () => {
+        isPainting = false;
+        lastKey = null;
+    });
+    mapModule.addEventListener('mouseleave', () => {
+        isPainting = false;
+        lastKey = null;
     });
     window.addEventListener('resize', renderGrid);
 };
