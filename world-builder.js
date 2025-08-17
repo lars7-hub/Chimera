@@ -30,11 +30,11 @@ const tileModPresets = {
     }
 };
 
-const resourceDefs = window.RESOURCES || [];
-const resourceTypeCategories = window.RESOURCE_TYPES || [];
+const itemDefs = window.ITEMS || [];
+const itemCategories = window.ITEM_CATEGORIES || [];
 
-const resourceByKey = {};
-resourceDefs.forEach(r => { resourceByKey[r.key] = r; });
+const itemByKey = {};
+itemDefs.forEach(i => { itemByKey[i.key] = i; });
 
 let editMode = false;
 let gridWidth = 0;
@@ -107,8 +107,8 @@ function openTileEditor(data, x, y) {
     return new Promise(resolve => {
         const overlay = document.getElementById('tile-editor-overlay');
         const nameInput = document.getElementById('tile-name-input');
-        const itemsInput = document.getElementById('tile-items-input');
-        const resBtn = document.getElementById('tile-resource-btn');
+        const groundItemsInput = document.getElementById('tile-ground-items-input');
+        const itemBtn = document.getElementById('tile-item-btn');
         const grid = document.getElementById('tile-connection-grid');
         const saveBtn = document.getElementById('tile-save');
         const cancelBtn = document.getElementById('tile-cancel');
@@ -120,8 +120,8 @@ function openTileEditor(data, x, y) {
         const modOverlay = document.getElementById('tile-mod-overlay');
 
         nameInput.value = data.name || '';
-        itemsInput.value = (data.items || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
-        let resources = JSON.parse(JSON.stringify(data.resources || []));
+        groundItemsInput.value = (data.groundItems || []).map(i => `${i.name}:${i.description || ''}`).join('\n');
+        let items = JSON.parse(JSON.stringify(data.items || []));
 
         let selectedBg = data.background || '';
         function updateBg() {
@@ -144,25 +144,25 @@ function openTileEditor(data, x, y) {
         });
 		
         let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
-        function openResourceEditor() {
-            const overlay = document.getElementById('tile-resource-overlay');
-            const list = document.getElementById('tile-resource-list');
-            const addBtn = document.getElementById('tile-resource-add');
-            const closeBtn = document.getElementById('tile-resource-close');
+        function openItemEditor() {
+            const overlay = document.getElementById('tile-item-overlay');
+            const list = document.getElementById('tile-item-list');
+            const addBtn = document.getElementById('tile-item-add');
+            const closeBtn = document.getElementById('tile-item-close');
 
             function render() {
                 list.innerHTML = '';
-                resources.forEach((r, idx) => {
+                items.forEach((r, idx) => {
                     const row = document.createElement('div');
                     const img = document.createElement('img');
-                    const def = resourceByKey[r.key] || resourceDefs.find(d => d.name === r.name) || resourceDefs[0];
+                    const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name) || itemDefs[0];
                     r.key = def.key;
                     r.name = def.name;
                     img.src = `resources/ui/resources/${def.icon}`;
-                    img.className = 'resource-icon';
+                    img.className = 'item-icon';
                     row.appendChild(img);
                     const sel = document.createElement('select');
-                    resourceDefs.forEach(def2 => {
+                    itemDefs.forEach(def2 => {
                         const opt = document.createElement('option');
                         opt.value = def2.key;
                         opt.textContent = def2.name;
@@ -170,7 +170,7 @@ function openTileEditor(data, x, y) {
                         sel.appendChild(opt);
                     });
                     sel.addEventListener('change', () => {
-                        const d = resourceByKey[sel.value];
+                        const d = itemByKey[sel.value];
                         r.key = d.key; r.name = d.name;
                         img.src = `resources/ui/resources/${d.icon}`;
                     });
@@ -187,14 +187,14 @@ function openTileEditor(data, x, y) {
                     row.appendChild(cb);
                     const del = document.createElement('button');
                     del.textContent = 'X';
-                    del.addEventListener('click', () => { resources.splice(idx,1); render(); });
+                    del.addEventListener('click', () => { items.splice(idx,1); render(); });
                     row.appendChild(del);
                     list.appendChild(row);
                 });
             }
             addBtn.onclick = () => {
-                const d = resourceDefs[0];
-                resources.push({ key: d.key, name: d.name, amount: 0, renewable: false });
+                const d = itemDefs[0];
+                items.push({ key: d.key, name: d.name, amount: 0, renewable: false });
                 render();
             };
             function close() {
@@ -206,7 +206,7 @@ function openTileEditor(data, x, y) {
             render();
             overlay.classList.remove('hidden');
         }
-        resBtn.addEventListener('click', openResourceEditor);
+        itemBtn.addEventListener('click', openItemEditor);
         function openModEditor() {
             const modOverlay = document.getElementById('tile-mod-overlay');
             const modList = document.getElementById('tile-mod-list');
@@ -368,15 +368,15 @@ function openTileEditor(data, x, y) {
             cancelBtn.removeEventListener('click', onCancel);
             bgBtn.removeEventListener('click', pickBackground);
             modBtn.removeEventListener('click', openModEditor);
-            resBtn.removeEventListener('click', openResourceEditor);
+            itemBtn.removeEventListener('click', openItemEditor);
         }
 
         async function onSave() {
-            const items = itemsInput.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+            const groundItems = groundItemsInput.value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
                 const [name, ...desc] = l.split(':');
                 return { name: name.trim(), description: desc.join(':').trim() };
             });
-            const resourcesOut = resources.map(r => ({ key: r.key, name: r.name, type: resourceByKey[r.key].type, renewable: !!r.renewable, amount: r.amount || 0 }));
+            const itemsOut = items.map(r => ({ key: r.key, name: r.name, category: itemByKey[r.key].category, renewable: !!r.renewable, amount: r.amount || 0 }));
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             const types = Array.from(typeContainer.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
             if (!selectedBg && types.length > 0) {
@@ -389,8 +389,8 @@ function openTileEditor(data, x, y) {
                 name: nameInput.value,
                 types,
                 background: selectedBg,
-                items,
-                resources: resourcesOut,
+                groundItems,
+                items: itemsOut,
                 connections,
                 modifiers,
                 connectionStates: connectionState,
@@ -466,10 +466,10 @@ window.onload = async function () {
         deleteAdjacentTile();
     });
     document.getElementById('refresh-btn').addEventListener('click', renderGrid);
+    document.getElementById('add-ground-item-btn').addEventListener('click', addGroundItemToTile);
+    document.getElementById('remove-ground-item-btn').addEventListener('click', removeGroundItemFromTile);
     document.getElementById('add-item-btn').addEventListener('click', addItemToTile);
     document.getElementById('remove-item-btn').addEventListener('click', removeItemFromTile);
-    document.getElementById('add-resource-btn').addEventListener('click', addResourceToTile);
-    document.getElementById('remove-resource-btn').addEventListener('click', removeResourceFromTile);
     document.getElementById('set-origin-btn').addEventListener('click', () => {
         originKey = currentKey;
         renderGrid();
@@ -538,7 +538,7 @@ async function loadWorld() {
         const data = { ...t };
         if (data.type && !data.types) data.types = [data.type];
         delete data.type;
-		data.resources = data.resources || [];
+            data.items = data.items || [];
         tileMap[`${t.x}-${t.y}`] = { data };
         if (data.start) originKey = `${t.x}-${t.y}`;
     });
@@ -639,7 +639,7 @@ async function editTile(x, y) {
     if (!entry) {
         const div = document.querySelector(`.map-tile[data-x='${x}'][data-y='${y}']`);
         if (div) div.classList.remove('blank');
-        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], resources: [], connections: [] } };
+        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', groundItems: [], items: [], connections: [] } };
         tileMap[key] = entry;
     }
 
@@ -649,7 +649,8 @@ async function editTile(x, y) {
     entry.data.types = data.types;
     entry.data.background = data.background;
     entry.data.items = data.items;
-	entry.data.resources = data.resources;
+    entry.data.groundItems = data.groundItems;
+    entry.data.items = data.items;
     entry.data.connections = data.connections;
     entry.data.modifiers = data.modifiers;
     updateTileVisual(entry, key);
@@ -707,28 +708,28 @@ function displayTile(tile, key = currentKey) {
     document.getElementById('tile-coords').textContent = `Coordinates: ${x}, ${y}`;
     const types = tile.types || (tile.type ? [tile.type] : []);
     document.getElementById('tile-type').textContent = types.length ? `Type: ${types.join(', ')}` : '';
-    const list = document.getElementById('tile-items');
+    const list = document.getElementById('tile-ground-items');
     list.innerHTML = '';
-    (tile.items || []).forEach(item => {
+    (tile.groundItems || []).forEach(item => {
         const li = document.createElement('li');
         li.textContent = item.name || 'Item';
         list.appendChild(li);
     });
-    const resList = document.getElementById('tile-resources');
-    if (resList) {
-        resList.innerHTML = '';
-        (tile.resources || []).forEach(r => {
+    const itemList = document.getElementById('tile-items');
+    if (itemList) {
+        itemList.innerHTML = '';
+        (tile.items || []).forEach(r => {
             const li = document.createElement('li');
-            const def = resourceByKey[r.key] || resourceDefs.find(d => d.name === r.name);
+            const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name);
             if (def) {
                 const img = document.createElement('img');
                 img.src = `resources/ui/resources/${def.icon}`;
-                img.className = 'resource-icon';
+                img.className = 'item-icon';
                 li.appendChild(img);
             }
             const text = document.createTextNode(`${r.name} x${r.amount || 0} ${r.renewable ? '(Renewable)' : '(Finite)'}`);
             li.appendChild(text);
-            resList.appendChild(li);
+            itemList.appendChild(li);
         });
     }
 }
@@ -789,8 +790,8 @@ async function paintTile(x, y) {
                     name: `Tile ${x}-${y}`,
                     types: [],
                     background: '',
+                    groundItems: [],
                     items: [],
-                    resources: [],
                     connections: [],
                     modifiers: []
                 }
@@ -967,8 +968,8 @@ function configureConnections(x, y, starterType = '', starterBg = '') {
             name: `Tile ${x}-${y}`,
             types: starterType ? [starterType] : [],
             background: starterBg,
+            groundItems: [],
             items: [],
-			resources: [],
             connections: [],
             modifiers: []
         }
@@ -1026,51 +1027,51 @@ function deleteAdjacentTile() {
     document.body.appendChild(overlay);
 }
 
-async function addItemToTile() {
+async function addGroundItemToTile() {
     const entry = tileMap[currentKey];
     if (!entry) return;
     const name = await showPrompt('Item name:');
     if (!name) return;
     const desc = await showPrompt('Item description:', '') || '';
-    entry.data.items.push({ name, description: desc });
-    displayTile(entry.data);
-	saveRegion();
-}
-
-async function removeItemFromTile() {
-    const entry = tileMap[currentKey];
-    if (!entry || !(entry.data.items || []).length) return;
-    const name = await showPrompt('Item name to remove:');
-    if (!name) return;
-    entry.data.items = entry.data.items.filter(i => i.name !== name);
+    entry.data.groundItems.push({ name, description: desc });
     displayTile(entry.data);
         saveRegion();
 }
 
-async function addResourceToTile() {
+async function removeGroundItemFromTile() {
+    const entry = tileMap[currentKey];
+    if (!entry || !(entry.data.groundItems || []).length) return;
+    const name = await showPrompt('Item name to remove:');
+    if (!name) return;
+    entry.data.groundItems = entry.data.groundItems.filter(i => i.name !== name);
+    displayTile(entry.data);
+        saveRegion();
+}
+
+async function addItemToTile() {
     const entry = tileMap[currentKey];
     if (!entry) return;
-    const key = await showPrompt('Resource key:\n' + resourceDefs.map(r => r.key).join(', '));
+    const key = await showPrompt('Item key:\n' + itemDefs.map(r => r.key).join(', '));
     if (!key) return;
-    const def = resourceByKey[key];
+    const def = itemByKey[key];
     if (!def) return;
     const renewableStr = await showPrompt('Is it renewable? (yes/no):', 'yes');
     if (renewableStr === null) return;
     const amountStr = await showPrompt('Amount:', '0');
     if (amountStr === null) return;
     const renewable = renewableStr.toLowerCase().startsWith('y');
-    entry.data.resources = entry.data.resources || [];
-    entry.data.resources.push({ key: def.key, name: def.name, type: def.type, renewable, amount: parseInt(amountStr, 10) || 0 });
+    entry.data.items = entry.data.items || [];
+    entry.data.items.push({ key: def.key, name: def.name, category: def.category, renewable, amount: parseInt(amountStr, 10) || 0 });
     displayTile(entry.data);
     saveRegion();
 }
 
-async function removeResourceFromTile() {
+async function removeItemFromTile() {
     const entry = tileMap[currentKey];
-    if (!entry || !(entry.data.resources || []).length) return;
-    const key = await showPrompt('Resource key to remove:');
+    if (!entry || !(entry.data.items || []).length) return;
+    const key = await showPrompt('Item key to remove:');
     if (!key) return;
-    entry.data.resources = entry.data.resources.filter(r => r.key !== key && r.name !== key);
+    entry.data.items = entry.data.items.filter(r => r.key !== key && r.name !== key);
     displayTile(entry.data);
     saveRegion();
 }

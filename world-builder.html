@@ -32,10 +32,10 @@
                     <button id="add-adjacent-btn">Add Adjacent Tile</button>
                     <button id="delete-adjacent-btn">Delete Adjacent Tile</button>
                     <button id="refresh-btn">Refresh Map</button>
+                    <button id="add-ground-item-btn">Add Ground Item to Tile</button>
+                    <button id="remove-ground-item-btn">Remove Ground Item from Tile</button>
                     <button id="add-item-btn">Add Item to Tile</button>
                     <button id="remove-item-btn">Remove Item from Tile</button>
-                    <button id="add-resource-btn">Add Resource to Tile</button>
-                    <button id="remove-resource-btn">Remove Resource from Tile</button>
                     <button id="set-origin-btn">Set Origin</button>
                     <button id="toggle-icons-btn">Show Type Icons</button>
                 </div>
@@ -47,11 +47,11 @@
                     <p id="tile-type"></p>
                     <div>
                         <h4>Ground Items</h4>
-                        <ul id="tile-items"></ul>
+                        <ul id="tile-ground-items"></ul>
                     </div>
                     <div>
                         <h4>Resources</h4>
-                        <ul id="tile-resources"></ul>
+                        <ul id="tile-items"></ul>
                     </div>
                 </div>
                 <div id="paint-panel" class="hidden">
@@ -98,8 +98,8 @@
                     <span>Tile Types:</span>
                     <div id="tile-type-options"></div>
                 </div>
-                <label>Items (name:desc per line):<textarea id="tile-items-input"></textarea></label>
-                <button id="tile-resource-btn">Resources</button>
+                <label>Ground Items (name:desc):<textarea id="tile-ground-items-input"></textarea></label>
+                <button id="tile-item-btn">Items</button>
                 <button id="tile-mod-btn">Tile Modifiers</button>
                 <div id="tile-connections-container">
                     <p>Select which tiles connect to this tile:</p>
@@ -125,13 +125,13 @@
             </div>
         </div>
 
-        <div id="tile-resource-overlay" class="hidden">
-            <div id="tile-resource-box">
-                <h3>Tile Resources</h3>
-                <div id="tile-resource-list"></div>
+        <div id="tile-item-overlay" class="hidden">
+            <div id="tile-item-box">
+                <h3>Tile Items</h3>
+                <div id="tile-item-list"></div>
                 <div class="editor-buttons">
-                    <button id="tile-resource-add">Add Resource</button>
-                    <button id="tile-resource-close">Done</button>
+                    <button id="tile-item-add">Add Item</button>
+                    <button id="tile-item-close">Done</button>
                 </div>
             </div>
         </div>
