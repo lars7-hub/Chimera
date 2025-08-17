@@ -36,6 +36,113 @@ const itemCategories = window.ITEM_CATEGORIES || [];
 const itemByKey = {};
 itemDefs.forEach(i => { itemByKey[i.key] = i; });
 
+function openItemsPopup(items) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('tile-item-overlay');
+        const list = document.getElementById('tile-item-list');
+        const addBtn = document.getElementById('tile-item-add');
+        const closeBtn = document.getElementById('tile-item-close');
+
+        function render() {
+            list.innerHTML = '';
+            items.forEach((r, idx) => {
+                const row = document.createElement('div');
+                const def = itemByKey[r.key] || itemDefs[0];
+                const img = document.createElement('img');
+                if (def) {
+                    img.src = `resources/ui/resources/${def.icon}`;
+                    r.key = def.key;
+                    r.name = def.name;
+                    r.category = def.category;
+                }
+                img.className = 'item-icon';
+                row.appendChild(img);
+
+                const catSel = document.createElement('select');
+                Object.entries(itemCategories).forEach(([cKey, cData]) => {
+                    const opt = document.createElement('option');
+                    opt.value = cKey;
+                    opt.textContent = cData.name;
+                    if (r.category === cKey) opt.selected = true;
+                    catSel.appendChild(opt);
+                });
+                row.appendChild(catSel);
+
+                const itemSel = document.createElement('select');
+                function populate(catKey) {
+                    itemSel.innerHTML = '';
+                    (itemCategories[catKey].items || []).forEach(it => {
+                        const opt = document.createElement('option');
+                        opt.value = it.key;
+                        opt.textContent = it.name;
+                        itemSel.appendChild(opt);
+                    });
+                }
+                const initialCat = r.category || Object.keys(itemCategories)[0];
+                populate(initialCat);
+                itemSel.value = r.key;
+                row.appendChild(itemSel);
+
+                catSel.addEventListener('change', () => {
+                    populate(catSel.value);
+                    const first = itemCategories[catSel.value].items[0];
+                    if (first) {
+                        itemSel.value = first.key;
+                        r.key = first.key;
+                        r.name = first.name;
+                        r.category = catSel.value;
+                        img.src = `resources/ui/resources/${first.icon}`;
+                    }
+                });
+                itemSel.addEventListener('change', () => {
+                    const d = itemByKey[itemSel.value];
+                    if (d) {
+                        r.key = d.key;
+                        r.name = d.name;
+                        r.category = d.category;
+                        img.src = `resources/ui/resources/${d.icon}`;
+                    }
+                });
+
+                const amt = document.createElement('input');
+                amt.type = 'number';
+                amt.value = r.amount || 0;
+                amt.addEventListener('change', () => { r.amount = parseInt(amt.value,10) || 0; });
+                row.appendChild(amt);
+
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = !!r.renewable;
+                cb.addEventListener('change', () => { r.renewable = cb.checked; });
+                row.appendChild(cb);
+
+                const del = document.createElement('button');
+                del.textContent = 'X';
+                del.addEventListener('click', () => { items.splice(idx,1); render(); });
+                row.appendChild(del);
+
+                list.appendChild(row);
+            });
+        }
+
+        addBtn.onclick = () => {
+            const firstCat = Object.keys(itemCategories)[0];
+            const firstItem = itemCategories[firstCat].items[0];
+            items.push({ key: firstItem.key, name: firstItem.name, category: firstCat, amount: 0, renewable: false });
+            render();
+        };
+        function close() {
+            overlay.classList.add('hidden');
+            addBtn.onclick = null;
+            closeBtn.onclick = null;
+            resolve(items);
+        }
+        closeBtn.onclick = close;
+        render();
+        overlay.classList.remove('hidden');
+    });
+}
+
 let editMode = false;
 let gridWidth = 0;
 let gridHeight = 0;
@@ -144,69 +251,8 @@ function openTileEditor(data, x, y) {
         });
 		
         let modifiers = JSON.parse(JSON.stringify(data.modifiers || []));
-        function openItemEditor() {
-            const overlay = document.getElementById('tile-item-overlay');
-            const list = document.getElementById('tile-item-list');
-            const addBtn = document.getElementById('tile-item-add');
-            const closeBtn = document.getElementById('tile-item-close');
-
-            function render() {
-                list.innerHTML = '';
-                items.forEach((r, idx) => {
-                    const row = document.createElement('div');
-                    const img = document.createElement('img');
-                    const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name) || itemDefs[0];
-                    r.key = def.key;
-                    r.name = def.name;
-                    img.src = `resources/ui/resources/${def.icon}`;
-                    img.className = 'item-icon';
-                    row.appendChild(img);
-                    const sel = document.createElement('select');
-                    itemDefs.forEach(def2 => {
-                        const opt = document.createElement('option');
-                        opt.value = def2.key;
-                        opt.textContent = def2.name;
-                        if (def2.key === r.key) opt.selected = true;
-                        sel.appendChild(opt);
-                    });
-                    sel.addEventListener('change', () => {
-                        const d = itemByKey[sel.value];
-                        r.key = d.key; r.name = d.name;
-                        img.src = `resources/ui/resources/${d.icon}`;
-                    });
-                    row.appendChild(sel);
-                    const amt = document.createElement('input');
-                    amt.type = 'number';
-                    amt.value = r.amount || 0;
-                    amt.addEventListener('change', () => { r.amount = parseInt(amt.value,10) || 0; });
-                    row.appendChild(amt);
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    cb.checked = !!r.renewable;
-                    cb.addEventListener('change', () => { r.renewable = cb.checked; });
-                    row.appendChild(cb);
-                    const del = document.createElement('button');
-                    del.textContent = 'X';
-                    del.addEventListener('click', () => { items.splice(idx,1); render(); });
-                    row.appendChild(del);
-                    list.appendChild(row);
-                });
-            }
-            addBtn.onclick = () => {
-                const d = itemDefs[0];
-                items.push({ key: d.key, name: d.name, amount: 0, renewable: false });
-                render();
-            };
-            function close() {
-                overlay.classList.add('hidden');
-                addBtn.onclick = null;
-                closeBtn.onclick = null;
-            }
-            closeBtn.onclick = () => { close(); };
-            render();
-            overlay.classList.remove('hidden');
-        }
-        itemBtn.addEventListener('click', openItemEditor);
+        const openItems = () => { openItemsPopup(items); };
+        itemBtn.addEventListener('click', openItems);
         function openModEditor() {
             const modOverlay = document.getElementById('tile-mod-overlay');
             const modList = document.getElementById('tile-mod-list');
@@ -368,7 +414,7 @@ function openTileEditor(data, x, y) {
             cancelBtn.removeEventListener('click', onCancel);
             bgBtn.removeEventListener('click', pickBackground);
             modBtn.removeEventListener('click', openModEditor);
-            itemBtn.removeEventListener('click', openItemEditor);
+            itemBtn.removeEventListener('click', openItems);
         }
 
         async function onSave() {
@@ -1051,29 +1097,14 @@ async function removeGroundItemFromTile() {
 async function addItemToTile() {
     const entry = tileMap[currentKey];
     if (!entry) return;
-    const key = await showPrompt('Item key:\n' + itemDefs.map(r => r.key).join(', '));
-    if (!key) return;
-    const def = itemByKey[key];
-    if (!def) return;
-    const renewableStr = await showPrompt('Is it renewable? (yes/no):', 'yes');
-    if (renewableStr === null) return;
-    const amountStr = await showPrompt('Amount:', '0');
-    if (amountStr === null) return;
-    const renewable = renewableStr.toLowerCase().startsWith('y');
     entry.data.items = entry.data.items || [];
-    entry.data.items.push({ key: def.key, name: def.name, category: def.category, renewable, amount: parseInt(amountStr, 10) || 0 });
+    await openItemsPopup(entry.data.items);
     displayTile(entry.data);
     saveRegion();
 }
 
 async function removeItemFromTile() {
-    const entry = tileMap[currentKey];
-    if (!entry || !(entry.data.items || []).length) return;
-    const key = await showPrompt('Item key to remove:');
-    if (!key) return;
-    entry.data.items = entry.data.items.filter(r => r.key !== key && r.name !== key);
-    displayTile(entry.data);
-    saveRegion();
+    await addItemToTile();
 }
 
 async function goRandom() {
