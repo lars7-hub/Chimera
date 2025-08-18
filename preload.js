@@ -34,5 +34,6 @@ contextBridge.exposeInMainWorld('electron', {
     getStickerImages: (type) => ipcRenderer.invoke('get-sticker-images', type),
     prepareWorldCharacter: (worldName, characterName, loadoutName) => ipcRenderer.invoke('prepare-world-character', worldName, characterName, loadoutName),
     getWorldCharacter: (worldName) => ipcRenderer.invoke('get-world-character', worldName),
-    getWorldInventory: (worldName) => ipcRenderer.invoke('get-world-inventory', worldName)
+    getWorldInventory: (worldName) => ipcRenderer.invoke('get-world-inventory', worldName),
+	saveWorldInventory: (worldName, items) => ipcRenderer.invoke('save-world-inventory', worldName, items)
 });

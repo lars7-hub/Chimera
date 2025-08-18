@@ -86,7 +86,7 @@ function openTileItemsPopup(items) {
                 const def = itemByKey[r.key] || itemDefs[0];
                 const img = document.createElement('img');
                 if (def) {
-                    img.src = `resources/ui/resources/${def.icon}`;
+                    img.src = `resources/ui/items/${def.icon}`;
                     r.key = def.key;
                     r.name = def.name;
                     r.category = def.category;
@@ -127,7 +127,7 @@ function openTileItemsPopup(items) {
                         r.key = first.key;
                         r.name = first.name;
                         r.category = catSel.value;
-                        img.src = `resources/ui/resources/${first.icon}`;
+                        img.src = `resources/ui/items/${first.icon}`;
                     }
                 });
                 itemSel.addEventListener('change', () => {
@@ -136,7 +136,7 @@ function openTileItemsPopup(items) {
                         r.key = d.key;
                         r.name = d.name;
                         r.category = d.category;
-                        img.src = `resources/ui/resources/${d.icon}`;
+                        img.src = `resources/ui/items/${d.icon}`;
                     }
                 });
 
@@ -1019,7 +1019,7 @@ function updateTileVisual(entry, key) {
             if (!def || !def.icon) return;
             const img = document.createElement('img');
             img.className = 'tile-resource-img';
-            img.src = `resources/ui/resources/${def.icon}`;
+            img.src = `resources/ui/items/${def.icon}`;
             entry.el.appendChild(img);
         });
     }
@@ -1387,17 +1387,27 @@ function displayTile(tile, key = currentKey) {
     const itemList = document.getElementById('tile-items');
     if (itemList) {
         itemList.innerHTML = '';
-        (tile.items || []).forEach(r => {
+        (tile.items || []).forEach((r, idx) => {
             const li = document.createElement('li');
             const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name);
             if (def) {
                 const img = document.createElement('img');
-                img.src = `resources/ui/resources/${def.icon}`;
+                img.src = `resources/ui/items/${def.icon}`;
                 img.className = 'item-icon';
                 li.appendChild(img);
             }
             const text = document.createTextNode(`${r.name} x${r.amount || 0} ${r.renewable ? '(Renewable)' : '(Finite)'}`);
             li.appendChild(text);
+			if (worldCharacter) {
+				const pickBtn = document.createElement('button');
+				pickBtn.textContent = 'Pick Up';
+				pickBtn.addEventListener('click', () => pickUpTileItem(idx));
+				li.appendChild(pickBtn);
+				const delBtn = document.createElement('button');
+				delBtn.textContent = 'Destroy';
+				delBtn.addEventListener('click', () => destroyTileItem(idx));
+				li.appendChild(delBtn);
+			}
             itemList.appendChild(li);
         });
     }
@@ -1426,6 +1436,43 @@ function displayTile(tile, key = currentKey) {
         }
     }
     drawDirectionArrows();
+}
+
+function pickUpTileItem(idx) {
+	const entry = tileMap[currentKey];
+	if (!entry || !entry.data.items || !entry.data.items[idx]) return;
+	const ref = entry.data.items[idx];
+	const def = itemByKey[ref.key] || itemDefs.find(d => d.name === ref.name);
+	if (!def) return;
+	const item = { ...def };
+	if (def.stackable) item.quantity = ref.amount || 1;
+	item.image = item.image || `resources/ui/items/${def.icon}`;
+	let slot = worldInventory.findIndex(i => !i);
+	if (slot === -1) {
+		const maxSlots = 12;
+		if (worldInventory.length < maxSlots) {
+			slot = worldInventory.length;
+		} else {
+			alert('Inventory full');
+			return;
+		}
+	}
+	worldInventory[slot] = item;
+	entry.data.items.splice(idx, 1);
+	renderWorldInventory();
+	displayTile(entry.data);
+	saveRegion();
+	if (window.electron.saveWorldInventory) {
+		window.electron.saveWorldInventory(currentWorld, worldInventory);
+	}
+}
+
+function destroyTileItem(idx) {
+	const entry = tileMap[currentKey];
+	if (!entry || !entry.data.items || !entry.data.items[idx]) return;
+	entry.data.items.splice(idx, 1);
+	displayTile(entry.data);
+	saveRegion();
 }
 
 function regenerateConnections(x, y) {

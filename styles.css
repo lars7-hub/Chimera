@@ -1110,6 +1110,10 @@ button:hover {
     z-index: 4000;
 }
 
+#item-info-modal {
+	z-index: 4001;
+}
+
 .modal.hidden {
     display: none;
 }

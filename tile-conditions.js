@@ -1,7 +1,7 @@
 (function(){
   const defaultConditions = {
     mountain: {
-      passable: [{ type: 'item', key: 'climbing_axe' }]
+      passable: [{ type: 'item', key: 'climbing_pick' }]
     }
   };
 

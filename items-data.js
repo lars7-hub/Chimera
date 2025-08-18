@@ -47,7 +47,7 @@ const itemCategories = {
   key_items: {
     name: 'Key Items',
     items: [
-      { key: 'climbing_axe', name: 'Climbing Axe', icon: 'climbing_axe.png' }
+      { key: 'climbing_pick', name: 'Climbing Pick', icon: 'climbing_pick.png' }
     ]
   },
   miscellaneous: {
