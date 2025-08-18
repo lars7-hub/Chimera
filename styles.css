@@ -670,6 +670,51 @@ button:hover {
     border: 1px solid #555;
 }
 
+#selection-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+#selection-overlay.hidden {
+    display: none;
+}
+
+#selection-box {
+    background: #333;
+    padding: 20px;
+    border: 1px solid #555;
+    max-width: 80%;
+}
+
+#selection-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.selection-tab {
+    display: inline-block;
+    margin: 5px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.selection-tab img {
+    width: 80px;
+    height: 100px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto 5px;
+}
+
 .prompt-buttons button {
     width: auto;
     margin-left: 10px;

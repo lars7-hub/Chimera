@@ -617,6 +617,69 @@ ipcMain.handle('get-sticker-images', (event, type) => {
     }
 });
 
+ipcMain.handle('prepare-world-character', (event, worldName, characterName, loadoutName) => {
+    try {
+        const destDir = path.join(worldRoot, worldName, 'character');
+        fs.mkdirSync(destDir, { recursive: true });
+        const srcDir = path.join(fileSystemPath, characterName);
+        const files = [`${characterName}.json`, `${characterName}.png`];
+        files.forEach(f => {
+            const src = path.join(srcDir, f);
+            const dest = path.join(destDir, f);
+            if (fs.existsSync(src)) {
+                fs.copyFileSync(src, dest);
+            }
+        });
+        const srcLoad = path.join(srcDir, 'loadouts', loadoutName || 'default');
+        const destLoad = path.join(destDir, 'loadouts', 'default');
+        if (fs.existsSync(srcLoad)) {
+            fs.rmSync(destLoad, { recursive: true, force: true });
+            fs.cpSync(srcLoad, destLoad, { recursive: true });
+        }
+        return { success: true };
+    } catch (err) {
+        console.error('Error preparing world character:', err);
+        return { success: false, message: 'Error preparing world character' };
+    }
+});
+
+ipcMain.handle('get-world-character', (event, worldName) => {
+    try {
+        const charDir = path.join(worldRoot, worldName, 'character');
+        if (!fs.existsSync(charDir)) return null;
+        const files = fs.readdirSync(charDir).filter(f => f.endsWith('.json'));
+        if (!files.length) return null;
+        const data = JSON.parse(fs.readFileSync(path.join(charDir, files[0]), 'utf-8'));
+        return data;
+    } catch (err) {
+        console.error('Error reading world character:', err);
+        return null;
+    }
+});
+
+ipcMain.handle('get-world-inventory', (event, worldName) => {
+    const items = [];
+    try {
+        const invPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory');
+        if (fs.existsSync(invPath)) {
+            fs.readdirSync(invPath).forEach(file => {
+                if (file.endsWith('.json')) {
+                    const base = path.basename(file, '.json');
+                    const data = JSON.parse(fs.readFileSync(path.join(invPath, file), 'utf-8'));
+                    const imgPath = path.join(invPath, `${base}.png`);
+                    if (fs.existsSync(imgPath)) {
+                        data.image = pathToFileURL(imgPath).href;
+                    }
+                    items.push(data);
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error reading world inventory:', err);
+    }
+    return items;
+});
+
 ipcMain.handle('list-worlds', () => {
     try {
         if (!fs.existsSync(worldRoot)) return [];

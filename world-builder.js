@@ -1840,9 +1840,26 @@ async function importWorldCharacter() {
         alert('No characters found');
         return;
     }
-    const name = await showPrompt('Character to import:\n' + chars.map(c => c.name).join(', '));
+    const options = chars.map(c => ({ name: c.name, image: c.imagePath }));
+    const name = await showSelection('Select Character', options);
     if (!name) return;
-    await window.electron.prepareWorldCharacter(currentWorld, name);
+    let loadout = 'default';
+    let loads = await window.electron.getLoadouts(name);
+    if (loads.length) {
+        const loadOpts = [];
+        for (const l of loads) {
+            let img = await window.electron.getLoadoutImage(name, l.name);
+            if (!img) {
+                img = await window.electron.getCharacterImage(name);
+            }
+            loadOpts.push({ name: l.name, image: img });
+        }
+        loadOpts.push({ name: 'default', image: await window.electron.getCharacterImage(name) });
+        const selLoad = await showSelection('Select Loadout', loadOpts);
+        if (!selLoad) return;
+        loadout = selLoad;
+    }
+    await window.electron.prepareWorldCharacter(currentWorld, name, loadout);
     worldCharacter = await window.electron.getWorldCharacter(currentWorld);
     worldInventory = await window.electron.getWorldInventory(currentWorld);
     document.getElementById('character-name').textContent = worldCharacter.name || '';
@@ -1892,4 +1909,46 @@ function openItemInfo(index) {
     document.getElementById('item-info-description').textContent = item.description || '';
     document.getElementById('item-info-value-text').textContent = (item.value != null ? item.value : '');
     document.getElementById('item-info-modal').classList.remove('hidden');
+}
+
+async function showSelection(title, items) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('selection-overlay');
+        const list = document.getElementById('selection-list');
+        const cancel = document.getElementById('selection-cancel');
+        const header = document.getElementById('selection-title');
+        header.textContent = title;
+        list.innerHTML = '';
+
+        function cleanup() {
+            overlay.classList.add('hidden');
+            cancel.removeEventListener('click', onCancel);
+        }
+
+        function onCancel() {
+            cleanup();
+            resolve(null);
+        }
+
+        cancel.addEventListener('click', onCancel);
+
+        items.forEach(item => {
+            const tab = document.createElement('div');
+            tab.className = 'selection-tab';
+            const img = document.createElement('img');
+            img.src = item.image;
+            img.alt = item.name;
+            tab.appendChild(img);
+            const label = document.createElement('div');
+            label.textContent = item.name;
+            tab.appendChild(label);
+            tab.addEventListener('click', () => {
+                cleanup();
+                resolve(item.name);
+            });
+            list.appendChild(tab);
+        });
+
+        overlay.classList.remove('hidden');
+    });
 }
