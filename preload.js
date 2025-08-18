@@ -31,5 +31,8 @@ contextBridge.exposeInMainWorld('electron', {
     saveMapRegion: (regionName, worldName, tiles, start) => ipcRenderer.invoke('save-map-region', regionName, worldName, tiles, start),
     listTileImages: () => ipcRenderer.invoke('list-tile-images'),
     getRandomTileImage: (type) => ipcRenderer.invoke('get-random-tile-image', type),
-    getStickerImages: (type) => ipcRenderer.invoke('get-sticker-images', type)
+    getStickerImages: (type) => ipcRenderer.invoke('get-sticker-images', type),
+    prepareWorldCharacter: (worldName, characterName) => ipcRenderer.invoke('prepare-world-character', worldName, characterName),
+    getWorldCharacter: (worldName) => ipcRenderer.invoke('get-world-character', worldName),
+    getWorldInventory: (worldName) => ipcRenderer.invoke('get-world-inventory', worldName)
 });

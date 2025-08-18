@@ -29,8 +29,8 @@
                                                 <canvas id="minimap"></canvas>
                                         </div>
                     <div id="map-view-buttons">
-                        <button id="world-map-btn" title="World Map">🌐</button>
                         <button id="split-view-btn" title="Split View">🗺️</button>
+                        <button id="world-map-btn" title="World Map">🌐</button>
                         <button id="full-view-btn" title="Full View">🔍</button>
                     </div>
                 </div>
@@ -45,10 +45,13 @@
                     <button id="toggle-icons-btn">Show Type Icons</button>
                     <button id="biome-painter-btn">Biome Painter</button>
                     <button id="item-painter-btn">Item Painter</button>
+                    <button id="import-character-btn">Import Character</button>
                 </div>
             </div>
             <div id="right-column">
                 <div id="info-panel" class="info-box">
+                    <h3 id="character-name"></h3>
+                    <button id="inventory-btn" class="hidden">Inventory</button>
                     <h3 id="tile-name"></h3>
                     <p id="tile-coords"></p>
                     <p id="tile-type"></p>
@@ -191,6 +194,31 @@
                 </div>
                 <div>
                     <label><input type="checkbox" id="item-paint-clear">Clear Items</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="inventory-overlay" class="modal hidden">
+            <div class="modal-content">
+                <h3>Inventory</h3>
+                <div id="inventory-grid"></div>
+                <div class="modal-buttons">
+                    <button id="inventory-close">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="item-info-modal" class="modal hidden">
+            <div class="modal-content">
+                <span id="item-info-close" class="close">&times;</span>
+                <h3 id="item-info-name" class="name-tag"></h3>
+                <div id="item-info-rarity" class="rarity-tag"></div>
+                <img id="item-info-image" alt="">
+                <div id="item-info-stats"></div>
+                <p id="item-info-description"></p>
+                <div id="item-info-value" class="item-value">
+                    <img src="resources/ui/coin.png" alt="coin">
+                    <span id="item-info-value-text"></span>
                 </div>
             </div>
         </div>

@@ -59,6 +59,9 @@ const itemDefs = window.ITEMS || [];
 const itemByKey = {};
 itemDefs.forEach(i => { itemByKey[i.key] = i; });
 
+let worldCharacter = null;
+let worldInventory = [];
+
 function openTileItemsPopup(items) {
     return new Promise(resolve => {
         const overlay = document.getElementById('tile-item-overlay');
@@ -646,11 +649,24 @@ window.onload = async function () {
         renderGrid();
     });
 
+    document.getElementById('import-character-btn').addEventListener('click', importWorldCharacter);
+    document.getElementById('inventory-btn').addEventListener('click', () => {
+        if (!worldCharacter) return;
+        renderWorldInventory();
+        document.getElementById('inventory-overlay').classList.remove('hidden');
+    });
+    document.getElementById('inventory-close').addEventListener('click', () => {
+        document.getElementById('inventory-overlay').classList.add('hidden');
+    });
+    document.getElementById('item-info-close').addEventListener('click', () => {
+        document.getElementById('item-info-modal').classList.add('hidden');
+    });
+
     document.getElementById('world-map-btn').addEventListener('click', () => {
         viewMode = 'world';
         updateBounds();
         renderGrid();
-    });
+	});
     document.getElementById('split-view-btn').addEventListener('click', () => {
         viewMode = 'split';
         updateBounds();
@@ -1812,4 +1828,68 @@ async function goRandom() {
     } catch (err) {
         console.error(err);
     }
+}
+
+async function importWorldCharacter() {
+    if (!currentWorld) {
+        alert('Select a world first.');
+        return;
+    }
+    const chars = await window.electron.getCharacters();
+    if (!chars.length) {
+        alert('No characters found');
+        return;
+    }
+    const name = await showPrompt('Character to import:\n' + chars.map(c => c.name).join(', '));
+    if (!name) return;
+    await window.electron.prepareWorldCharacter(currentWorld, name);
+    worldCharacter = await window.electron.getWorldCharacter(currentWorld);
+    worldInventory = await window.electron.getWorldInventory(currentWorld);
+    document.getElementById('character-name').textContent = worldCharacter.name || '';
+    document.getElementById('inventory-btn').classList.remove('hidden');
+}
+
+function renderWorldInventory() {
+    const grid = document.getElementById('inventory-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    worldInventory.forEach((item, index) => {
+        const tile = document.createElement('div');
+        tile.className = 'inventory-tile';
+        if (item.image) {
+            const img = document.createElement('img');
+            img.src = `${item.image}?cb=${Date.now()}`;
+            tile.appendChild(img);
+        } else {
+            const span = document.createElement('span');
+            span.textContent = item.name;
+            tile.appendChild(span);
+        }
+        tile.addEventListener('click', () => openItemInfo(index));
+        grid.appendChild(tile);
+    });
+}
+
+function openItemInfo(index) {
+    const item = worldInventory[index];
+    if (!item) return;
+    document.getElementById('item-info-name').textContent = item.name || '';
+    document.getElementById('item-info-rarity').textContent = item.rarity || '';
+    const img = document.getElementById('item-info-image');
+    if (item.image) {
+        img.src = `${item.image}?cb=${Date.now()}`;
+    } else {
+        img.removeAttribute('src');
+    }
+    const statsDiv = document.getElementById('item-info-stats');
+    statsDiv.innerHTML = '';
+    (item.stats || []).forEach(s => {
+        const p = document.createElement('p');
+        const prefix = (s.type === 'mult' || s.type === 'mul') ? 'x' : '+';
+        p.textContent = `${s.stat}: ${prefix}${s.value}`;
+        statsDiv.appendChild(p);
+    });
+    document.getElementById('item-info-description').textContent = item.description || '';
+    document.getElementById('item-info-value-text').textContent = (item.value != null ? item.value : '');
+    document.getElementById('item-info-modal').classList.remove('hidden');
 }

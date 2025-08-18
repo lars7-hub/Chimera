@@ -233,6 +233,7 @@ button:hover {
     background-color: #222;
     border: 1px solid #555;
     position: relative;
+    overflow: hidden;
 }
 
 .hidden {
