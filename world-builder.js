@@ -722,7 +722,13 @@ window.onload = async function () {
         const key = `${x}-${y}`;
         isPainting = true;
         if (biomePaintMode) {
-            await paintTile(x, y);
+            const bucket = document.getElementById('paint-bucket-enable').checked;
+            if (bucket) {
+                await bucketPaint(x, y);
+                isPainting = false;
+            } else {
+                await paintTile(x, y);
+            }
             lastKey = key;
             return;
         }
@@ -771,7 +777,9 @@ window.onload = async function () {
         if (key === lastKey) return;
         lastKey = key;
         if (biomePaintMode) {
-            await paintTile(x, y);
+            if (!document.getElementById('paint-bucket-enable').checked) {
+                await paintTile(x, y);
+            }
         } else if (itemPaintMode) {
             await paintItem(x, y);
         }
@@ -1374,7 +1382,7 @@ function regenerateConnections(x, y) {
     });
 }
 
-async function paintTile(x, y) {
+async function paintTile(x, y, renderSave = true) {
     const key = `${x}-${y}`;
     let created = false;
 
@@ -1409,8 +1417,10 @@ async function paintTile(x, y) {
                 e.data.connections = (e.data.connections || []).filter(c => c !== key);
             });
         }
-        renderGrid();
-        saveRegion();
+        if (renderSave) {
+            renderGrid();
+            saveRegion();
+        }
         return;
     }
 
@@ -1438,6 +1448,47 @@ async function paintTile(x, y) {
         regenerateConnections(x, y);
     }
 
+    if (renderSave) {
+        renderGrid();
+        saveRegion();
+    }
+}
+
+async function bucketPaint(x, y) {
+    const startKey = `${x}-${y}`;
+    const startEntry = tileMap[startKey];
+    const startBiome = startEntry && startEntry.data.types && startEntry.data.types[0];
+    if (!startBiome) {
+        await paintTile(x, y);
+        return;
+    }
+
+    const toVisit = [startKey];
+    const seen = new Set();
+    const targets = [];
+    while (toVisit.length) {
+        const key = toVisit.pop();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const entry = tileMap[key];
+        if (!entry) continue;
+        const biome = entry.data.types && entry.data.types[0];
+        if (biome !== startBiome) continue;
+        targets.push(key);
+        const [cx, cy] = keyToCoords(key);
+        const neighbors = [
+            `${cx - 1}-${cy}`,
+            `${cx + 1}-${cy}`,
+            `${cx}-${cy - 1}`,
+            `${cx}-${cy + 1}`,
+        ];
+        neighbors.forEach(nk => { if (!seen.has(nk)) toVisit.push(nk); });
+    }
+
+    for (const key of targets) {
+        const [tx, ty] = keyToCoords(key);
+        await paintTile(tx, ty, false);
+    }
     renderGrid();
     saveRegion();
 }
