@@ -41,6 +41,8 @@ const tileGap = 1;
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 let autoMoveTimer = null;
 let isAutoMoving = false;
+let useSplitView = false;
+let viewMinX = 0, viewMinY = 0, viewMaxX = 0, viewMaxY = 0;
 
 const tileModPresets = {
     Village: {
@@ -711,6 +713,7 @@ window.onload = async function () {
     });
 
     const mapModule = document.getElementById('map-module');
+	const miniMap = document.getElementById('miniMap');
     mapModule.addEventListener('mousedown', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
         const x = parseInt(e.target.dataset.x);
@@ -780,6 +783,23 @@ window.onload = async function () {
         isPainting = false;
         lastKey = null;
     });
+	if (miniMap) {
+		miniMap.addEventListener('click', (e) => {
+			if (!useSplitView) return;
+			const rect = miniMap.getBoundingClientRect();
+			const regionW = maxX - minX + 1;
+			const regionH = maxY - minY + 1;
+			const tx = Math.floor((e.offsetX . rect.width) * regionW) + minX;
+			const ty = Math.floor((e.offsetY . rect.width) * regionY) + minY;
+			const key = `${tx}-${ty}`;
+			if (!tileMap[key]) return;
+			const path = findPath(currentKey, key);
+			if (path && path.length > 1) {
+				stopAutoMove();
+				startAutoMove(path);
+			}
+		});
+	}
     window.addEventListener('keydown', (e) => {
         if (!document.getElementById('tile-editor-overlay').classList.contains('hidden')) return;
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -817,18 +837,45 @@ async function loadWorld() {
 
 function renderGrid() {
     const mapGrid = document.getElementById('map-module');
+    const miniWrap = document.getElementById('minimap-container');
     mapGrid.innerHTML = '';
+    if (miniWrap) miniWrap.classList.toggle('hidden', !useSplitView);
     const rect = mapGrid.getBoundingClientRect();
     if (gridWidth === 0 || gridHeight === 0) return;
+
+    if (useSplitView) {
+        const [cx, cy] = keyToCoords(currentKey);
+        viewMinX = cx - 4;
+        viewMaxX = cx + 4;
+        viewMinY = cy - 4;
+        viewMaxY = cy + 4;
+        if (viewMinX < minX) { viewMaxX += (minX - viewMinX); viewMinX = minX; }
+        if (viewMaxX > maxX) { viewMinX -= (viewMaxX - maxX); viewMaxX = maxX; }
+        if (viewMinY < minY) { viewMaxY += (minY - viewMinY); viewMinY = minY; }
+        if (viewMaxY > maxY) { viewMinY -= (viewMaxY - maxY); viewMaxY = maxY; }
+        viewMinX = Math.max(minX, viewMinX);
+        viewMaxX = Math.min(maxX, viewMaxX);
+        viewMinY = Math.max(minY, viewMinY);
+        viewMaxY = Math.min(maxY, viewMaxY);
+    } else {
+        viewMinX = minX;
+        viewMaxX = maxX;
+        viewMinY = minY;
+        viewMaxY = maxY;
+    }
+
+    const displayWidth = viewMaxX - viewMinX + 1;
+    const displayHeight = viewMaxY - viewMinY + 1;
     tileSize = Math.floor(Math.min(
-        (rect.width - tileGap * (gridWidth - 1)) / gridWidth,
-        (rect.height - tileGap * (gridHeight - 1)) / gridHeight
+        (rect.width - tileGap * (displayWidth - 1)) / displayWidth,
+        (rect.height - tileGap * (displayHeight - 1)) / displayHeight
     ));
     mapGrid.style.gap = `${tileGap}px`;
-    mapGrid.style.gridTemplateColumns = `repeat(${gridWidth}, ${tileSize}px)`;
-    mapGrid.style.gridTemplateRows = `repeat(${gridHeight}, ${tileSize}px)`;
-    for (let y = minY; y <= maxY; y++) {
-        for (let x = minX; x <= maxX; x++) {
+    mapGrid.style.gridTemplateColumns = `repeat(${displayWidth}, ${tileSize}px)`;
+    mapGrid.style.gridTemplateRows = `repeat(${displayHeight}, ${tileSize}px)`;
+
+    for (let y = viewMinY; y <= viewMaxY; y++) {
+        for (let x = viewMinX; x <= viewMaxX; x++) {
             const key = `${x}-${y}`;
             const entry = tileMap[key];
             const div = document.createElement('div');
@@ -851,6 +898,7 @@ function renderGrid() {
     if (tileMap[currentKey]) {
         displayTile(tileMap[currentKey].data);
     }
+    renderMinimap();
 }
 
 function updateTileVisual(entry, key) {
@@ -976,6 +1024,7 @@ function drawConnections() {
     const drawn = new Set();
     for (const [key, entry] of Object.entries(tileMap)) {
         const [x, y] = keyToCoords(key);
+        if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) continue;
         (entry.data.connections || []).forEach(conn => {
             const pair = [key, conn].sort().join('|');
             if (drawn.has(pair)) return;
@@ -983,10 +1032,11 @@ function drawConnections() {
             const target = tileMap[conn];
             if (!target) return;
             const [nx, ny] = keyToCoords(conn);
-            const x1 = (x - minX) * (tileSize + tileGap) + tileSize / 2;
-            const y1 = (y - minY) * (tileSize + tileGap) + tileSize / 2;
-            const x2 = (nx - minX) * (tileSize + tileGap) + tileSize / 2;
-            const y2 = (ny - minY) * (tileSize + tileGap) + tileSize / 2;
+            if (nx < viewMinX || nx > viewMaxX || ny < viewMinY || ny > viewMaxY) return;
+            const x1 = (x - viewMinX) * (tileSize + tileGap) + tileSize / 2;
+            const y1 = (y - viewMinY) * (tileSize + tileGap) + tileSize / 2;
+            const x2 = (nx - viewMinX) * (tileSize + tileGap) + tileSize / 2;
+            const y2 = (ny - viewMinY) * (tileSize + tileGap) + tileSize / 2;
             const length = Math.hypot(x2 - x1, y2 - y1);
             const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
             const line = document.createElement('div');
@@ -1037,8 +1087,8 @@ function drawDirectionArrows() {
         }
     });
     const mapGrid = document.getElementById('map-module');
-    const baseX = (cx - minX) * (tileSize + tileGap);
-    const baseY = (cy - minY) * (tileSize + tileGap);
+    const baseX = (cx - viewMinX) * (tileSize + tileGap);
+    const baseY = (cy - viewMinY) * (tileSize + tileGap);
     const size = Math.floor(tileSize * 0.3);
 
     function placeArrow(symbol, colorClass, left, top) {
@@ -1095,22 +1145,59 @@ function drawDirectionArrows() {
     }
 }
 
+function renderMinimap() {
+    const wrap = document.getElementById('minimap-container');
+    const canvas = document.getElementById('minimap');
+    if (!wrap || !canvas || !useSplitView) return;
+    const regionW = maxX - minX + 1;
+    const regionH = maxY - minY + 1;
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    const tileW = w / regionW;
+    const tileH = h / regionH;
+    for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+            const entry = tileMap[`${x}-${y}`];
+            let color = '#000';
+            if (entry) {
+                const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
+                color = tileColors[types[0]] || '#111';
+            }
+            ctx.fillStyle = color;
+            ctx.fillRect((x - minX) * tileW, (y - minY) * tileH, tileW, tileH);
+        }
+    }
+    const [cx, cy] = keyToCoords(currentKey);
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.strokeRect((cx - minX) * tileW, (cy - minY) * tileH, tileW, tileH);
+}
+
 function goToTile(target) {
     const prevKey = currentKey;
-    const prev = tileMap[prevKey];
-    if (prev) {
-        prev.el.classList.remove('current');
-        updateTileVisual(prev, prevKey);
-    }
     currentKey = target;
-    const cur = tileMap[currentKey];
-    if (cur) {
-        cur.el.classList.add('current');
-        updateTileVisual(cur, currentKey);
-        displayTile(cur.data);
-        (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
+    if (useSplitView) {
+        renderGrid();
+    } else {
+        const prev = tileMap[prevKey];
+        if (prev) {
+            prev.el.classList.remove('current');
+            updateTileVisual(prev, prevKey);
+        }
+        const cur = tileMap[currentKey];
+        if (cur) {
+            cur.el.classList.add('current');
+            updateTileVisual(cur, currentKey);
+            displayTile(cur.data);
+            (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
+        }
     }
 }
+
 
 function findPath(startKey, targetKey) {
     const queue = [[startKey]];
@@ -1491,6 +1578,7 @@ function updateBounds() {
         gridWidth = maxX - minX + 1;
         gridHeight = maxY - minY + 1;
     }
+    useSplitView = gridWidth > 10 || gridHeight > 10;
 }
 	
 async function saveRegion() {
