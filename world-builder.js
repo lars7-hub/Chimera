@@ -42,6 +42,7 @@ let minX = 1, minY = 1, maxX = 0, maxY = 0;
 let autoMoveTimer = null;
 let isAutoMoving = false;
 let useSplitView = false;
+let viewMode = 'split'; // 'split', 'world', 'full'
 let viewMinX = 0, viewMinY = 0, viewMaxX = 0, viewMaxY = 0;
 const minimapImageCache = {};
 
@@ -643,6 +644,22 @@ window.onload = async function () {
         renderGrid();
     });
 
+    document.getElementById('world-map-btn').addEventListener('click', () => {
+        viewMode = 'world';
+        updateBounds();
+        renderGrid();
+    });
+    document.getElementById('split-view-btn').addEventListener('click', () => {
+        viewMode = 'split';
+        updateBounds();
+        renderGrid();
+    });
+    document.getElementById('full-view-btn').addEventListener('click', () => {
+        viewMode = 'full';
+        updateBounds();
+        renderGrid();
+    });
+
     biomePanel = document.getElementById('biome-paint-panel');
     itemPanel = document.getElementById('item-paint-panel');
 
@@ -876,11 +893,12 @@ function renderGrid() {
 
     const displayWidth = viewMaxX - viewMinX + 1;
     const displayHeight = viewMaxY - viewMinY + 1;
+    const gap = viewMode === 'world' ? 0 : tileGap;
     tileSize = Math.floor(Math.min(
-        (rect.width - tileGap * (displayWidth - 1)) / displayWidth,
-        (rect.height - tileGap * (displayHeight - 1)) / displayHeight
+        (rect.width - gap * (displayWidth - 1)) / displayWidth,
+        (rect.height - gap * (displayHeight - 1)) / displayHeight
     ));
-    mapGrid.style.gap = `${tileGap}px`;
+    mapGrid.style.gap = `${gap}px`;
     mapGrid.style.gridTemplateColumns = `repeat(${displayWidth}, ${tileSize}px)`;
     mapGrid.style.gridTemplateRows = `repeat(${displayHeight}, ${tileSize}px)`;
 
@@ -931,13 +949,15 @@ function updateTileVisual(entry, key) {
         entry.el.style.backgroundColor = tileColors[types[0]] || '#111';
     }
 
-    (entry.data.stickers || []).forEach(s => {
-        if (!s.icon) return;
-        const img = document.createElement('img');
-        img.className = 'tile-sticker-img';
-        img.src = `resources/map/stickers/${s.icon}`;
-        entry.el.appendChild(img);
-    });
+    if (viewMode !== 'world') {
+        (entry.data.stickers || []).forEach(s => {
+            if (!s.icon) return;
+            const img = document.createElement('img');
+            img.className = 'tile-sticker-img';
+            img.src = `resources/map/stickers/${s.icon}`;
+            entry.el.appendChild(img);
+        });
+    }
 
     (entry.data.modifiers || []).forEach(m => {
         if (!m.icon) return;
@@ -946,6 +966,17 @@ function updateTileVisual(entry, key) {
         img.src = `resources/map/tilemod/${m.icon}`;
         entry.el.appendChild(img);
     });
+
+    if (viewMode === 'world') {
+        (entry.data.items || []).forEach(r => {
+            const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name);
+            if (!def || !def.icon) return;
+            const img = document.createElement('img');
+            img.className = 'tile-resource-img';
+            img.src = `resources/ui/resources/${def.icon}`;
+            entry.el.appendChild(img);
+        });
+    }
 
     if (key === originKey) {
         const star = document.createElement('div');
@@ -1032,9 +1063,10 @@ function drawConnections() {
     document.querySelectorAll('.map-connection').forEach(el => el.remove());
     const mapGrid = document.getElementById('map-module');
     const drawn = new Set();
+    const gap = viewMode === 'world' ? 0 : tileGap;
     for (const [key, entry] of Object.entries(tileMap)) {
         const [x, y] = keyToCoords(key);
-        if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) continue;
+        if (viewMode !== 'world' && (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY)) continue;
         (entry.data.connections || []).forEach(conn => {
             const pair = [key, conn].sort().join('|');
             if (drawn.has(pair)) return;
@@ -1042,11 +1074,13 @@ function drawConnections() {
             const target = tileMap[conn];
             if (!target) return;
             const [nx, ny] = keyToCoords(conn);
-            if (nx < viewMinX || nx > viewMaxX || ny < viewMinY || ny > viewMaxY) return;
-            const x1 = (x - viewMinX) * (tileSize + tileGap) + tileSize / 2;
-            const y1 = (y - viewMinY) * (tileSize + tileGap) + tileSize / 2;
-            const x2 = (nx - viewMinX) * (tileSize + tileGap) + tileSize / 2;
-            const y2 = (ny - viewMinY) * (tileSize + tileGap) + tileSize / 2;
+            if (viewMode !== 'world' && (nx < viewMinX || nx > viewMaxX || ny < viewMinY || ny > viewMaxY)) return;
+            const dist = Math.max(Math.abs(nx - x), Math.abs(ny - y));
+            if (viewMode === 'world' && dist <= 1) return;
+            const x1 = (x - viewMinX) * (tileSize + gap) + tileSize / 2;
+            const y1 = (y - viewMinY) * (tileSize + gap) + tileSize / 2;
+            const x2 = (nx - viewMinX) * (tileSize + gap) + tileSize / 2;
+            const y2 = (ny - viewMinY) * (tileSize + gap) + tileSize / 2;
             const length = Math.hypot(x2 - x1, y2 - y1);
             const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
             const line = document.createElement('div');
@@ -1055,6 +1089,7 @@ function drawConnections() {
             line.style.left = `${x1}px`;
             line.style.top = `${y1}px`;
             line.style.transform = `rotate(${angle}deg)`;
+            if (viewMode === 'world') line.style.zIndex = 3;
             mapGrid.appendChild(line);
         });
     }
@@ -1097,8 +1132,9 @@ function drawDirectionArrows() {
         }
     });
     const mapGrid = document.getElementById('map-module');
-    const baseX = (cx - viewMinX) * (tileSize + tileGap);
-    const baseY = (cy - viewMinY) * (tileSize + tileGap);
+    const gap = viewMode === 'world' ? 0 : tileGap;
+    const baseX = (cx - viewMinX) * (tileSize + gap);
+    const baseY = (cy - viewMinY) * (tileSize + gap);
     const size = Math.floor(tileSize * 0.3);
 
     function placeArrow(symbol, colorClass, left, top) {
@@ -1651,7 +1687,11 @@ function updateBounds() {
         gridWidth = maxX - minX + 1;
         gridHeight = maxY - minY + 1;
     }
-    useSplitView = gridWidth > 10 || gridHeight > 10;
+    if (viewMode === 'split') {
+        useSplitView = gridWidth > 10 || gridHeight > 10;
+    } else {
+        useSplitView = false;
+    }
 }
 	
 async function saveRegion() {

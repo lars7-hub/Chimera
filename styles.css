@@ -310,7 +310,23 @@ button:hover {
     flex: 1 1 100%;
     display: flex;
     overflow: hidden;
-	position: relative;
+        position: relative;
+}
+
+#map-view-buttons {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+}
+
+#map-view-buttons button {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+    cursor: pointer;
 }
 
 #interact-module {
@@ -476,6 +492,17 @@ button:hover {
     height: 100%;
     object-fit: fill;
     z-index: 0;
+    pointer-events: none;
+}
+
+.tile-resource-img {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 30%;
+    height: 30%;
+    object-fit: contain;
+    z-index: 2;
     pointer-events: none;
 }
 
