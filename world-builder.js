@@ -61,6 +61,15 @@ itemDefs.forEach(i => { itemByKey[i.key] = i; });
 
 let worldCharacter = null;
 let worldInventory = [];
+const statAbbr = {
+    strength: 'STR',
+    dexterity: 'DEX',
+    constitution: 'CON',
+    endurance: 'END',
+    intelligence: 'INT',
+    charisma: 'CHA',
+    fortitude: 'FOR'
+};
 
 function openTileItemsPopup(items) {
     return new Promise(resolve => {
@@ -1864,6 +1873,9 @@ async function importWorldCharacter() {
     worldInventory = await window.electron.getWorldInventory(currentWorld);
     document.getElementById('character-name').textContent = worldCharacter.name || '';
     document.getElementById('inventory-btn').classList.remove('hidden');
+    document.getElementById('mini-inventory-grid').classList.remove('hidden');
+    renderMiniInventory();
+    renderStats();
 }
 
 function renderWorldInventory() {
@@ -1885,6 +1897,122 @@ function renderWorldInventory() {
         tile.addEventListener('click', () => openItemInfo(index));
         grid.appendChild(tile);
     });
+    renderMiniInventory();
+    renderStats();
+}
+
+function renderMiniInventory() {
+    const grid = document.getElementById('mini-inventory-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (let i = 0; i < 12; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'mini-slot';
+        const item = worldInventory[i];
+        if (item && item.image) {
+            const img = document.createElement('img');
+            img.src = `${item.image}?cb=${Date.now()}`;
+            slot.appendChild(img);
+        }
+        grid.appendChild(slot);
+    }
+}
+
+function renderStats() {
+    if (!worldCharacter || worldCharacter.showStats === false) {
+        document.getElementById('profile-stats').classList.add('hidden');
+        return;
+    }
+    const container = document.getElementById('profile-stats');
+    const tableBody = document.querySelector('#stats-table tbody');
+    container.classList.remove('hidden');
+    tableBody.innerHTML = '';
+    const inventoryMods = [];
+    worldInventory.forEach(item => {
+        (item.stats || []).forEach(mod => {
+            const m = { ...mod };
+            if (item.stackable && item.quantityMultiplier) {
+                m.value = m.value * item.quantity;
+            }
+            inventoryMods.push(m);
+        });
+    });
+    const { finalStats, modifiers } = calculateFinalStats(worldCharacter.stats || {}, worldCharacter.traits || [], inventoryMods);
+    Object.keys(finalStats).forEach(key => {
+        const tr = document.createElement('tr');
+        const nameTd = document.createElement('td');
+        nameTd.className = 'stat-name';
+        nameTd.textContent = statAbbr[key] || key.slice(0,3).toUpperCase();
+
+        const base = (worldCharacter.stats && worldCharacter.stats[key]) || 0;
+        const baseTd = document.createElement('td');
+        baseTd.className = 'base';
+        baseTd.textContent = base;
+
+        const mod = modifiers[key] || 0;
+        const modTd = document.createElement('td');
+        modTd.className = 'mod';
+        if (mod > 0) {
+            modTd.classList.add('positive');
+            modTd.textContent = `+${Math.round(mod)}`;
+        } else if (mod < 0) {
+            modTd.classList.add('negative');
+            modTd.textContent = `${Math.round(mod)}`;
+        } else {
+            modTd.textContent = '0';
+        }
+
+        const finalTd = document.createElement('td');
+        finalTd.className = 'final';
+        finalTd.textContent = Math.round(finalStats[key]);
+        if (mod > 0) {
+            finalTd.classList.add('positive');
+        } else if (mod < 0) {
+            finalTd.classList.add('negative');
+        }
+
+        tr.appendChild(nameTd);
+        tr.appendChild(baseTd);
+        tr.appendChild(modTd);
+        tr.appendChild(finalTd);
+        tableBody.appendChild(tr);
+    });
+}
+
+function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
+    const finalStats = { ...baseStats };
+    const modifiers = {};
+    const boosts = {};
+    const multipliers = {};
+
+    function gather(mod) {
+        if (!mod || !mod.stat || finalStats[mod.stat] === undefined) return;
+        const val = Number(mod.value) || 0;
+        const type = mod.type;
+        if (type === 'mult' || type === 'mul') {
+            multipliers[mod.stat] = (multipliers[mod.stat] || 1) * val;
+        } else if (type === 'boost' || type === 'add' || type === 'sub' || !type) {
+            const adj = type === 'sub' ? -val : val;
+            boosts[mod.stat] = (boosts[mod.stat] || 0) + adj;
+        }
+    }
+
+    traits.forEach(t => {
+        if (Array.isArray(t.stats)) t.stats.forEach(gather);
+        else gather(t);
+    });
+    inventoryMods.forEach(gather);
+
+    Object.keys(finalStats).forEach(stat => {
+        const base = Number(baseStats[stat]) || 0;
+        const boost = boosts[stat] || 0;
+        const mult = multipliers[stat] || 1;
+        const total = (base + boost) * mult;
+        finalStats[stat] = total;
+        modifiers[stat] = total - base;
+    });
+
+    return { finalStats, modifiers };
 }
 
 function openItemInfo(index) {

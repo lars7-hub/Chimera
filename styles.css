@@ -1014,6 +1014,31 @@ button:hover {
     gap: 5px;
 }
 
+#mini-inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 40px);
+    grid-auto-rows: 40px;
+    gap: 2px;
+    margin: 5px 0;
+}
+
+#mini-inventory-grid .mini-slot {
+    width: 40px;
+    height: 40px;
+    background-color: #444;
+    border: 1px solid #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#mini-inventory-grid .mini-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .inventory-tile {
     width: 120px;
     height: 120px;
@@ -1079,6 +1104,10 @@ button:hover {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+#inventory-overlay {
+    z-index: 4000;
 }
 
 .modal.hidden {
