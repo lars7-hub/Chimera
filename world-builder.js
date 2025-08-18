@@ -888,6 +888,23 @@ async function loadWorld() {
     renderGrid();
     if (biomePanel) biomePanel.classList.add('hidden');
     if (itemPanel) itemPanel.classList.add('hidden');
+
+    // Auto-load character data if present for this world
+    worldCharacter = await window.electron.getWorldCharacter(currentWorld);
+    if (worldCharacter) {
+        worldInventory = await window.electron.getWorldInventory(currentWorld);
+        document.getElementById('character-name').textContent = worldCharacter.name || '';
+        document.getElementById('inventory-btn').classList.remove('hidden');
+        document.getElementById('mini-inventory-grid').classList.remove('hidden');
+        renderMiniInventory();
+        renderStats();
+    } else {
+        worldInventory = [];
+        document.getElementById('character-name').textContent = '';
+        document.getElementById('inventory-btn').classList.add('hidden');
+        document.getElementById('mini-inventory-grid').classList.add('hidden');
+        document.getElementById('profile-stats').classList.add('hidden');
+    }
 }
 
 function renderGrid() {
