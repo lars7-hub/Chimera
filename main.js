@@ -407,7 +407,7 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                         const x = parseInt(match[1]);
                         const y = parseInt(match[2]);
                         const tileDataPath = path.join(tileDir, 'tile.json');
-                        let tileData = { name: '', types: [], background: '', items: [], connections: [] };
+                        let tileData = { name: '', types: [], background: '', items: [], connections: [], conditions: [] };
                         if (fs.existsSync(tileDataPath)) {
                             tileData = JSON.parse(fs.readFileSync(tileDataPath, 'utf-8'));
                         }
@@ -415,7 +415,7 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
                             ? tileData.types
                             : (tileData.type ? [tileData.type] : []);
                         const isStart = !!tileData.start;
-                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], stickers: tileData.stickers || [], start: isStart });
+                        result.tiles.push({ x, y, name: tileData.name, types, background: tileData.background || '', items: tileData.items || [], connections: tileData.connections || [], modifiers: tileData.modifiers || [], stickers: tileData.stickers || [], conditions: tileData.conditions || {}, start: isStart });
                         if (isStart) {
                             result.start = { x, y };
                         }
@@ -663,7 +663,8 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
                 resources: t.resources || [],
                 connections: t.connections || [],
                 modifiers: t.modifiers || [],
-                stickers: t.stickers || []
+                stickers: t.stickers || [],
+                conditions: t.conditions || {}
             };
             if (start && start.x === t.x && start.y === t.y) {
                 data.start = true;

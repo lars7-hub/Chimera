@@ -44,6 +44,12 @@ const itemCategories = {
     name: 'Currency',
     items: []
   },
+  key_items: {
+    name: 'Key Items',
+    items: [
+      { key: 'climbing_axe', name: 'Climbing Axe', icon: 'climbing_axe.png' }
+    ]
+  },
   miscellaneous: {
     name: 'Miscellaneous',
     items: []

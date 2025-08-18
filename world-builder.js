@@ -274,7 +274,8 @@ function openTileEditor(data, x, y) {
 
         nameInput.value = data.name || '';
         let items = JSON.parse(JSON.stringify(data.items || []));
-
+		let conditions = JSON.parse(JSON.stringify(data.conditions || {}));
+		
         let selectedBg = data.background || '';
         function updateBg() {
             if (selectedBg) bgPreview.src = `resources/map/tiles/${selectedBg}`;
@@ -559,6 +560,7 @@ function openTileEditor(data, x, y) {
                 connections,
                 modifiers,
                 stickers,
+                conditions,
                 connectionStates: connectionState,
                 removeIncoming
             };
@@ -852,6 +854,7 @@ async function loadWorld() {
         delete data.type;
         data.items = data.items || [];
         data.stickers = data.stickers || [];
+        data.conditions = data.conditions || {};
         tileMap[`${t.x}-${t.y}`] = { data };
         if (data.start) originKey = `${t.x}-${t.y}`;
     });
@@ -1004,7 +1007,7 @@ async function editTile(x, y) {
     if (!entry) {
         const div = document.querySelector(`.map-tile[data-x='${x}'][data-y='${y}']`);
         if (div) div.classList.remove('blank');
-        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [], modifiers: [], stickers: [] } };
+        entry = { el: div, data: { name: `Tile ${x}-${y}`, types: [], background: '', items: [], connections: [], modifiers: [], stickers: [], conditions: [] } };
         tileMap[key] = entry;
     }
 
@@ -1018,6 +1021,7 @@ async function editTile(x, y) {
     entry.data.connections = data.connections;
     entry.data.modifiers = data.modifiers;
     entry.data.stickers = data.stickers;
+	entry.data.conditions = data.conditions || {};
     updateTileVisual(entry, key);
     Object.entries(data.connectionStates).forEach(([k, state]) => {
         const neighbor = tileMap[k];
@@ -1245,6 +1249,12 @@ function renderMinimap() {
 }
 
 function goToTile(target) {
+    const inv = window.currentInventory || [];
+    const targetEntry = tileMap[target];
+    if (targetEntry && !TileConditions.isPassable(targetEntry.data, inv)) {
+        alert('You cannot traverse this tile.');
+        return;
+    }
     const prevKey = currentKey;
     currentKey = target;
     if (useSplitView) {
@@ -1277,6 +1287,9 @@ function findPath(startKey, targetKey) {
         if (!entry) continue;
         (entry.data.connections || []).forEach(next => {
             if (!visited.has(next)) {
+                const nextEntry = tileMap[next];
+                const inv = window.currentInventory || [];
+                if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv)) return;
                 visited.add(next);
                 queue.push([...path, next]);
             }
