@@ -43,6 +43,7 @@ let autoMoveTimer = null;
 let isAutoMoving = false;
 let useSplitView = false;
 let viewMinX = 0, viewMinY = 0, viewMaxX = 0, viewMaxY = 0;
+const minimapImageCache = {};
 
 const tileModPresets = {
     Village: {
@@ -713,7 +714,7 @@ window.onload = async function () {
     });
 
     const mapModule = document.getElementById('map-module');
-	const miniMap = document.getElementById('miniMap');
+	const miniMap = document.getElementById('minimap');
     mapModule.addEventListener('mousedown', async (e) => {
         if (!e.target.classList.contains('map-tile')) return;
         const x = parseInt(e.target.dataset.x);
@@ -786,17 +787,18 @@ window.onload = async function () {
 	if (miniMap) {
 		miniMap.addEventListener('click', (e) => {
 			if (!useSplitView) return;
-			const rect = miniMap.getBoundingClientRect();
-			const regionW = maxX - minX + 1;
-			const regionH = maxY - minY + 1;
-			const tx = Math.floor((e.offsetX . rect.width) * regionW) + minX;
-			const ty = Math.floor((e.offsetY . rect.width) * regionY) + minY;
-			const key = `${tx}-${ty}`;
-			if (!tileMap[key]) return;
-			const path = findPath(currentKey, key);
-			if (path && path.length > 1) {
-				stopAutoMove();
-				startAutoMove(path);
+            const regionW = maxX - minX + 1;
+            const regionH = maxY - minY + 1;
+            const tileW = miniMap.width / regionW;
+            const tileH = miniMap.height / regionH;
+            const tx = Math.floor(e.offsetX / tileW) + minX;
+            const ty = Math.floor(e.offsetY / tileH) + minY;
+            const key = `${tx}-${ty}`;
+            if (!tileMap[key]) return;
+            const path = findPath(currentKey, key);
+            if (path && path.length > 1) {
+                stopAutoMove();
+                startAutoMove(path);
 			}
 		});
 	}
@@ -1151,30 +1153,50 @@ function renderMinimap() {
     if (!wrap || !canvas || !useSplitView) return;
     const regionW = maxX - minX + 1;
     const regionH = maxY - minY + 1;
-    const w = wrap.clientWidth;
-    const h = wrap.clientHeight;
+    const maxW = wrap.clientWidth;
+    const maxH = wrap.clientHeight;
+    const tileSize = Math.max(1, Math.floor(Math.min(maxW / regionW, maxH / regionH)));
+    const w = tileSize * regionW;
+    const h = tileSize * regionH;
     canvas.width = w;
     canvas.height = h;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, w, h);
-    const tileW = w / regionW;
-    const tileH = h / regionH;
+    ctx.imageSmoothingEnabled = false;
     for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
             const entry = tileMap[`${x}-${y}`];
+            const px = (x - minX) * tileSize;
+            const py = (y - minY) * tileSize;
+            if (entry && entry.data.background) {
+                const bg = entry.data.background;
+                let img = minimapImageCache[bg];
+                if (!img) {
+                    img = new Image();
+                    img.src = `resources/map/tiles/${bg}`;
+                    minimapImageCache[bg] = img;
+                    img.onload = renderMinimap;
+                }
+                if (img.complete) {
+                    ctx.drawImage(img, px, py, tileSize, tileSize);
+                    continue;
+                }
+            }
             let color = '#000';
             if (entry) {
                 const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
                 color = tileColors[types[0]] || '#111';
             }
             ctx.fillStyle = color;
-            ctx.fillRect((x - minX) * tileW, (y - minY) * tileH, tileW, tileH);
+            ctx.fillRect(px, py, tileSize, tileSize);
         }
     }
     const [cx, cy] = keyToCoords(currentKey);
     ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    ctx.strokeRect((cx - minX) * tileW, (cy - minY) * tileH, tileW, tileH);
+    ctx.lineWidth = Math.max(2, tileSize / 5);
+    ctx.strokeRect((cx - minX) * tileSize, (cy - minY) * tileSize, tileSize, tileSize);
 }
 
 function goToTile(target) {
