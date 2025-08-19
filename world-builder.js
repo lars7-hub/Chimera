@@ -35,6 +35,8 @@ let biomePaintMode = false;
 let itemPaintMode = false;
 let biomePanel = null;
 let itemPanel = null;
+let regionEditMode = false;
+let regionPanel = null;
 let isPainting = false;
 let lastKey = null;
 const tileGap = 1;
@@ -71,6 +73,20 @@ const statAbbr = {
     fortitude: 'FOR'
 };
 
+function getRenewableColor(item) {
+    if (!item || !item.renewable) return 'transparent';
+    const current = item.quantity != null ? item.quantity : (item.amount || 0);
+    if (item.maxAmount == null) item.maxAmount = current;
+    const max = item.maxAmount || 0;
+    if (max <= 0) return 'gray';
+    const ratio = current / max;
+    if (ratio >= 1) return 'transparent';
+    const grey = [128, 128, 128];
+    const green = [144, 238, 144];
+    const mix = grey.map((g, i) => Math.round(g + (green[i] - g) * ratio));
+    return `rgb(${mix[0]},${mix[1]},${mix[2]})`;
+}
+
 function openTileItemsPopup(items) {
     return new Promise(resolve => {
         const overlay = document.getElementById('tile-item-overlay');
@@ -81,8 +97,17 @@ function openTileItemsPopup(items) {
 
         function render() {
             list.innerHTML = '';
+            const header = document.createElement('div');
+            header.className = 'tile-item-row tile-item-header';
+            ['Icon','Category','Item','Quantity','Renewable',''].forEach(text => {
+                const span = document.createElement('span');
+                span.textContent = text;
+                header.appendChild(span);
+            });
+            list.appendChild(header);
             items.forEach((r, idx) => {
                 const row = document.createElement('div');
+                row.className = 'tile-item-row';
                 const def = itemByKey[r.key] || itemDefs[0];
                 const img = document.createElement('img');
                 if (def) {
@@ -98,6 +123,10 @@ function openTileItemsPopup(items) {
                 r.quantity = r.quantity != null ? r.quantity : (r.amount || 0);
                 img.src = r.image || '';
                 img.className = 'item-icon';
+                if (r.renewable) {
+                    img.style.borderRadius = '50%';
+                    img.style.backgroundColor = getRenewableColor(r);
+                }
                 row.appendChild(img);
 
                 const catSel = document.createElement('select');
@@ -162,13 +191,19 @@ function openTileItemsPopup(items) {
                 amt.addEventListener('change', () => {
                     r.quantity = parseInt(amt.value,10) || 0;
                     r.amount = r.quantity;
+                    if (r.renewable) {
+                        img.style.backgroundColor = getRenewableColor(r);
+                    }
                 });
                 row.appendChild(amt);
 
                 const cb = document.createElement('input');
                 cb.type = 'checkbox';
                 cb.checked = !!r.renewable;
-                cb.addEventListener('change', () => { r.renewable = cb.checked; });
+                cb.addEventListener('change', () => { 
+                    r.renewable = cb.checked; 
+                    img.style.backgroundColor = getRenewableColor(r);
+                });
                 row.appendChild(cb);
 
                 const del = document.createElement('button');
@@ -190,12 +225,15 @@ function openTileItemsPopup(items) {
                     category: firstCat,
                     amount: 0,
                     quantity: 0,
+                    maxQuantity: 0,
+                    regenTime: 0,
                     renewable: false,
                     rarity: firstItem.rarity,
                     description: firstItem.description,
                     value: firstItem.value,
                     stats: firstItem.stats,
-                    image: `resources/ui/items/${firstItem.icon}`
+                    image: `resources/ui/items/${firstItem.icon}`,
+                    _lastRegen: Date.now()
                 });
                 render();
             }
@@ -582,7 +620,20 @@ function openTileEditor(data, x, y) {
         }
 
         async function onSave() {
-            const itemsOut = items.map(r => ({ key: r.key, name: r.name, category: itemByKey[r.key].category, renewable: !!r.renewable, amount: r.amount || 0 }));
+            const itemsOut = items.map(r => {
+                const qty = r.quantity != null ? r.quantity : (r.amount || 0);
+                const maxQ = r.maxQuantity != null ? r.maxQuantity : qty;
+                return {
+                    key: r.key,
+                    name: r.name,
+                    category: itemByKey[r.key].category,
+                    renewable: !!r.renewable,
+                    quantity: qty,
+                    amount: qty,
+                    maxQuantity: maxQ,
+                    regenTime: r.regenTime || 0
+                };
+            });
             const connections = Object.keys(connectionState).filter(k => connectionState[k] > 0);
             farConnections.forEach(c => {
                 const key = `${c.x}-${c.y}`;
@@ -720,6 +771,7 @@ window.onload = async function () {
 
     biomePanel = document.getElementById('biome-paint-panel');
     itemPanel = document.getElementById('item-paint-panel');
+    regionPanel = document.getElementById('region-editor-panel');
 
     const biomeToggle = document.getElementById('biome-paint-toggle');
     const biomeSelect = document.getElementById('paint-biome-select');
@@ -759,15 +811,25 @@ window.onload = async function () {
         itemToggle.textContent = itemPaintMode ? 'Item Paint Mode: On' : 'Item Paint Mode: Off';
     });
 
+    const regionToggle = document.getElementById('region-editor-toggle');
+    regionToggle.addEventListener('click', () => {
+        regionEditMode = !regionEditMode;
+        regionToggle.textContent = regionEditMode ? 'Region Mode: On' : 'Region Mode: Off';
+    });
+
     const biomeBtn = document.getElementById('biome-painter-btn');
     const itemBtn = document.getElementById('item-painter-btn');
+    const regionBtn = document.getElementById('region-editor-btn');
     biomeBtn.addEventListener('click', () => {
         const hidden = biomePanel.classList.contains('hidden');
         if (hidden) {
             biomePanel.classList.remove('hidden');
             itemPanel.classList.add('hidden');
+            regionPanel.classList.add('hidden');
             itemPaintMode = false;
+            regionEditMode = false;
             itemToggle.textContent = 'Item Paint Mode: Off';
+            regionToggle.textContent = 'Region Mode: Off';
         } else {
             biomePanel.classList.add('hidden');
             biomePaintMode = false;
@@ -779,12 +841,32 @@ window.onload = async function () {
         if (hidden) {
             itemPanel.classList.remove('hidden');
             biomePanel.classList.add('hidden');
+            regionPanel.classList.add('hidden');
             biomePaintMode = false;
+            regionEditMode = false;
             biomeToggle.textContent = 'Paint Mode: Off';
+            regionToggle.textContent = 'Region Mode: Off';
         } else {
             itemPanel.classList.add('hidden');
             itemPaintMode = false;
             itemToggle.textContent = 'Item Paint Mode: Off';
+        }
+    });
+
+    regionBtn.addEventListener('click', () => {
+        const hidden = regionPanel.classList.contains('hidden');
+        if (hidden) {
+            regionPanel.classList.remove('hidden');
+            biomePanel.classList.add('hidden');
+            itemPanel.classList.add('hidden');
+            biomePaintMode = false;
+            itemPaintMode = false;
+            biomeToggle.textContent = 'Paint Mode: Off';
+            itemToggle.textContent = 'Item Paint Mode: Off';
+        } else {
+            regionPanel.classList.add('hidden');
+            regionEditMode = false;
+            regionToggle.textContent = 'Region Mode: Off';
         }
     });
 
@@ -809,6 +891,11 @@ window.onload = async function () {
         }
         if (itemPaintMode) {
             await paintItem(x, y);
+            lastKey = key;
+            return;
+        }
+        if (regionEditMode) {
+            await editRegion(x, y);
             lastKey = key;
             return;
         }
@@ -899,6 +986,8 @@ window.onload = async function () {
         }
     });
     window.addEventListener('resize', renderGrid);
+
+    setInterval(tickRenewables, 1000);
 };
 
 async function loadWorld() {
@@ -908,7 +997,13 @@ async function loadWorld() {
         const data = { ...t };
         if (data.type && !data.types) data.types = [data.type];
         delete data.type;
-        data.items = data.items || [];
+        data.items = (data.items || []).map(i => ({
+            ...i,
+            quantity: i.quantity != null ? i.quantity : (i.amount || 0),
+            maxQuantity: i.maxQuantity != null ? i.maxQuantity : (i.quantity != null ? i.quantity : (i.amount || 0)),
+            regenTime: i.regenTime || 0,
+            _lastRegen: Date.now()
+        }));
         data.stickers = data.stickers || [];
         data.conditions = data.conditions || {};
         tileMap[`${t.x}-${t.y}`] = { data };
@@ -1050,16 +1145,16 @@ function updateTileVisual(entry, key) {
         entry.el.appendChild(img);
     });
 
-    if (viewMode === 'world') {
-        (entry.data.items || []).forEach(r => {
-            const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name);
-            if (!def || !def.icon) return;
-            const img = document.createElement('img');
-            img.className = 'tile-resource-img';
-            img.src = `resources/ui/items/${def.icon}`;
-            entry.el.appendChild(img);
-        });
-    }
+    (entry.data.items || []).forEach(r => {
+        const qty = r.quantity != null ? r.quantity : (r.amount || 0);
+        if (qty <= 0) return;
+        const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name);
+        if (!def || !def.icon) return;
+        const img = document.createElement('img');
+        img.className = 'tile-resource-img';
+        img.src = `resources/ui/items/${def.icon}`;
+        entry.el.appendChild(img);
+    });
 
     if (key === originKey) {
         const star = document.createElement('div');
@@ -1431,6 +1526,10 @@ function displayTile(tile, key = currentKey) {
                 const img = document.createElement('img');
                 img.src = r.image || `resources/ui/items/${def.icon}`;
                 img.className = 'item-icon';
+                if (r.renewable) {
+                    img.style.borderRadius = '50%';
+                    img.style.backgroundColor = getRenewableColor(r);
+                }
                 li.appendChild(img);
             }
             const qty = r.quantity != null ? r.quantity : (r.amount || 0);
@@ -1477,41 +1576,54 @@ function displayTile(tile, key = currentKey) {
 }
 
 function pickUpTileItem(idx) {
-	const entry = tileMap[currentKey];
-	if (!entry || !entry.data.items || !entry.data.items[idx]) return;
-	const ref = entry.data.items[idx];
+        const entry = tileMap[currentKey];
+        if (!entry || !entry.data.items || !entry.data.items[idx]) return;
+        const ref = entry.data.items[idx];
         const def = itemByKey[ref.key] || itemDefs.find(d => d.name === ref.name) || {};
-        const item = { ...def, ...ref };
-        if (item.amount != null && item.quantity == null) {
-                item.quantity = item.amount || 1;
+        const base = { ...def, ...ref };
+        const totalQty = base.quantity != null ? base.quantity : (base.amount || 1);
+        const maxSlots = 12;
+        let remaining = totalQty;
+        while (remaining > 0) {
+                let slot = worldInventory.findIndex(i => !i);
+                if (slot === -1) {
+                        if (worldInventory.length < maxSlots) {
+                                slot = worldInventory.length;
+                        } else {
+                                break;
+                        }
+                }
+                const item = { ...base, quantity: 1, amount: 1 };
+                if (!item.image && def.icon) {
+                        item.image = `resources/ui/items/${def.icon}`;
+                }
+                worldInventory[slot] = item;
+                remaining--;
         }
-        if (!item.image && def.icon) {
-                item.image = `resources/ui/items/${def.icon}`;
+        const leftover = remaining;
+        if (leftover > 0) {
+                ref.quantity = leftover;
+                ref.amount = leftover;
+                if (ref.renewable && ref.maxAmount == null) ref.maxAmount = totalQty;
+        } else {
+                entry.data.items.splice(idx, 1);
         }
-        let slot = worldInventory.findIndex(i => !i);
-	if (slot === -1) {
-		const maxSlots = 12;
-		if (worldInventory.length < maxSlots) {
-			slot = worldInventory.length;
-		} else {
-			alert('Inventory full');
-			return;
-		}
-	}
-	worldInventory[slot] = item;
-	entry.data.items.splice(idx, 1);
-	renderWorldInventory();
-	displayTile(entry.data);
-	saveRegion();
-	if (window.electron.saveWorldInventory) {
-		window.electron.saveWorldInventory(currentWorld, worldInventory);
-	}
+        renderWorldInventory();
+        displayTile(entry.data);
+        saveRegion();
+        if (window.electron.saveWorldInventory) {
+                window.electron.saveWorldInventory(currentWorld, worldInventory);
+        }
+        if (leftover > 0) {
+                alert('Inventory full');
+        }
 }
 
 function destroyTileItem(idx) {
         const entry = tileMap[currentKey];
         if (!entry || !entry.data.items || !entry.data.items[idx]) return;
         entry.data.items.splice(idx, 1);
+        updateTileVisual(entry, currentKey);
         displayTile(entry.data);
         saveRegion();
 }
@@ -1529,13 +1641,18 @@ function dropInventoryItem(index) {
         description: item.description,
         value: item.value,
         stats: item.stats,
-        image: item.image
+        image: item.image,
+        renewable: false,
+        regenTime: 0,
+        _lastRegen: Date.now()
     };
     if (item.quantity != null) {
         ref.amount = item.quantity;
         ref.quantity = item.quantity;
+        ref.maxQuantity = item.quantity;
     }
     entry.data.items.push(ref);
+    updateTileVisual(entry, currentKey);
     worldInventory.splice(index, 1);
     renderWorldInventory();
     displayTile(entry.data);
@@ -1738,6 +1855,9 @@ async function paintItem(x, y) {
     } else {
         const keySel = document.getElementById('item-paint-item').value;
         const qty = parseInt(document.getElementById('item-paint-quantity').value, 10) || 0;
+        const maxQtyInput = parseInt(document.getElementById('item-paint-max').value, 10);
+        const maxQty = !isNaN(maxQtyInput) ? maxQtyInput : qty;
+        const regen = parseInt(document.getElementById('item-paint-regen').value, 10) || 0;
         const renewable = document.getElementById('item-paint-renewable').checked;
         const def = itemByKey[keySel];
         if (def) {
@@ -1747,6 +1867,9 @@ async function paintItem(x, y) {
                 existing.amount = qty;
                 existing.quantity = qty;
                 existing.renewable = renewable;
+                existing.maxQuantity = maxQty;
+                existing.regenTime = regen;
+                existing._lastRegen = Date.now();
                 existing.name = def.name;
                 existing.category = def.category;
                 existing.rarity = def.rarity;
@@ -1761,12 +1884,15 @@ async function paintItem(x, y) {
                     category: def.category,
                     amount: qty,
                     quantity: qty,
+                    maxQuantity: maxQty,
+                    regenTime: regen,
                     renewable,
                     rarity: def.rarity,
                     description: def.description,
                     value: def.value,
                     stats: def.stats,
-                    image: `resources/ui/items/${def.icon}`
+                    image: `resources/ui/items/${def.icon}`,
+                    _lastRegen: Date.now()
                 });
             }
         }
@@ -1774,6 +1900,18 @@ async function paintItem(x, y) {
     updateTileVisual(entry, key);
     displayTile(entry.data, key);
     saveRegion();
+}
+
+// Allow naming regions when region editor mode is active
+async function editRegion(x, y) {
+    const key = `${x}-${y}`;
+    const entry = tileMap[key];
+    if (!entry) return;
+    const name = await showPrompt('Region name?', entry.data.region || '');
+    if (name !== null) {
+        entry.data.region = name;
+        saveRegion();
+    }
 }
 
 function addAdjacentTile() {
@@ -1898,11 +2036,48 @@ async function saveRegion() {
     const tiles = Object.entries(tileMap).map(([key, entry]) => {
         const [x, y] = keyToCoords(key);
         const data = { ...entry.data };
+        if (data.items) {
+            data.items = data.items.map(i => {
+                const { _lastRegen, ...rest } = i;
+                return rest;
+            });
+        }
         if (data.type) delete data.type;
         return { x, y, ...data, start: key === originKey };
     });
     const [ox, oy] = keyToCoords(originKey);
     await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
+}
+
+function tickRenewables() {
+    const now = Date.now();
+    for (const [key, entry] of Object.entries(tileMap)) {
+        let changed = false;
+        (entry.data.items || []).forEach(r => {
+            if (!r.renewable) return;
+            r.quantity = r.quantity != null ? r.quantity : (r.amount || 0);
+            const maxQ = r.maxQuantity != null ? r.maxQuantity : r.quantity;
+            const regen = r.regenTime || 0;
+            if (regen <= 0 || r.quantity >= maxQ) {
+                r._lastRegen = now;
+                return;
+            }
+            r._lastRegen = r._lastRegen || now;
+            const step = regen * 1000;
+            const elapsed = now - r._lastRegen;
+            if (elapsed >= step) {
+                const inc = Math.floor(elapsed / step);
+                r.quantity = Math.min(maxQ, r.quantity + inc);
+                r.amount = r.quantity;
+                r._lastRegen = now - (elapsed % step);
+                changed = true;
+            }
+        });
+        if (changed) {
+            updateTileVisual(entry, key);
+            if (key === currentKey) displayTile(entry.data, key);
+        }
+    }
 }
 
 async function configureConnections(x, y, starterType = '', starterBg = '') {
@@ -1977,6 +2152,7 @@ async function editTileItems() {
     if (!entry) return;
     entry.data.items = entry.data.items || [];
     await openTileItemsPopup(entry.data.items);
+    updateTileVisual(entry, currentKey);
     displayTile(entry.data);
     saveRegion();
 }

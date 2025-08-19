@@ -392,15 +392,27 @@ button:hover {
     margin-right: 4px;
 }
 
+#tile-item-list .tile-item-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+#tile-item-list .tile-item-header span {
+    font-weight: bold;
+}
+
 .painter-popup.hidden {
 	display: none;
 }
 
 #biome-paint-options,
-#item-paint-options {
- 	justify-content: center;
-	align-content: center;
-	display: flex;
+#item-paint-options,
+#region-editor-options {
+        justify-content: center;
+        align-content: center;
+        display: flex;
     flex-direction: column;
     gap: 5px;
     margin-top: 5px;
