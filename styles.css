@@ -241,7 +241,7 @@ button:hover {
 }
 
 .map-tile {
-    border: 2px solid #444;
+    border: 1px solid #444;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -294,7 +294,7 @@ button:hover {
     pointer-events: none;
     color: #fff;
     font-weight: bold;
-    text-shadow: 0 0 3px #000;
+    text-shadow: 2px 2px 2px #000;
     white-space: nowrap;
     z-index: 5;
     transform: translate(-50%, -50%);
@@ -310,6 +310,7 @@ button:hover {
     padding: 2px 6px;
     pointer-events: none;
     z-index: 15;
+    font-size: 24px;
 }
 
 .map-connection {
@@ -449,6 +450,11 @@ button:hover {
     flex-direction: column;
     gap: 5px;
     margin-top: 5px;
+}
+
+#current-zone-info {
+    margin-top: 5px;
+    font-weight: bold;
 }
 
 #prompt-overlay {

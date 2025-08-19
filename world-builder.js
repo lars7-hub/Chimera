@@ -45,9 +45,27 @@ let zoneColorInput = null;
 let zoneNameWorld = null;
 let zoneNameSplit = null;
 let zoneNameFull = null;
+let currentZoneInfo = null;
 let isPainting = false;
 let lastKey = null;
 const tileGap = 1;
+
+function updateZoneInfo() {
+    if (!currentZoneInfo) return;
+    if (currentZone) {
+        currentZoneInfo.textContent = `Editing Zone: ${currentZone.name || ''} (ID ${currentZone.id})`;
+    } else {
+        currentZoneInfo.textContent = 'No zone selected';
+    }
+}
+
+function hexToRgba(hex, alpha) {
+    const bigint = parseInt(hex.slice(1), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+}
 let minX = 1, minY = 1, maxX = 0, maxY = 0;
 let autoMoveTimer = null;
 let isAutoMoving = false;
@@ -780,6 +798,7 @@ window.onload = async function () {
     biomePanel = document.getElementById('biome-paint-panel');
     itemPanel = document.getElementById('item-paint-panel');
     zonePanel = document.getElementById('zone-tool-panel');
+    currentZoneInfo = document.getElementById('current-zone-info');
 
     const biomeToggle = document.getElementById('biome-paint-toggle');
     const biomeSelect = document.getElementById('paint-biome-select');
@@ -836,6 +855,7 @@ window.onload = async function () {
         currentZone.name = zoneNameInput.value;
         saveZone(currentZone);
         renderGrid();
+        updateZoneInfo();
     });
     zoneColorInput = document.getElementById('zone-color-input');
     zoneColorInput.addEventListener('input', () => {
@@ -966,6 +986,7 @@ window.onload = async function () {
                 if (m.message) alert(m.message);
             });
             renderZoneNames();
+            renderZoneBorders();
         } else {
             const path = findPath(currentKey, key);
             if (path && path.length > 1) {
@@ -1063,6 +1084,7 @@ async function loadWorld() {
     zoneToggle && (zoneToggle.disabled = true);
     zoneEditMode = false;
     if (zoneToggle) zoneToggle.textContent = 'Zone Mode: Off';
+    updateZoneInfo();
     currentKey = originKey;
     updateBounds();
     renderGrid();
@@ -1503,6 +1525,7 @@ function goToTile(target) {
             displayTile(cur.data);
             (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
             renderZoneNames();
+            renderZoneBorders();
         }
     }
 }
@@ -1963,11 +1986,14 @@ async function paintItem(x, y) {
 function addTileToZone(x, y) {
     if (!currentZone) return;
     const key = `${x}-${y}`;
-    if (!currentZone.tiles.includes(key)) {
+    const idx = currentZone.tiles.indexOf(key);
+    if (idx === -1) {
         currentZone.tiles.push(key);
-        saveZone(currentZone);
-        renderGrid();
+    } else {
+        currentZone.tiles.splice(idx, 1);
     }
+    saveZone(currentZone);
+    renderGrid();
 }
 
 async function createZone() {
@@ -1989,6 +2015,7 @@ async function createZone() {
     zoneToggle.textContent = 'Zone Mode: Off';
     saveZone(zone);
     renderGrid();
+    updateZoneInfo();
 }
 
 async function selectZoneForEdit() {
@@ -2007,6 +2034,7 @@ async function selectZoneForEdit() {
         zoneNameSplit.checked = zone.showName ? zone.showName.split !== false : true;
         zoneNameFull.checked = zone.showName ? zone.showName.full !== false : true;
         zoneToggle.disabled = false;
+        updateZoneInfo();
     }
 }
 
@@ -2032,6 +2060,7 @@ function saveZone(zone) {
 function renderZoneBorders() {
     document.querySelectorAll('.zone-border').forEach(el => el.remove());
     Object.values(zones).forEach(z => {
+        const shade = hexToRgba(z.color, 0.3);
         z.tiles.forEach(key => {
             const entry = tileMap[key];
             if (!entry || !entry.el) return;
@@ -2044,10 +2073,21 @@ function renderZoneBorders() {
             };
             const border = document.createElement('div');
             border.className = 'zone-border';
-            border.style.borderTop = z.tiles.includes(neighbors.top) ? 'none' : `2px solid ${z.color}`;
-            border.style.borderBottom = z.tiles.includes(neighbors.bottom) ? 'none' : `2px solid ${z.color}`;
-            border.style.borderLeft = z.tiles.includes(neighbors.left) ? 'none' : `2px solid ${z.color}`;
-            border.style.borderRight = z.tiles.includes(neighbors.right) ? 'none' : `2px solid ${z.color}`;
+            const topMissing = !z.tiles.includes(neighbors.top);
+            const bottomMissing = !z.tiles.includes(neighbors.bottom);
+            const leftMissing = !z.tiles.includes(neighbors.left);
+            const rightMissing = !z.tiles.includes(neighbors.right);
+            border.style.borderTop = topMissing ? `2px solid ${z.color}` : 'none';
+            border.style.borderBottom = bottomMissing ? `2px solid ${z.color}` : 'none';
+            border.style.borderLeft = leftMissing ? `2px solid ${z.color}` : 'none';
+            border.style.borderRight = rightMissing ? `2px solid ${z.color}` : 'none';
+            const shadowSize = tileSize / 2;
+            const shadows = [];
+            if (topMissing) shadows.push(`inset 0 ${shadowSize}px ${shadowSize}px -${shadowSize/2}px ${shade}`);
+            if (bottomMissing) shadows.push(`inset 0 -${shadowSize}px ${shadowSize}px -${shadowSize/2}px ${shade}`);
+            if (leftMissing) shadows.push(`inset ${shadowSize}px 0 ${shadowSize}px -${shadowSize/2}px ${shade}`);
+            if (rightMissing) shadows.push(`inset -${shadowSize}px 0 ${shadowSize}px -${shadowSize/2}px ${shade}`);
+            border.style.boxShadow = shadows.join(', ');
             entry.el.appendChild(border);
         });
     });
