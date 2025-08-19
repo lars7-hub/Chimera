@@ -49,6 +49,8 @@ let currentZoneInfo = null;
 let isPainting = false;
 let lastKey = null;
 const tileGap = 1;
+let activeZoneIds = [];
+let zoneEntryTimeout = null;
 
 function updateZoneInfo() {
     if (!currentZoneInfo) return;
@@ -1509,7 +1511,13 @@ function goToTile(target) {
         return;
     }
     const prevKey = currentKey;
+    const prevZoneIds = activeZoneIds.slice();
     currentKey = target;
+    activeZoneIds = findZonesByTile(currentKey).map(z => z.id);
+    const enteredIds = activeZoneIds.filter(id => !prevZoneIds.includes(id));
+    if (enteredIds.length && zones[enteredIds[0]]) {
+        showZoneEntry(zones[enteredIds[0]]);
+    }
     if (useSplitView) {
         renderGrid();
     } else {
@@ -2684,4 +2692,23 @@ async function showSelection(title, items) {
 
         overlay.classList.remove('hidden');
     });
+}
+
+function showZoneEntry(zone) {
+    const container = document.getElementById('zone-entry');
+    const content = document.getElementById('zone-entry-content');
+    const nameEl = document.getElementById('zone-entry-name');
+    if (!container || !content || !nameEl || !zone) return;
+    nameEl.textContent = zone.name || '';
+    nameEl.style.borderColor = zone.color || '#fff';
+    container.classList.add('active');
+    content.classList.remove('animate');
+    // trigger reflow to restart animation
+    void content.offsetWidth;
+    content.classList.add('animate');
+    if (zoneEntryTimeout) clearTimeout(zoneEntryTimeout);
+    zoneEntryTimeout = setTimeout(() => {
+        container.classList.remove('active');
+        content.classList.remove('animate');
+    }, 2800);
 }

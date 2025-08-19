@@ -313,6 +313,52 @@ button:hover {
     font-size: 24px;
 }
 
+#zone-entry {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+}
+
+#zone-entry.active {
+    opacity: 1;
+}
+
+#zone-entry-content {
+    font-size: 48px;
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px #000;
+    white-space: nowrap;
+}
+
+#zone-entry-name {
+    border: 3px solid #fff;
+    padding: 0 10px;
+    margin-left: 10px;
+}
+
+#zone-entry-content.animate {
+    animation: zone-swoop 3s ease-in-out forwards;
+}
+
+@keyframes zone-swoop {
+    0% { transform: translateX(-120%); }
+    15% { transform: translateX(0); }
+    85% { transform: translateX(0); }
+    100% { transform: translateX(120%); }
+}
+
 .map-connection {
     position: absolute;
     height: 2px;

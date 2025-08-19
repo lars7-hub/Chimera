@@ -14,7 +14,7 @@ const itemCategories = {
     name: 'Consumables',
     items: [
       { key: 'berries', name: 'Berries', icon: 'berries.png' },
-      { key: 'mushrooms', name: 'Mushrooms', icon: 'mushrooms.png' },
+      { key: 'mushroom', name: 'Mushroom', icon: 'mushroom.png' },
       { key: 'cooked fish', name: 'Cooked Fish', icon: 'cooked_fish.png' },
       { key: 'cooked meat', name: 'Cooked Meat', icon: 'cooked_meat.png' },
       { key: 'grain', name: 'Grain', icon: 'grain.png' }
@@ -31,8 +31,8 @@ const itemCategories = {
       { key: 'fur', name: 'Fur', icon: 'fur.png' },
       { key: 'leather', name: 'Leather', icon: 'leather.png' },
       { key: 'bone', name: 'Bone', icon: 'bone.png' },
-      { key: 'fish', name: 'Fish', icon: 'fish.png' },
-      { key: 'meat', name: 'Meat', icon: 'meat.png' },
+      { key: 'raw_fish', name: 'Raw Fish', icon: 'raw_fish.png' },
+      { key: 'raw_meat', name: 'Raw Meat', icon: 'raw_meat.png' },
       { key: 'grain', name: 'Grain', icon: 'grain.png' }
     ]
   },
@@ -47,7 +47,7 @@ const itemCategories = {
   key_items: {
     name: 'Key Items',
     items: [
-      { key: 'climbing_pick', name: 'Climbing Pick', icon: 'climbing_pick.png' }
+      { key: 'climbing_pick', name: 'Climbing Pick', icon: 'climbing_pick.png', description: 'A small hand pick that allows traversing treacherously rocky terrain.' }
     ]
   },
   miscellaneous: {
