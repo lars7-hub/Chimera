@@ -1090,10 +1090,11 @@ async function loadWorld() {
 function renderGrid() {
     const mapGrid = document.getElementById('map-module');
     const miniWrap = document.getElementById('minimap-container');
+    const mapView = mapGrid.parentElement;
     mapGrid.classList.toggle('world-mode', viewMode === 'world');
     mapGrid.innerHTML = '';
     if (miniWrap) miniWrap.classList.toggle('hidden', !useSplitView);
-    const rect = mapGrid.getBoundingClientRect();
+    const rect = mapView.getBoundingClientRect();
     if (gridWidth === 0 || gridHeight === 0) return;
 
     if (useSplitView) {
