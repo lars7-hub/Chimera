@@ -620,6 +620,7 @@ ipcMain.handle('get-sticker-images', (event, type) => {
 ipcMain.handle('prepare-world-character', (event, worldName, characterName, loadoutName) => {
     try {
         const destDir = path.join(worldRoot, worldName, 'character');
+        fs.rmSync(destDir, { recursive: true, force: true });
         fs.mkdirSync(destDir, { recursive: true });
         const srcDir = path.join(fileSystemPath, characterName);
         const files = [`${characterName}.json`, `${characterName}.png`];
@@ -682,30 +683,30 @@ ipcMain.handle('get-world-inventory', (event, worldName) => {
 
 ipcMain.handle('save-world-inventory', (event, worldName, items) => {
 	try {
-		const invPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory');
-		const tempPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory_tmp');
-		fs.rmSync(tempPath, { recursive: true, force: true});
-		fs.mkdirSync(tempPath, {recursive: trie});
-		items.forEach((item, index) => {
-			const base = `item${index}`;
-			const data = { ...item };
-			const tempImage = data.tempImagePath;
-			delete data.tempImagePath;
-			delete data.image;
-			fs.writeFileSync(path.join(tempPath, `${base}.json`), JSON.stringify(data));
-			const destImage = path.join(tempPAth, `${base}.png`);
-			const srcImage = tempImage || (item.image ? fileURLToPath(item.image) : null);
-			if (srcImage && ffs.existsSync(srcImage)) {
-				fs.copyFileSync(srcImage, destImage);
-			}
-		});
-		fs.rmSync(invPath, {recursive: true, force: true});
-		fs.renameSync(tempPath, invPath);
-		return {success: true};
-	} catch (err) {
-		console.error('Error saving world inventory:', err);
-		return { success: false, message: 'Error saving world inventory'};
-	}
+        const invPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory');
+        const tempPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory_tmp');
+        fs.rmSync(tempPath, { recursive: true, force: true });
+        fs.mkdirSync(tempPath, { recursive: true });
+        items.forEach((item, index) => {
+            const base = `item${index}`;
+            const data = { ...item };
+            const tempImage = data.tempImagePath;
+            delete data.tempImagePath;
+            delete data.image;
+            fs.writeFileSync(path.join(tempPath, `${base}.json`), JSON.stringify(data));
+            const destImage = path.join(tempPath, `${base}.png`);
+            const srcImage = tempImage || (item.image ? fileURLToPath(item.image) : null);
+            if (srcImage && fs.existsSync(srcImage)) {
+                fs.copyFileSync(srcImage, destImage);
+            }
+        });
+        fs.rmSync(invPath, { recursive: true, force: true });
+        fs.renameSync(tempPath, invPath);
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving world inventory:', err);
+        return { success: false, message: 'Error saving world inventory' };
+    }
 });
 
 ipcMain.handle('list-worlds', () => {

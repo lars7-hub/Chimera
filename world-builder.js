@@ -1291,7 +1291,7 @@ function renderMinimap() {
 }
 
 function goToTile(target) {
-    const inv = window.currentInventory || [];
+    const inv = worldInventory || [];
     const targetEntry = tileMap[target];
     if (targetEntry && !TileConditions.isPassable(targetEntry.data, inv)) {
         alert('You cannot traverse this tile.');
@@ -1330,7 +1330,7 @@ function findPath(startKey, targetKey) {
         (entry.data.connections || []).forEach(next => {
             if (!visited.has(next)) {
                 const nextEntry = tileMap[next];
-                const inv = window.currentInventory || [];
+                const inv = worldInventory || [];
                 if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv)) return;
                 visited.add(next);
                 queue.push([...path, next]);
