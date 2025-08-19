@@ -366,24 +366,27 @@ ipcMain.handle('get-inventory', (event, characterName, loadoutName) => {
 ipcMain.handle('save-inventory', (event, characterName, loadoutName, items) => {
     try {
         const inventoryPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'inventory');
-		const tempPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'inventory_tmp');
+                const tempPath = path.join(fileSystemPath, characterName, 'loadouts', loadoutName, 'inventory_tmp');
         fs.rmSync(tempPath, { recursive: true, force: true });
         fs.mkdirSync(tempPath, { recursive: true });
         items.forEach((item, index) => {
             const base = `item${index}`;
             const data = { ...item };
             const tempImage = data.tempImagePath;
+            const imageField = data.image;
             delete data.tempImagePath;
-            delete data.image;
+            if (imageField && (tempImage || imageField.startsWith('file:'))) {
+                delete data.image;
+            }
             fs.writeFileSync(path.join(tempPath, `${base}.json`), JSON.stringify(data));
             const destImage = path.join(tempPath, `${base}.png`);
-            const srcImage = tempImage || (item.image ? fileURLToPath(item.image) : null);
+            const srcImage = tempImage || (imageField && imageField.startsWith('file:') ? fileURLToPath(imageField) : null);
             if (srcImage && fs.existsSync(srcImage)) {
                 fs.copyFileSync(srcImage, destImage);
             }
         });
-		fs.rmSync(inventoryPath, { recursive: true, force: true});
-		fs.renameSync(tempPath, inventoryPath);
+                fs.rmSync(inventoryPath, { recursive: true, force: true});
+                fs.renameSync(tempPath, inventoryPath);
         return { success: true };
     } catch (error) {
         console.error('Error saving inventory:', error);
@@ -619,23 +622,27 @@ ipcMain.handle('get-sticker-images', (event, type) => {
 
 ipcMain.handle('prepare-world-character', (event, worldName, characterName, loadoutName) => {
     try {
-        const destDir = path.join(worldRoot, worldName, 'character');
+        const destDir = path.join(worldRoot, worldName, 'savedata');
         fs.rmSync(destDir, { recursive: true, force: true });
         fs.mkdirSync(destDir, { recursive: true });
         const srcDir = path.join(fileSystemPath, characterName);
-        const files = [`${characterName}.json`, `${characterName}.png`];
-        files.forEach(f => {
-            const src = path.join(srcDir, f);
-            const dest = path.join(destDir, f);
-            if (fs.existsSync(src)) {
-                fs.copyFileSync(src, dest);
-            }
-        });
-        const srcLoad = path.join(srcDir, 'loadouts', loadoutName || 'default');
-        const destLoad = path.join(destDir, 'loadouts', 'default');
-        if (fs.existsSync(srcLoad)) {
-            fs.rmSync(destLoad, { recursive: true, force: true });
-            fs.cpSync(srcLoad, destLoad, { recursive: true });
+        // Copy character data and image, renaming to fixed filenames
+        const srcJson = path.join(srcDir, `${characterName}.json`);
+        const destJson = path.join(destDir, 'character.json');
+        if (fs.existsSync(srcJson)) {
+            fs.copyFileSync(srcJson, destJson);
+        }
+        const srcImg = path.join(srcDir, `${characterName}.png`);
+        const destImg = path.join(destDir, 'character.png');
+        if (fs.existsSync(srcImg)) {
+            fs.copyFileSync(srcImg, destImg);
+        }
+        // Copy inventory from the selected loadout
+        const srcInv = path.join(srcDir, 'loadouts', loadoutName || 'default', 'inventory');
+        const destInv = path.join(destDir, 'inventory');
+        if (fs.existsSync(srcInv)) {
+            fs.rmSync(destInv, { recursive: true, force: true });
+            fs.cpSync(srcInv, destInv, { recursive: true });
         }
         return { success: true };
     } catch (err) {
@@ -646,11 +653,10 @@ ipcMain.handle('prepare-world-character', (event, worldName, characterName, load
 
 ipcMain.handle('get-world-character', (event, worldName) => {
     try {
-        const charDir = path.join(worldRoot, worldName, 'character');
-        if (!fs.existsSync(charDir)) return null;
-        const files = fs.readdirSync(charDir).filter(f => f.endsWith('.json'));
-        if (!files.length) return null;
-        const data = JSON.parse(fs.readFileSync(path.join(charDir, files[0]), 'utf-8'));
+        const charDir = path.join(worldRoot, worldName, 'savedata');
+        const jsonPath = path.join(charDir, 'character.json');
+        if (!fs.existsSync(jsonPath)) return null;
+        const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
         return data;
     } catch (err) {
         console.error('Error reading world character:', err);
@@ -661,7 +667,7 @@ ipcMain.handle('get-world-character', (event, worldName) => {
 ipcMain.handle('get-world-inventory', (event, worldName) => {
     const items = [];
     try {
-        const invPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory');
+        const invPath = path.join(worldRoot, worldName, 'savedata', 'inventory');
         if (fs.existsSync(invPath)) {
             fs.readdirSync(invPath).forEach(file => {
                 if (file.endsWith('.json')) {
@@ -682,20 +688,23 @@ ipcMain.handle('get-world-inventory', (event, worldName) => {
 });
 
 ipcMain.handle('save-world-inventory', (event, worldName, items) => {
-	try {
-        const invPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory');
-        const tempPath = path.join(worldRoot, worldName, 'character', 'loadouts', 'default', 'inventory_tmp');
+    try {
+        const invPath = path.join(worldRoot, worldName, 'savedata', 'inventory');
+        const tempPath = path.join(worldRoot, worldName, 'savedata', 'inventory_tmp');
         fs.rmSync(tempPath, { recursive: true, force: true });
         fs.mkdirSync(tempPath, { recursive: true });
         items.forEach((item, index) => {
             const base = `item${index}`;
             const data = { ...item };
             const tempImage = data.tempImagePath;
+            const imageField = data.image;
             delete data.tempImagePath;
-            delete data.image;
+            if (imageField && (tempImage || imageField.startsWith('file:'))) {
+                delete data.image; // stored separately as a file
+            }
             fs.writeFileSync(path.join(tempPath, `${base}.json`), JSON.stringify(data));
             const destImage = path.join(tempPath, `${base}.png`);
-            const srcImage = tempImage || (item.image ? fileURLToPath(item.image) : null);
+            const srcImage = tempImage || (imageField && imageField.startsWith('file:') ? fileURLToPath(imageField) : null);
             if (srcImage && fs.existsSync(srcImage)) {
                 fs.copyFileSync(srcImage, destImage);
             }
