@@ -245,10 +245,19 @@
                     <img src="resources/ui/coin.png" alt="coin">
                     <span id="item-info-value-text"></span>
                 </div>
+                <div id="item-info-actions" class="modal-buttons">
+                    <button id="item-drop-btn">Drop</button>
+                    <button id="item-destroy-btn" class="destroy-btn">Destroy</button>
+                </div>
             </div>
         </div>
+        <div id="mini-item-popup" class="mini-item-popup hidden">
+            <h4 id="mini-item-name"></h4>
+            <img id="mini-item-image" alt="">
+            <div id="mini-item-stats"></div>
+            <p id="mini-item-description"></p>
+        </div>
     </div>
-	
 
     <script src="items-data.js"></script>
     <script src="tile-conditions.js"></script>

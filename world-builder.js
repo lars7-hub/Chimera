@@ -1395,19 +1395,21 @@ function displayTile(tile, key = currentKey) {
                 img.src = `resources/ui/items/${def.icon}`;
                 img.className = 'item-icon';
                 li.appendChild(img);
+                li.addEventListener('mouseenter', (e) => showMiniItemInfo(def, e.currentTarget));
+                li.addEventListener('mouseleave', hideMiniItemInfo);
             }
             const text = document.createTextNode(`${r.name} x${r.amount || 0} ${r.renewable ? '(Renewable)' : '(Finite)'}`);
             li.appendChild(text);
-			if (worldCharacter) {
-				const pickBtn = document.createElement('button');
-				pickBtn.textContent = 'Pick Up';
-				pickBtn.addEventListener('click', () => pickUpTileItem(idx));
-				li.appendChild(pickBtn);
-				const delBtn = document.createElement('button');
-				delBtn.textContent = 'Destroy';
-				delBtn.addEventListener('click', () => destroyTileItem(idx));
-				li.appendChild(delBtn);
-			}
+                        if (worldCharacter) {
+                                const pickBtn = document.createElement('button');
+                                pickBtn.textContent = 'Pick Up';
+                                pickBtn.addEventListener('click', () => pickUpTileItem(idx));
+                                li.appendChild(pickBtn);
+                                const delBtn = document.createElement('button');
+                                delBtn.textContent = 'Destroy';
+                                delBtn.addEventListener('click', () => destroyTileItem(idx));
+                                li.appendChild(delBtn);
+                        }
             itemList.appendChild(li);
         });
     }
@@ -1468,11 +1470,38 @@ function pickUpTileItem(idx) {
 }
 
 function destroyTileItem(idx) {
-	const entry = tileMap[currentKey];
-	if (!entry || !entry.data.items || !entry.data.items[idx]) return;
-	entry.data.items.splice(idx, 1);
-	displayTile(entry.data);
-	saveRegion();
+        const entry = tileMap[currentKey];
+        if (!entry || !entry.data.items || !entry.data.items[idx]) return;
+        entry.data.items.splice(idx, 1);
+        displayTile(entry.data);
+        saveRegion();
+}
+
+function dropInventoryItem(index) {
+    const entry = tileMap[currentKey];
+    if (!entry) return;
+    const item = worldInventory[index];
+    if (!item) return;
+    entry.data.items = entry.data.items || [];
+    const ref = { key: item.key, name: item.name };
+    if (item.quantity != null) ref.amount = item.quantity;
+    entry.data.items.push(ref);
+    worldInventory.splice(index, 1);
+    renderWorldInventory();
+    displayTile(entry.data);
+    saveRegion();
+    if (window.electron.saveWorldInventory) {
+        window.electron.saveWorldInventory(currentWorld, worldInventory);
+    }
+}
+
+function destroyInventoryItem(index) {
+    if (!worldInventory[index]) return;
+    worldInventory.splice(index, 1);
+    renderWorldInventory();
+    if (window.electron.saveWorldInventory) {
+        window.electron.saveWorldInventory(currentWorld, worldInventory);
+    }
 }
 
 function regenerateConnections(x, y) {
@@ -1959,10 +1988,43 @@ function renderWorldInventory() {
             tile.appendChild(span);
         }
         tile.addEventListener('click', () => openItemInfo(index));
+        tile.addEventListener('mouseenter', (e) => showMiniItemInfo(item, e.currentTarget));
+        tile.addEventListener('mouseleave', hideMiniItemInfo);
         grid.appendChild(tile);
     });
     renderMiniInventory();
     renderStats();
+}
+
+function showMiniItemInfo(item, target) {
+    const popup = document.getElementById('mini-item-popup');
+    if (!popup || !item) return;
+    document.getElementById('mini-item-name').textContent = item.name || '';
+    const img = document.getElementById('mini-item-image');
+    if (item.image) {
+        img.src = `${item.image}?cb=${Date.now()}`;
+        img.classList.remove('hidden');
+    } else {
+        img.classList.add('hidden');
+    }
+    const statsDiv = document.getElementById('mini-item-stats');
+    statsDiv.innerHTML = '';
+    (item.stats || []).forEach(s => {
+        const p = document.createElement('p');
+        const prefix = (s.type === 'mult' || s.type === 'mul') ? 'x' : '+';
+        p.textContent = `${s.stat}: ${prefix}${s.value}`;
+        statsDiv.appendChild(p);
+    });
+    document.getElementById('mini-item-description').textContent = item.description || '';
+    popup.classList.remove('hidden');
+    const rect = target.getBoundingClientRect();
+    popup.style.left = `${rect.right + 5}px`;
+    popup.style.top = `${rect.top}px`;
+}
+
+function hideMiniItemInfo() {
+    const popup = document.getElementById('mini-item-popup');
+    if (popup) popup.classList.add('hidden');
 }
 
 function renderMiniInventory() {
@@ -2080,6 +2142,7 @@ function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
 }
 
 function openItemInfo(index) {
+    hideMiniItemInfo();
     const item = worldInventory[index];
     if (!item) return;
     document.getElementById('item-info-name').textContent = item.name || '';
@@ -2100,6 +2163,14 @@ function openItemInfo(index) {
     });
     document.getElementById('item-info-description').textContent = item.description || '';
     document.getElementById('item-info-value-text').textContent = (item.value != null ? item.value : '');
+    document.getElementById('item-drop-btn').onclick = () => {
+        dropInventoryItem(index);
+        document.getElementById('item-info-modal').classList.add('hidden');
+    };
+    document.getElementById('item-destroy-btn').onclick = () => {
+        destroyInventoryItem(index);
+        document.getElementById('item-info-modal').classList.add('hidden');
+    };
     document.getElementById('item-info-modal').classList.remove('hidden');
 }
 

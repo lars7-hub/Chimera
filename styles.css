@@ -1414,6 +1414,21 @@ button:hover {
     color: red;
 }
 
+.mini-item-popup {
+    position: absolute;
+    background-color: rgba(0,0,0,0.9);
+    color: #fff;
+    padding: 5px;
+    border: 1px solid #555;
+    z-index: 1000;
+    width: 200px;
+    pointer-events: none;
+}
+
+.mini-item-popup.hidden {
+    display: none;
+}
+
 .prompt-buttons {
     margin-top: 10px;
     display: flex;
