@@ -35,8 +35,16 @@ let biomePaintMode = false;
 let itemPaintMode = false;
 let biomePanel = null;
 let itemPanel = null;
-let regionEditMode = false;
-let regionPanel = null;
+let zoneEditMode = false;
+let zonePanel = null;
+let zones = {};
+let currentZone = null;
+let zoneToggle = null;
+let zoneNameInput = null;
+let zoneColorInput = null;
+let zoneNameWorld = null;
+let zoneNameSplit = null;
+let zoneNameFull = null;
 let isPainting = false;
 let lastKey = null;
 const tileGap = 1;
@@ -771,7 +779,7 @@ window.onload = async function () {
 
     biomePanel = document.getElementById('biome-paint-panel');
     itemPanel = document.getElementById('item-paint-panel');
-    regionPanel = document.getElementById('region-editor-panel');
+    zonePanel = document.getElementById('zone-tool-panel');
 
     const biomeToggle = document.getElementById('biome-paint-toggle');
     const biomeSelect = document.getElementById('paint-biome-select');
@@ -811,25 +819,59 @@ window.onload = async function () {
         itemToggle.textContent = itemPaintMode ? 'Item Paint Mode: On' : 'Item Paint Mode: Off';
     });
 
-    const regionToggle = document.getElementById('region-editor-toggle');
-    regionToggle.addEventListener('click', () => {
-        regionEditMode = !regionEditMode;
-        regionToggle.textContent = regionEditMode ? 'Region Mode: On' : 'Region Mode: Off';
+    zoneToggle = document.getElementById('zone-tool-toggle');
+    zoneToggle.addEventListener('click', () => {
+        if (!currentZone) return;
+        zoneEditMode = !zoneEditMode;
+        zoneToggle.textContent = zoneEditMode ? 'Zone Mode: On' : 'Zone Mode: Off';
+    });
+
+    const createZoneBtn = document.getElementById('create-zone-btn');
+    createZoneBtn.addEventListener('click', createZone);
+    const editZoneBtn = document.getElementById('edit-zone-btn');
+    editZoneBtn.addEventListener('click', selectZoneForEdit);
+    zoneNameInput = document.getElementById('zone-name-input');
+    zoneNameInput.addEventListener('input', () => {
+        if (!currentZone) return;
+        currentZone.name = zoneNameInput.value;
+        saveZone(currentZone);
+        renderGrid();
+    });
+    zoneColorInput = document.getElementById('zone-color-input');
+    zoneColorInput.addEventListener('input', () => {
+        if (!currentZone) return;
+        currentZone.color = zoneColorInput.value;
+        saveZone(currentZone);
+        renderGrid();
+    });
+    zoneNameWorld = document.getElementById('zone-name-world');
+    zoneNameSplit = document.getElementById('zone-name-split');
+    zoneNameFull = document.getElementById('zone-name-full');
+    [zoneNameWorld, zoneNameSplit, zoneNameFull].forEach(el => {
+        el.addEventListener('change', () => {
+            if (!currentZone) return;
+            currentZone.showName = currentZone.showName || { world: true, split: true, full: true };
+            currentZone.showName.world = zoneNameWorld.checked;
+            currentZone.showName.split = zoneNameSplit.checked;
+            currentZone.showName.full = zoneNameFull.checked;
+            saveZone(currentZone);
+            renderGrid();
+        });
     });
 
     const biomeBtn = document.getElementById('biome-painter-btn');
     const itemBtn = document.getElementById('item-painter-btn');
-    const regionBtn = document.getElementById('region-editor-btn');
+    const zoneBtn = document.getElementById('zone-tool-btn');
     biomeBtn.addEventListener('click', () => {
         const hidden = biomePanel.classList.contains('hidden');
         if (hidden) {
             biomePanel.classList.remove('hidden');
             itemPanel.classList.add('hidden');
-            regionPanel.classList.add('hidden');
+            zonePanel.classList.add('hidden');
             itemPaintMode = false;
-            regionEditMode = false;
+            zoneEditMode = false;
             itemToggle.textContent = 'Item Paint Mode: Off';
-            regionToggle.textContent = 'Region Mode: Off';
+            zoneToggle.textContent = 'Zone Mode: Off';
         } else {
             biomePanel.classList.add('hidden');
             biomePaintMode = false;
@@ -841,11 +883,11 @@ window.onload = async function () {
         if (hidden) {
             itemPanel.classList.remove('hidden');
             biomePanel.classList.add('hidden');
-            regionPanel.classList.add('hidden');
+            zonePanel.classList.add('hidden');
             biomePaintMode = false;
-            regionEditMode = false;
+            zoneEditMode = false;
             biomeToggle.textContent = 'Paint Mode: Off';
-            regionToggle.textContent = 'Region Mode: Off';
+            zoneToggle.textContent = 'Zone Mode: Off';
         } else {
             itemPanel.classList.add('hidden');
             itemPaintMode = false;
@@ -853,10 +895,10 @@ window.onload = async function () {
         }
     });
 
-    regionBtn.addEventListener('click', () => {
-        const hidden = regionPanel.classList.contains('hidden');
+    zoneBtn.addEventListener('click', () => {
+        const hidden = zonePanel.classList.contains('hidden');
         if (hidden) {
-            regionPanel.classList.remove('hidden');
+            zonePanel.classList.remove('hidden');
             biomePanel.classList.add('hidden');
             itemPanel.classList.add('hidden');
             biomePaintMode = false;
@@ -864,9 +906,9 @@ window.onload = async function () {
             biomeToggle.textContent = 'Paint Mode: Off';
             itemToggle.textContent = 'Item Paint Mode: Off';
         } else {
-            regionPanel.classList.add('hidden');
-            regionEditMode = false;
-            regionToggle.textContent = 'Region Mode: Off';
+            zonePanel.classList.add('hidden');
+            zoneEditMode = false;
+            zoneToggle.textContent = 'Zone Mode: Off';
         }
     });
 
@@ -894,8 +936,8 @@ window.onload = async function () {
             lastKey = key;
             return;
         }
-        if (regionEditMode) {
-            await editRegion(x, y);
+        if (zoneEditMode) {
+            addTileToZone(x, y);
             lastKey = key;
             return;
         }
@@ -923,6 +965,7 @@ window.onload = async function () {
             (cur.data.modifiers || []).forEach(m => {
                 if (m.message) alert(m.message);
             });
+            renderZoneNames();
         } else {
             const path = findPath(currentKey, key);
             if (path && path.length > 1) {
@@ -1009,6 +1052,17 @@ async function loadWorld() {
         tileMap[`${t.x}-${t.y}`] = { data };
         if (data.start) originKey = `${t.x}-${t.y}`;
     });
+    const zoneList = await window.electron.getZones('region1', currentWorld);
+    zones = {};
+    zoneList.forEach(z => {
+        z.tiles = (z.tiles || []).map(t => `${t.x}-${t.y}`);
+        z.showName = z.showName || { world: true, split: true, full: true };
+        zones[z.id] = z;
+    });
+    currentZone = null;
+    zoneToggle && (zoneToggle.disabled = true);
+    zoneEditMode = false;
+    if (zoneToggle) zoneToggle.textContent = 'Zone Mode: Off';
     currentKey = originKey;
     updateBounds();
     renderGrid();
@@ -1105,6 +1159,8 @@ function renderGrid() {
         displayTile(tileMap[currentKey].data);
     }
     renderMinimap();
+    renderZoneBorders();
+    renderZoneNames();
 }
 
 function updateTileVisual(entry, key) {
@@ -1445,6 +1501,7 @@ function goToTile(target) {
             updateTileVisual(cur, currentKey);
             displayTile(cur.data);
             (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
+            renderZoneNames();
         }
     }
 }
@@ -1902,15 +1959,139 @@ async function paintItem(x, y) {
     saveRegion();
 }
 
-// Allow naming regions when region editor mode is active
-async function editRegion(x, y) {
+function addTileToZone(x, y) {
+    if (!currentZone) return;
     const key = `${x}-${y}`;
-    const entry = tileMap[key];
-    if (!entry) return;
-    const name = await showPrompt('Region name?', entry.data.region || '');
-    if (name !== null) {
-        entry.data.region = name;
-        saveRegion();
+    if (!currentZone.tiles.includes(key)) {
+        currentZone.tiles.push(key);
+        saveZone(currentZone);
+        renderGrid();
+    }
+}
+
+async function createZone() {
+    const id = Object.keys(zones).length ? Math.max(...Object.keys(zones).map(i => parseInt(i))) + 1 : 1;
+    const name = await showPrompt('Zone name?', `Zone ${id}`);
+    const zone = {
+        id,
+        name: name || `Zone ${id}`,
+        color: zoneColorInput.value || '#ff0000',
+        modifiers: [],
+        showName: { world: true, split: true, full: true },
+        tiles: [currentKey]
+    };
+    zones[id] = zone;
+    currentZone = zone;
+    zoneNameInput.value = zone.name;
+    zoneToggle.disabled = false;
+    zoneEditMode = false;
+    zoneToggle.textContent = 'Zone Mode: Off';
+    saveZone(zone);
+    renderGrid();
+}
+
+async function selectZoneForEdit() {
+    let zone = findZonesByTile(currentKey)[0];
+    if (!zone) {
+        const list = Object.values(zones).map(z => `${z.id}: ${z.name}`).join('\n');
+        const idStr = await showPrompt(`Zone ID to edit?\n${list}`, '');
+        const id = parseInt(idStr, 10);
+        if (!isNaN(id)) zone = zones[id];
+    }
+    if (zone) {
+        currentZone = zone;
+        zoneNameInput.value = zone.name || '';
+        zoneColorInput.value = zone.color || '#ff0000';
+        zoneNameWorld.checked = zone.showName ? zone.showName.world !== false : true;
+        zoneNameSplit.checked = zone.showName ? zone.showName.split !== false : true;
+        zoneNameFull.checked = zone.showName ? zone.showName.full !== false : true;
+        zoneToggle.disabled = false;
+    }
+}
+
+function findZonesByTile(key) {
+    return Object.values(zones).filter(z => z.tiles.includes(key));
+}
+
+function saveZone(zone) {
+    const data = {
+        id: zone.id,
+        name: zone.name,
+        color: zone.color,
+        modifiers: zone.modifiers || [],
+        showName: zone.showName || { world: true, split: true, full: true },
+        tiles: zone.tiles.map(k => {
+            const [x, y] = keyToCoords(k);
+            return { x, y };
+        })
+    };
+    window.electron.saveZone('region1', currentWorld, data);
+}
+
+function renderZoneBorders() {
+    document.querySelectorAll('.zone-border').forEach(el => el.remove());
+    Object.values(zones).forEach(z => {
+        z.tiles.forEach(key => {
+            const entry = tileMap[key];
+            if (!entry || !entry.el) return;
+            const [x, y] = keyToCoords(key);
+            const neighbors = {
+                top: `${x}-${y-1}`,
+                bottom: `${x}-${y+1}`,
+                left: `${x-1}-${y}`,
+                right: `${x+1}-${y}`
+            };
+            const border = document.createElement('div');
+            border.className = 'zone-border';
+            border.style.borderTop = z.tiles.includes(neighbors.top) ? 'none' : `2px solid ${z.color}`;
+            border.style.borderBottom = z.tiles.includes(neighbors.bottom) ? 'none' : `2px solid ${z.color}`;
+            border.style.borderLeft = z.tiles.includes(neighbors.left) ? 'none' : `2px solid ${z.color}`;
+            border.style.borderRight = z.tiles.includes(neighbors.right) ? 'none' : `2px solid ${z.color}`;
+            entry.el.appendChild(border);
+        });
+    });
+}
+
+function renderZoneNames() {
+    const mapGrid = document.getElementById('map-module');
+    mapGrid.querySelectorAll('.zone-name').forEach(el => el.remove());
+    const active = [];
+    const gap = viewMode === 'world' ? 0 : tileGap;
+    Object.values(zones).forEach(z => {
+        const tiles = z.tiles;
+        if (!tiles || tiles.length === 0) return;
+        const inZone = tiles.includes(currentKey);
+        if (inZone) active.push(z.name);
+        z.showName = z.showName || { world: true, split: true, full: true };
+        if (!z.showName[viewMode] || inZone) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        tiles.forEach(k => {
+            const [tx, ty] = keyToCoords(k);
+            if (tx < minX) minX = tx;
+            if (ty < minY) minY = ty;
+            if (tx > maxX) maxX = tx;
+            if (ty > maxY) maxY = ty;
+        });
+        const dispMinX = Math.max(minX, viewMinX);
+        const dispMaxX = Math.min(maxX, viewMaxX);
+        const dispMinY = Math.max(minY, viewMinY);
+        const dispMaxY = Math.min(maxY, viewMaxY);
+        if (dispMinX > dispMaxX || dispMinY > dispMaxY) return;
+        const left = (dispMinX - viewMinX) * (tileSize + gap) + ((dispMaxX - dispMinX + 1) * (tileSize + gap) - gap) / 2;
+        const top = (dispMinY - viewMinY) * (tileSize + gap) + ((dispMaxY - dispMinY + 1) * (tileSize + gap) - gap) / 2;
+        const div = document.createElement('div');
+        div.className = 'zone-name';
+        div.style.left = `${left}px`;
+        div.style.top = `${top}px`;
+        div.textContent = z.name;
+        mapGrid.appendChild(div);
+    });
+    const title = document.getElementById('zone-title');
+    if (active.length) {
+        title.textContent = active.join(' / ');
+        title.classList.remove('hidden');
+    } else {
+        title.classList.add('hidden');
     }
 }
 

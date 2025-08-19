@@ -442,6 +442,26 @@ ipcMain.handle('get-map-region', (event, regionName, worldName) => {
     return result;
 });
 
+ipcMain.handle('get-zones', (event, regionName, worldName) => {
+    const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+    const zoneDir = path.join(baseMap, regionName, 'zones');
+    const zones = [];
+    try {
+        if (fs.existsSync(zoneDir)) {
+            fs.readdirSync(zoneDir).forEach(file => {
+                if (file.endsWith('.json')) {
+                    const p = path.join(zoneDir, file);
+                    const z = JSON.parse(fs.readFileSync(p, 'utf-8'));
+                    zones.push(z);
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error loading zones:', err);
+    }
+    return zones;
+});
+
 ipcMain.handle('get-adventures', () => {
     try {
         if (!fs.existsSync(adventurePath)) return [];
@@ -751,8 +771,12 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
     try {
         const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
         const regionDir = path.join(baseMap, regionName);
-        fs.rmSync(regionDir, { recursive: true, force: true });
         fs.mkdirSync(regionDir, { recursive: true });
+        fs.readdirSync(regionDir).forEach(name => {
+            if (name !== 'zones') {
+                fs.rmSync(path.join(regionDir, name), { recursive: true, force: true });
+            }
+        });
         tiles.forEach(t => {
             const tileDir = path.join(regionDir, `tile${t.x}-${t.y}`);
             fs.mkdirSync(tileDir, { recursive: true });
@@ -775,6 +799,20 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
         return { success: true };
     } catch (err) {
         console.error('Error saving map region:', err);
+        return { success: false };
+    }
+});
+
+ipcMain.handle('save-zone', (event, regionName, worldName, zone) => {
+    try {
+        const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+        const zoneDir = path.join(baseMap, regionName, 'zones');
+        fs.mkdirSync(zoneDir, { recursive: true });
+        const file = path.join(zoneDir, `zone${zone.id}.json`);
+        fs.writeFileSync(file, JSON.stringify(zone, null, 2));
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving zone:', err);
         return { success: false };
     }
 });

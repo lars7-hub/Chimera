@@ -24,10 +24,11 @@
         <div id="main-content">
             <div id="left-column">
                 <div id="map-view">
+                    <div id="zone-title" class="hidden"></div>
                     <div id="map-module"></div>
                     <div id="minimap-container" class="hidden">
-                                                <canvas id="minimap"></canvas>
-                                        </div>
+                        <canvas id="minimap"></canvas>
+                    </div>
                     <div id="map-view-buttons">
                         <button id="split-view-btn" title="Split View">🗺️</button>
                         <button id="world-map-btn" title="World Map">🌐</button>
@@ -45,7 +46,7 @@
                     <button id="toggle-icons-btn">Show Type Icons</button>
                     <button id="biome-painter-btn">Biome Painter</button>
                     <button id="item-painter-btn">Item Painter</button>
-                    <button id="region-editor-btn">Region Editor</button>
+                    <button id="zone-tool-btn">Zone Tool</button>
                     <button id="import-character-btn">Import Character</button>
                 </div>
             </div>
@@ -231,12 +232,20 @@
                 <div>
                     <label><input type="checkbox" id="item-paint-clear">Clear Items</label>
                 </div>
-				<div id="region-editor-panel" class="painter-popup hidden">
-					<button id="region-editor-toggle">Region Mode: Off</button>
-					<div id="region-editor-options">
-					<p>Click tiles to set region name.</p>
-					</div>
-				</div>
+                    <div id="zone-tool-panel" class="painter-popup hidden">
+                        <button id="zone-tool-toggle" disabled>Zone Mode: Off</button>
+                        <div id="zone-tool-options">
+                            <button id="create-zone-btn">Create Zone</button>
+                            <button id="edit-zone-btn">Edit Zone</button>
+                            <label>Zone Name:<input id="zone-name-input" /></label>
+                            <label>Border Color:<input type="color" id="zone-color-input" value="#ff0000" /></label>
+                            <div id="zone-name-modes">
+                                <label><input type="checkbox" id="zone-name-world" checked>World Map</label>
+                                <label><input type="checkbox" id="zone-name-split" checked>Split View</label>
+                                <label><input type="checkbox" id="zone-name-full" checked>Full View</label>
+                            </div>
+                        </div>
+                    </div>
             </div>
         </div>
 
