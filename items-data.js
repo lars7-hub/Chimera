@@ -59,7 +59,16 @@ const itemCategories = {
 const allItems = [];
 Object.entries(itemCategories).forEach(([category, data]) => {
   data.items.forEach(i => {
-    allItems.push({ ...i, category });
+    const item = {
+      ...i,
+      category,
+      rarity: i.rarity || 'common',
+      quantity: i.quantity || 0,
+      description: i.description || '',
+      value: i.value || 0,
+      stats: i.stats || []
+    };
+    allItems.push(item);
   });
 });
 

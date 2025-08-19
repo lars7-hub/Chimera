@@ -86,11 +86,17 @@ function openTileItemsPopup(items) {
                 const def = itemByKey[r.key] || itemDefs[0];
                 const img = document.createElement('img');
                 if (def) {
-                    img.src = `resources/ui/items/${def.icon}`;
                     r.key = def.key;
                     r.name = def.name;
                     r.category = def.category;
+                    r.rarity = def.rarity;
+                    r.description = def.description;
+                    r.value = def.value;
+                    r.stats = def.stats;
+                    r.image = r.image || `resources/ui/items/${def.icon}`;
                 }
+                r.quantity = r.quantity != null ? r.quantity : (r.amount || 0);
+                img.src = r.image || '';
                 img.className = 'item-icon';
                 row.appendChild(img);
 
@@ -127,7 +133,12 @@ function openTileItemsPopup(items) {
                         r.key = first.key;
                         r.name = first.name;
                         r.category = catSel.value;
-                        img.src = `resources/ui/items/${first.icon}`;
+                        r.rarity = first.rarity;
+                        r.description = first.description;
+                        r.value = first.value;
+                        r.stats = first.stats;
+                        r.image = `resources/ui/items/${first.icon}`;
+                        img.src = r.image;
                     }
                 });
                 itemSel.addEventListener('change', () => {
@@ -136,14 +147,22 @@ function openTileItemsPopup(items) {
                         r.key = d.key;
                         r.name = d.name;
                         r.category = d.category;
-                        img.src = `resources/ui/items/${d.icon}`;
+                        r.rarity = d.rarity;
+                        r.description = d.description;
+                        r.value = d.value;
+                        r.stats = d.stats;
+                        r.image = `resources/ui/items/${d.icon}`;
+                        img.src = r.image;
                     }
                 });
 
                 const amt = document.createElement('input');
                 amt.type = 'number';
-                amt.value = r.amount || 0;
-                amt.addEventListener('change', () => { r.amount = parseInt(amt.value,10) || 0; });
+                amt.value = r.quantity || r.amount || 0;
+                amt.addEventListener('change', () => {
+                    r.quantity = parseInt(amt.value,10) || 0;
+                    r.amount = r.quantity;
+                });
                 row.appendChild(amt);
 
                 const cb = document.createElement('input');
@@ -162,12 +181,24 @@ function openTileItemsPopup(items) {
         }
 
         addBtn.onclick = async () => {
-			const firstCat = Object.keys(itemCategories)[0];
-			const firstItem = itemCategories[firstCat].items[0];
-			if (firstItem) {
-				items.push({ key: firstItem.key, name: firstItem.name, category: firstCat, amount: 0, renewable: false});
-				render();
-			}
+            const firstCat = Object.keys(itemCategories)[0];
+            const firstItem = itemCategories[firstCat].items[0];
+            if (firstItem) {
+                items.push({
+                    key: firstItem.key,
+                    name: firstItem.name,
+                    category: firstCat,
+                    amount: 0,
+                    quantity: 0,
+                    renewable: false,
+                    rarity: firstItem.rarity,
+                    description: firstItem.description,
+                    value: firstItem.value,
+                    stats: firstItem.stats,
+                    image: `resources/ui/items/${firstItem.icon}`
+                });
+                render();
+            }
         };
         function close() {
             overlay.classList.add('hidden');
@@ -940,13 +971,19 @@ function renderGrid() {
     const displayWidth = viewMaxX - viewMinX + 1;
     const displayHeight = viewMaxY - viewMinY + 1;
     const gap = viewMode === 'world' ? 0 : tileGap;
-    tileSize = Math.floor(Math.min(
+    const rawSize = Math.min(
         (rect.width - gap * (displayWidth - 1)) / displayWidth,
         (rect.height - gap * (displayHeight - 1)) / displayHeight
-    ));
+    );
+    const step = 4;
+    tileSize = Math.max(step, Math.floor(rawSize / step) * step);
+    const totalWidth = tileSize * displayWidth + gap * (displayWidth - 1);
+    const totalHeight = tileSize * displayHeight + gap * (displayHeight - 1);
     mapGrid.style.gap = `${gap}px`;
     mapGrid.style.gridTemplateColumns = `repeat(${displayWidth}, ${tileSize}px)`;
     mapGrid.style.gridTemplateRows = `repeat(${displayHeight}, ${tileSize}px)`;
+    mapGrid.style.width = `${totalWidth}px`;
+    mapGrid.style.height = `${totalHeight}px`;
 
     for (let y = viewMinY; y <= viewMaxY; y++) {
         for (let x = viewMinX; x <= viewMaxX; x++) {
@@ -1392,13 +1429,12 @@ function displayTile(tile, key = currentKey) {
             const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name);
             if (def) {
                 const img = document.createElement('img');
-                img.src = `resources/ui/items/${def.icon}`;
+                img.src = r.image || `resources/ui/items/${def.icon}`;
                 img.className = 'item-icon';
                 li.appendChild(img);
-                li.addEventListener('mouseenter', (e) => showMiniItemInfo(def, e.currentTarget));
-                li.addEventListener('mouseleave', hideMiniItemInfo);
             }
-            const text = document.createTextNode(`${r.name} x${r.amount || 0} ${r.renewable ? '(Renewable)' : '(Finite)'}`);
+            const qty = r.quantity != null ? r.quantity : (r.amount || 0);
+            const text = document.createTextNode(`${r.name} x${qty} ${r.renewable ? '(Renewable)' : '(Finite)'}`);
             li.appendChild(text);
                         if (worldCharacter) {
                                 const pickBtn = document.createElement('button');
@@ -1444,12 +1480,15 @@ function pickUpTileItem(idx) {
 	const entry = tileMap[currentKey];
 	if (!entry || !entry.data.items || !entry.data.items[idx]) return;
 	const ref = entry.data.items[idx];
-	const def = itemByKey[ref.key] || itemDefs.find(d => d.name === ref.name);
-	if (!def) return;
-	const item = { ...def };
-	if (def.stackable) item.quantity = ref.amount || 1;
-	item.image = item.image || `resources/ui/items/${def.icon}`;
-	let slot = worldInventory.findIndex(i => !i);
+        const def = itemByKey[ref.key] || itemDefs.find(d => d.name === ref.name) || {};
+        const item = { ...def, ...ref };
+        if (item.amount != null && item.quantity == null) {
+                item.quantity = item.amount || 1;
+        }
+        if (!item.image && def.icon) {
+                item.image = `resources/ui/items/${def.icon}`;
+        }
+        let slot = worldInventory.findIndex(i => !i);
 	if (slot === -1) {
 		const maxSlots = 12;
 		if (worldInventory.length < maxSlots) {
@@ -1483,8 +1522,19 @@ function dropInventoryItem(index) {
     const item = worldInventory[index];
     if (!item) return;
     entry.data.items = entry.data.items || [];
-    const ref = { key: item.key, name: item.name };
-    if (item.quantity != null) ref.amount = item.quantity;
+    const ref = {
+        key: item.key,
+        name: item.name,
+        rarity: item.rarity,
+        description: item.description,
+        value: item.value,
+        stats: item.stats,
+        image: item.image
+    };
+    if (item.quantity != null) {
+        ref.amount = item.quantity;
+        ref.quantity = item.quantity;
+    }
     entry.data.items.push(ref);
     worldInventory.splice(index, 1);
     renderWorldInventory();
@@ -1695,11 +1745,29 @@ async function paintItem(x, y) {
             const existing = entry.data.items.find(i => i.key === keySel);
             if (existing) {
                 existing.amount = qty;
+                existing.quantity = qty;
                 existing.renewable = renewable;
                 existing.name = def.name;
                 existing.category = def.category;
+                existing.rarity = def.rarity;
+                existing.description = def.description;
+                existing.value = def.value;
+                existing.stats = def.stats;
+                existing.image = `resources/ui/items/${def.icon}`;
             } else {
-                entry.data.items.push({ key: def.key, name: def.name, category: def.category, amount: qty, renewable });
+                entry.data.items.push({
+                    key: def.key,
+                    name: def.name,
+                    category: def.category,
+                    amount: qty,
+                    quantity: qty,
+                    renewable,
+                    rarity: def.rarity,
+                    description: def.description,
+                    value: def.value,
+                    stats: def.stats,
+                    image: `resources/ui/items/${def.icon}`
+                });
             }
         }
     }
@@ -1988,8 +2056,6 @@ function renderWorldInventory() {
             tile.appendChild(span);
         }
         tile.addEventListener('click', () => openItemInfo(index));
-        tile.addEventListener('mouseenter', (e) => showMiniItemInfo(item, e.currentTarget));
-        tile.addEventListener('mouseleave', hideMiniItemInfo);
         grid.appendChild(tile);
     });
     renderMiniInventory();
@@ -2017,6 +2083,8 @@ function showMiniItemInfo(item, target) {
     });
     document.getElementById('mini-item-description').textContent = item.description || '';
     popup.classList.remove('hidden');
+    popup.style.maxWidth = '400px';
+    popup.style.maxHeight = '400px';
     const rect = target.getBoundingClientRect();
     popup.style.left = `${rect.right + 5}px`;
     popup.style.top = `${rect.top}px`;
@@ -2035,10 +2103,14 @@ function renderMiniInventory() {
         const slot = document.createElement('div');
         slot.className = 'mini-slot';
         const item = worldInventory[i];
-        if (item && item.image) {
-            const img = document.createElement('img');
-            img.src = `${item.image}?cb=${Date.now()}`;
-            slot.appendChild(img);
+        if (item) {
+            if (item.image) {
+                const img = document.createElement('img');
+                img.src = `${item.image}?cb=${Date.now()}`;
+                slot.appendChild(img);
+            }
+            slot.addEventListener('mouseenter', (e) => showMiniItemInfo(item, e.currentTarget));
+            slot.addEventListener('mouseleave', hideMiniItemInfo);
         }
         grid.appendChild(slot);
     }

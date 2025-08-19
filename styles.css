@@ -1421,8 +1421,15 @@ button:hover {
     padding: 5px;
     border: 1px solid #555;
     z-index: 1000;
-    width: 200px;
+    max-width: 400px;
+    max-height: 400px;
+    overflow: auto;
     pointer-events: none;
+}
+
+.mini-item-popup img {
+    max-width: 100%;
+    height: auto;
 }
 
 .mini-item-popup.hidden {
