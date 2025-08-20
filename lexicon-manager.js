@@ -184,39 +184,44 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
 function buildItemsTable() {
-	const data = Array.isArray(lexicon.items) ? lexicon.items : [];
-	lexicon.items = data;
-	itemsTable.innerHTML = '';
-	const head = document.createElement('tr');
-	['Name', 'Description', 'Value', 'Image', ''].forEach(h => {
-		const th = document.createElement('th');
-		th.textContent = h;
-		head.appendChild(th);
-	});
-	itemsTable.appendChild(head);
-	data.forEach((item, idx) => {
-		const tr = document.createElement('input');
-		nameInput.vlaue = item.name || '';
-		nameInput.addEventListener('input', e => item.name = e.target.value);
-		const nameTd = document.createElement('td');
-		nameTd.appendChild(nameInput);
-		tr.appendChild(nameTd);
-		
-		const descInput = document.createElement('input');
-		descInput.value = item.description || '';
-		descInput.addEventListener('input', e => item.description = e.target.value);
-		const descTd = document.createElement('td');
-		descTd.appendChild(descInput);
-		tr.appendChild(descTd);
-		
-		const valInput = document.createElement('input');
-		valInput.type = 'number';
-		valInput.value = item.value != null ? item.value : 0;
-		valInput.addEventListener('input', e => item.value = parseInt(e.target.value) || 0);
-		valTd.appendChild(valInput);
-		tr.appendChild(valTd);
-		
-		const imgTd = document.createElement('td');
+        const data = Array.isArray(lexicon.items) ? lexicon.items : [];
+        lexicon.items = data;
+        itemsTable.innerHTML = '';
+
+        const head = document.createElement('tr');
+        ['Name', 'Description', 'Value', 'Image', ''].forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            head.appendChild(th);
+        });
+        itemsTable.appendChild(head);
+
+        data.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+
+            const nameInput = document.createElement('input');
+            nameInput.value = item.name || '';
+            nameInput.addEventListener('input', e => item.name = e.target.value);
+            const nameTd = document.createElement('td');
+            nameTd.appendChild(nameInput);
+            tr.appendChild(nameTd);
+
+            const descInput = document.createElement('input');
+            descInput.value = item.description || '';
+            descInput.addEventListener('input', e => item.description = e.target.value);
+            const descTd = document.createElement('td');
+            descTd.appendChild(descInput);
+            tr.appendChild(descTd);
+
+            const valInput = document.createElement('input');
+            valInput.type = 'number';
+            valInput.value = item.value != null ? item.value : 0;
+            valInput.addEventListener('input', e => item.value = parseInt(e.target.value) || 0);
+            const valTd = document.createElement('td');
+            valTd.appendChild(valInput);
+            tr.appendChild(valTd);
+
+            const imgTd = document.createElement('td');
             const img = document.createElement('img');
             img.className = 'item-thumb';
             if (item.imagePath) img.src = item.imagePath;
