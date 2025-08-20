@@ -188,8 +188,24 @@ function buildItemsTable() {
         lexicon.items = data;
         itemsTable.innerHTML = '';
 
+        const catListId = 'item-category-list';
+        let catList = document.getElementById(catListId);
+        if (!catList) {
+            catList = document.createElement('datalist');
+            catList.id = catListId;
+            const categories = window.ITEM_CATEGORIES ? Object.keys(window.ITEM_CATEGORIES) : [];
+            categories.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                const def = window.ITEM_CATEGORIES && window.ITEM_CATEGORIES[c];
+                if (def && def.name) opt.label = def.name;
+                catList.appendChild(opt);
+            });
+            itemsEditor.appendChild(catList);
+        }
+
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Value', 'Icon', 'Stats', ''].forEach(h => {
+        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Value', 'Icon', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -212,6 +228,14 @@ function buildItemsTable() {
             const nameTd = document.createElement('td');
             nameTd.appendChild(nameInput);
             tr.appendChild(nameTd);
+
+            const catInput = document.createElement('input');
+            catInput.setAttribute('list', catListId);
+            catInput.value = item.category || '';
+            catInput.addEventListener('input', e => item.category = e.target.value);
+            const catTd = document.createElement('td');
+            catTd.appendChild(catInput);
+            tr.appendChild(catTd);
 
             const descInput = document.createElement('input');
             descInput.value = item.description || '';
@@ -299,7 +323,8 @@ function buildItemsTable() {
 
     addItemBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.items) ? lexicon.items : [];
-        data.push({ key: '', name: '', description: '', rarity: 'common', stackable: false, maxStack: 1, value: 0, icon: null, stats: [] });
+        const defCat = Object.keys(window.ITEM_CATEGORIES || {})[0] || '';
+        data.push({ key: '', name: '', category: defCat, description: '', rarity: 'common', stackable: false, maxStack: 1, value: 0, icon: null, stats: [] });
         lexicon.items = data;
         buildItemsTable();
     });

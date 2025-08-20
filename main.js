@@ -53,6 +53,7 @@ function ensureDefaultLexicon(worldName) {
         items: [{
             key: 'sample_item',
             name: 'Sample Item',
+            category: 'miscellaneous',
             icon: 'sample_item.png',
             description: 'Placeholder item.',
             rarity: 'common',
@@ -86,6 +87,7 @@ function ensureDefaultLexicon(worldName) {
         const sampleItem = {
             key: 'sample_item',
             name: 'Sample Item',
+            category: 'miscellaneous',
             icon: 'sample_item.png',
             description: 'Placeholder Item',
             rarity: 'common',
