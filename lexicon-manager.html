@@ -15,25 +15,41 @@
         <img id="adventure-btn" src="resources/ui/adventure.png" alt="Adventure">
         <img id="lexicon-btn" src="resources/ui/info.png" alt="Lexicon Manager">
     </div>
-    <div id="lexicon-controls">
-        <label>World:
-            <select id="world-select"></select>
-        </label>
-        <button id="import-btn">Import</button>
-        <button id="export-btn">Export</button>
-    </div>
-    <div id="lexicon-editor">
-        <label>Library:
-            <select id="library-select">
-                <option value="traits">Traits</option>
-                <option value="typing">Typing</option>
-                <option value="abilities">Abilities</option>
-                <option value="items">Items</option>
-                <option value="npc_blueprints">NPC Blueprints</option>
-            </select>
-        </label>
-        <textarea id="library-data" style="width:100%; height:300px;"></textarea>
-        <button id="save-btn">Save</button>
+    <div id="lexicon-container">
+        <div id="lexicon-controls">
+            <label>World:
+                <select id="world-select"></select>
+            </label>
+            <button id="import-btn">Import</button>
+            <button id="export-btn">Export</button>
+        </div>
+        <div id="lexicon-editor">
+            <label>Library:
+                <select id="library-select">
+                    <option value="traits">Traits</option>
+                    <option value="typing">Typing</option>
+                    <option value="abilities">Abilities</option>
+                    <option value="items">Items</option>
+                    <option value="npc_blueprints">NPC Blueprints</option>
+                </select>
+            </label>
+            <div id="chip-editor" class="editor-section hidden">
+                <div id="chips"></div>
+                <input id="chip-input" type="text">
+                <button id="add-chip-btn" type="button">Add</button>
+            </div>
+            <div id="typing-editor" class="editor-section hidden">
+                <div id="type-list">
+                    <div id="type-chips"></div>
+                    <input id="type-input" type="text">
+                    <button id="add-type-btn" type="button">Add Type</button>
+                </div>
+                <div id="type-table-wrapper">
+                    <table id="type-table"></table>
+                </div>
+            </div>
+            <button id="save-btn">Save</button>
+        </div>
     </div>
     <script src="modules.js"></script>
     <script src="lexicon-manager.js"></script>

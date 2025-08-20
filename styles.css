@@ -240,6 +240,67 @@ button:hover {
     display: none;
 }
 
+#lexicon-container {
+    margin-left: 7.4%;
+    margin-right: 7.4%;
+    width: 85%;
+    padding: 10px;
+    box-sizing: border-box;
+    min-height: 100vh;
+    background-color: #553159;
+    overflow-y: auto;
+}
+
+.editor-section {
+    margin-top: 10px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    background: #444;
+    border-radius: 16px;
+    padding: 4px 8px;
+    margin: 2px;
+}
+
+.chip button {
+    margin-left: 4px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+#type-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+#type-table th,
+#type-table td {
+    border: 1px solid #666;
+    padding: 4px;
+    text-align: center;
+}
+
+.relation-neutral {
+    background: #333;
+}
+
+.relation-weak {
+    background: #663333;
+}
+
+.relation-strong {
+    background: #336633;
+}
+
+.relation-immune {
+    background: #555;
+}
+
 .map-tile {
     border: 1px solid #444;
     display: flex;
