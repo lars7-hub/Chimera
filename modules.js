@@ -1,31 +1,29 @@
 window.onload = function() {
-    document.getElementById('home-btn').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
-    document.getElementById('info-btn').addEventListener('click', () => {
-        window.location.href = 'info.html';
-    });
-    document.getElementById('world-builder-btn').addEventListener('click', () => {
-        window.location.href = 'world-builder.html';
-    });
-    document.getElementById('adventure-btn').addEventListener('click', () => {
-        window.location.href = 'adventure.html';
-    });
-    document.getElementById('random-btn').addEventListener('click', goRandom);
+    const homeBtn = document.getElementById('home-btn');
+    if (homeBtn) homeBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
+    const infoBtn = document.getElementById('info-btn');
+    if (infoBtn) infoBtn.addEventListener('click', () => { window.location.href = 'info.html'; });
+    const worldBtn = document.getElementById('world-builder-btn');
+    if (worldBtn) worldBtn.addEventListener('click', () => { window.location.href = 'world-builder.html'; });
+    const adventureBtn = document.getElementById('adventure-btn');
+    if (adventureBtn) adventureBtn.addEventListener('click', () => { window.location.href = 'adventure.html'; });
+    const lexiconBtn = document.getElementById('lexicon-btn');
+    if (lexiconBtn) lexiconBtn.addEventListener('click', () => { window.location.href = 'lexicon-manager.html'; });
+    const randomBtn = document.getElementById('random-btn');
+    if (randomBtn) randomBtn.addEventListener('click', goRandom);
 
-    document.getElementById('module-characters').addEventListener('click', () => {
-        window.location.href = 'character-select.html';
-    });
-    document.getElementById('module-random').addEventListener('click', goRandom);
-    document.getElementById('module-info').addEventListener('click', () => {
-        window.location.href = 'info.html';
-    });
-    document.getElementById('module-world').addEventListener('click', () => {
-        window.location.href = 'world-builder.html';
-    });
-    document.getElementById('module-adventure').addEventListener('click', () => {
-        window.location.href = 'adventure.html';
-    });
+    const modChars = document.getElementById('module-characters');
+    if (modChars) modChars.addEventListener('click', () => { window.location.href = 'character-select.html'; });
+    const modRandom = document.getElementById('module-random');
+    if (modRandom) modRandom.addEventListener('click', goRandom);
+    const modInfo = document.getElementById('module-info');
+    if (modInfo) modInfo.addEventListener('click', () => { window.location.href = 'info.html'; });
+    const modWorld = document.getElementById('module-world');
+    if (modWorld) modWorld.addEventListener('click', () => { window.location.href = 'world-builder.html'; });
+    const modAdv = document.getElementById('module-adventure');
+    if (modAdv) modAdv.addEventListener('click', () => { window.location.href = 'adventure.html'; });
+    const modLex = document.getElementById('module-lexicon');
+    if (modLex) modLex.addEventListener('click', () => { window.location.href = 'lexicon-manager.html'; });
 };
 
 async function goRandom() {

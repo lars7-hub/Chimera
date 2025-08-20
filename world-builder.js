@@ -726,6 +726,9 @@ window.onload = async function () {
     document.getElementById('adventure-btn').addEventListener('click', () => {
         window.location.href = 'adventure.html';
     });
+    document.getElementById('lexicon-btn').addEventListener('click', () => {
+        window.location.href = 'lexicon-manager.html';
+    });
 
     await populateWorldChips();
 

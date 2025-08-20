@@ -42,6 +42,34 @@ function ensureSampleMap(targetMapPath) {
     }
 }
 
+function ensureDefaultLexicon(worldName) {
+    const lexiconDir = path.join(worldRoot, worldName, 'Lexicon');
+    fs.mkdirSync(lexiconDir, { recursive: true });
+    const libs = ['traits', 'typing', 'abilities', 'items', 'npc_blueprints'];
+    const samples = {
+        traits: [{ name: 'Brave', description: 'Unafraid of danger.' }],
+        typing: [{ name: 'Normal', weaknesses: [], resistances: [] }],
+        abilities: [{ name: 'Sample Strike', description: 'A basic attack.', typing: 'Normal', power: 0 }],
+        items: [{ name: 'Sample Item', description: 'Placeholder item.', value: 0 }],
+        npc_blueprints: [{
+            name: 'Sample NPC',
+            traits: ['Brave'],
+            typing: ['Normal'],
+            abilities: ['Sample Strike'],
+            items: ['Sample Item'],
+            stats: { strength: 1, dexterity: 1 }
+        }]
+    };
+    libs.forEach(lib => {
+        const jsonPath = path.join(lexiconDir, `${lib}.json`);
+        const imgDir = path.join(lexiconDir, lib);
+        if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
+        if (!fs.existsSync(jsonPath)) {
+            fs.writeFileSync(jsonPath, JSON.stringify(samples[lib] || [], null, 2));
+        }
+    });
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
@@ -760,11 +788,86 @@ ipcMain.handle('create-world', (event, worldName) => {
         const mapDir = path.join(target, 'map');
         fs.mkdirSync(mapDir, { recursive: true });
         ensureSampleMap(mapDir);
+        ensureDefaultLexicon(worldName);
         return { success: true };
     } catch (err) {
         console.error('Error creating world:', err);
         return { success: false, message: 'Error creating world' };
     }
+});
+
+ipcMain.handle('ensure-lexicon', (event, worldName) => {
+    try {
+        ensureDefaultLexicon(worldName);
+        return { success: true };
+    } catch (err) {
+        console.error('Error ensuring lexicon:', err);
+        return { success: false };
+    }
+});
+
+ipcMain.handle('has-lexicon', (event, worldName) => {
+    const dir = path.join(worldRoot, worldName, 'Lexicon');
+    return fs.existsSync(dir);
+});
+
+ipcMain.handle('get-lexicon', (event, worldName) => {
+    try {
+        ensureDefaultLexicon(worldName);
+        const dir = path.join(worldRoot, worldName, 'Lexicon');
+        const libs = ['traits', 'typing', 'abilities', 'items', 'npc_blueprints'];
+        const result = {};
+        libs.forEach(lib => {
+            const file = path.join(dir, `${lib}.json`);
+            if (fs.existsSync(file)) {
+                result[lib] = JSON.parse(fs.readFileSync(file, 'utf-8'));
+            } else {
+                result[lib] = [];
+            }
+        });
+        return result;
+    } catch (err) {
+        console.error('Error loading lexicon:', err);
+        return {};
+    }
+});
+
+ipcMain.handle('save-lexicon', (event, worldName, library, data) => {
+    try {
+        const dir = path.join(worldRoot, worldName, 'Lexicon');
+        fs.mkdirSync(dir, { recursive: true });
+        const file = path.join(dir, `${library}.json`);
+        fs.writeFileSync(file, JSON.stringify(data, null, 2));
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving lexicon:', err);
+        return { success: false };
+    }
+});
+
+ipcMain.handle('export-lexicon', async (event, worldName) => {
+    const srcDir = path.join(worldRoot, worldName, 'Lexicon');
+    if (!fs.existsSync(srcDir)) return { success: false, message: 'Lexicon not found' };
+    const { canceled, filePath } = await dialog.showSaveDialog({ defaultPath: `${worldName}-lexicon.zip` });
+    if (canceled || !filePath) return { success: false };
+    return new Promise(resolve => {
+        exec(`zip -r "${filePath}" .`, { cwd: srcDir }, err => {
+            if (err) resolve({ success: false }); else resolve({ success: true, path: filePath });
+        });
+    });
+});
+
+ipcMain.handle('import-lexicon', async (event, worldName) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Zip', extensions: ['zip'] }] });
+    if (canceled || !filePaths || !filePaths[0]) return { success: false };
+    const zipPath = filePaths[0];
+    const destDir = path.join(worldRoot, worldName, 'Lexicon');
+    fs.mkdirSync(destDir, { recursive: true });
+    return new Promise(resolve => {
+        exec(`unzip -o "${zipPath}" -d "${destDir}"`, err => {
+            if (err) resolve({ success: false }); else resolve({ success: true });
+        });
+    });
 });
 
 ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) => {

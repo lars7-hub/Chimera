@@ -36,5 +36,11 @@ contextBridge.exposeInMainWorld('electron', {
     prepareWorldCharacter: (worldName, characterName, loadoutName) => ipcRenderer.invoke('prepare-world-character', worldName, characterName, loadoutName),
     getWorldCharacter: (worldName) => ipcRenderer.invoke('get-world-character', worldName),
     getWorldInventory: (worldName) => ipcRenderer.invoke('get-world-inventory', worldName),
-	saveWorldInventory: (worldName, items) => ipcRenderer.invoke('save-world-inventory', worldName, items)
+        saveWorldInventory: (worldName, items) => ipcRenderer.invoke('save-world-inventory', worldName, items),
+    ensureLexicon: (worldName) => ipcRenderer.invoke('ensure-lexicon', worldName),
+    getLexicon: (worldName) => ipcRenderer.invoke('get-lexicon', worldName),
+    saveLexicon: (worldName, library, data) => ipcRenderer.invoke('save-lexicon', worldName, library, data),
+    exportLexicon: (worldName) => ipcRenderer.invoke('export-lexicon', worldName),
+    importLexicon: (worldName) => ipcRenderer.invoke('import-lexicon', worldName),
+    hasLexicon: (worldName) => ipcRenderer.invoke('has-lexicon', worldName)
 });
