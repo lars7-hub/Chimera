@@ -120,6 +120,7 @@ function ensureDefaultLexicon(worldName) {
             fs.writeFileSync(itemsJsonPath, JSON.stringify([sampleItem], null, 2));
         }
     }
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
