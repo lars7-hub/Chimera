@@ -85,9 +85,53 @@ const tileModPresets = {
 };
 
 const itemDefs = window.ITEMS || [];
+const baseItemCategories = JSON.parse(JSON.stringify(window.ITEM_CATEGORIES || {}));
+const baseItemDefs = itemDefs.map(i => ({ ...i }));
 
 const itemByKey = {};
-itemDefs.forEach(i => { itemByKey[i.key] = i; });
+function rebuildItemIndex() {
+    Object.keys(itemByKey).forEach(k => delete itemByKey[k]);
+    itemDefs.forEach(i => { itemByKey[i.key] = i; });
+}
+rebuildItemIndex();
+
+async function loadLexiconItems() {
+    if (!currentWorld) return;
+    try {
+        await window.electron.ensureLexicon(currentWorld);
+        const lex = await window.electron.getLexicon(currentWorld);
+        const items = Array.isArray(lex.items) ? lex.items : [];
+
+        Object.keys(itemCategories).forEach(k => delete itemCategories[k]);
+        Object.assign(itemCategories, JSON.parse(JSON.stringify(baseItemCategories)));
+        itemDefs.length = 0;
+        baseItemDefs.forEach(i => itemDefs.push({ ...i }));
+
+        items.forEach(it => {
+            const cat = it.category || 'miscellaneous';
+            if (!itemCategories[cat]) itemCategories[cat] = { name: cat, items: [] };
+            const entry = {
+                key: it.key || '',
+                name: it.name || '',
+                icon: it.icon || '',
+                description: it.description || '',
+                rarity: it.rarity || 'common',
+                stackable: !!it.stackable,
+                maxStack: it.maxStack != null ? it.maxStack : 1,
+                value: it.value != null ? it.value : 0,
+                stats: Array.isArray(it.stats) ? it.stats : []
+            };
+            itemCategories[cat].items = itemCategories[cat].items || [];
+            itemCategories[cat].items.push(entry);
+            itemDefs.push({ ...entry, category: cat });
+        });
+        rebuildItemIndex();
+        window.ITEMS = itemDefs;
+        window.ITEM_CATEGORIES = itemCategories;
+    } catch (err) {
+        console.error('Failed to load lexicon items:', err);
+    }
+}
 
 let worldCharacter = null;
 let worldInventory = [];
@@ -146,7 +190,7 @@ function openTileItemsPopup(items) {
                     r.description = def.description;
                     r.value = def.value;
                     r.stats = def.stats;
-                    r.image = r.image || `resources/ui/items/${def.icon}`;
+                    r.image = r.image || (def.icon ? (def.icon.startsWith('file://') ? def.icon : `resources/ui/items/${def.icon}`) : '');
                 }
                 r.quantity = r.quantity != null ? r.quantity : (r.amount || 0);
                 img.src = r.image || '';
@@ -1060,6 +1104,7 @@ window.onload = async function () {
 };
 
 async function loadWorld() {
+	await loadLexiconItems();
     const region = await window.electron.getMapRegion('region1', currentWorld);
     tileMap = {};
     region.tiles.forEach(t => {
