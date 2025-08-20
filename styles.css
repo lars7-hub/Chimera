@@ -297,11 +297,15 @@ button:hover {
 }
 
 .item-thumb {
-	width: 32px;
-	height: 32px;
-	object-fit: contain;
-	display: block;
-	margin-bottom: 4px;
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+        display: block;
+        margin-bottom: 4px;
+}
+
+.error {
+    border: 1px solid red;
 }
 
 .relation-neutral {

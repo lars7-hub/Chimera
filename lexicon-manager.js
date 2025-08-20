@@ -189,7 +189,7 @@ function buildItemsTable() {
         itemsTable.innerHTML = '';
 
         const head = document.createElement('tr');
-        ['Name', 'Description', 'Value', 'Image', ''].forEach(h => {
+        ['Key', 'Name', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Value', 'Icon', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -198,6 +198,13 @@ function buildItemsTable() {
 
         data.forEach((item, idx) => {
             const tr = document.createElement('tr');
+
+            const keyInput = document.createElement('input');
+            keyInput.value = item.key || '';
+            keyInput.addEventListener('input', e => item.key = e.target.value);
+            const keyTd = document.createElement('td');
+            keyTd.appendChild(keyInput);
+            tr.appendChild(keyTd);
 
             const nameInput = document.createElement('input');
             nameInput.value = item.name || '';
@@ -213,6 +220,29 @@ function buildItemsTable() {
             descTd.appendChild(descInput);
             tr.appendChild(descTd);
 
+            const rarityInput = document.createElement('input');
+            rarityInput.value = item.rarity || '';
+            rarityInput.addEventListener('input', e => item.rarity = e.target.value);
+            const rarityTd = document.createElement('td');
+            rarityTd.appendChild(rarityInput);
+            tr.appendChild(rarityTd);
+
+            const stackInput = document.createElement('input');
+            stackInput.type = 'checkbox';
+            stackInput.checked = !!item.stackable;
+            stackInput.addEventListener('change', e => item.stackable = e.target.checked);
+            const stackTd = document.createElement('td');
+            stackTd.appendChild(stackInput);
+            tr.appendChild(stackTd);
+
+            const maxInput = document.createElement('input');
+            maxInput.type = 'number';
+            maxInput.value = item.maxStack != null ? item.maxStack : 1;
+            maxInput.addEventListener('input', e => item.maxStack = parseInt(e.target.value) || 1);
+            const maxTd = document.createElement('td');
+            maxTd.appendChild(maxInput);
+            tr.appendChild(maxTd);
+
             const valInput = document.createElement('input');
             valInput.type = 'number';
             valInput.value = item.value != null ? item.value : 0;
@@ -221,23 +251,37 @@ function buildItemsTable() {
             valTd.appendChild(valInput);
             tr.appendChild(valTd);
 
-            const imgTd = document.createElement('td');
+            const iconTd = document.createElement('td');
             const img = document.createElement('img');
             img.className = 'item-thumb';
-            if (item.imagePath) img.src = item.imagePath;
+            if (item.icon) img.src = item.icon;
             const imgBtn = document.createElement('button');
-            imgBtn.textContent = 'Image';
+            imgBtn.textContent = 'Icon';
             imgBtn.addEventListener('click', async () => {
                 const p = await window.electron.openFileDialog();
                 if (p) {
                     const url = p.startsWith('file://') ? p : `file://${p}`;
-                    item.imagePath = url;
+                    item.icon = url;
                     img.src = url;
                 }
             });
-            imgTd.appendChild(img);
-            imgTd.appendChild(imgBtn);
-            tr.appendChild(imgTd);
+            iconTd.appendChild(img);
+            iconTd.appendChild(imgBtn);
+            tr.appendChild(iconTd);
+
+            const statsInput = document.createElement('input');
+            statsInput.value = JSON.stringify(item.stats || []);
+            statsInput.addEventListener('input', e => {
+                try {
+                    item.stats = JSON.parse(e.target.value || '[]');
+                    statsInput.classList.remove('error');
+                } catch {
+                    statsInput.classList.add('error');
+                }
+            });
+            const statsTd = document.createElement('td');
+            statsTd.appendChild(statsInput);
+            tr.appendChild(statsTd);
 
             const remTd = document.createElement('td');
             const remBtn = document.createElement('button');
@@ -255,7 +299,7 @@ function buildItemsTable() {
 
     addItemBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.items) ? lexicon.items : [];
-        data.push({ name: '', description: '', value: 0, imagePath: null });
+        data.push({ key: '', name: '', description: '', rarity: 'common', stackable: false, maxStack: 1, value: 0, icon: null, stats: [] });
         lexicon.items = data;
         buildItemsTable();
     });

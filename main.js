@@ -50,7 +50,17 @@ function ensureDefaultLexicon(worldName) {
         traits: [{ name: 'Brave', description: 'Unafraid of danger.' }],
         typing: [{ name: 'Normal', weaknesses: [], resistances: [] }],
         abilities: [{ name: 'Sample Strike', description: 'A basic attack.', typing: 'Normal', power: 0 }],
-        items: [{ name: 'Sample Item', description: 'Placeholder item.', value: 0 }],
+        items: [{
+            key: 'sample_item',
+            name: 'Sample Item',
+            icon: 'sample_item.png',
+            description: 'Placeholder item.',
+            rarity: 'common',
+            stackable: false,
+            maxStack: 1,
+            value: 0,
+            stats: []
+        }],
         npc_blueprints: [{
             name: 'Sample NPC',
             traits: ['Brave'],
@@ -70,12 +80,22 @@ function ensureDefaultLexicon(worldName) {
     });
 	
 	const itemsDir = path.join(lexiconDir, 'items');
-	if (!fs.existsSync(itemsDir)) fs.mkdirSync(itemsDir, { recursive : true });
-	const sampleItemPath = path.join(itemsDir, 'sample_items.json');
-	if (!fs.existsSync(sampleItemPath)) {
-		const sampleItem = { name: 'Sample Item', description: 'Placeholder Item', value: 0, image: 'sample_item.png' };
-		fs.writeFileSync(sampleItemPath, JSON.stringify(sampleItem, null, 2));
-	}
+    if (!fs.existsSync(itemsDir)) fs.mkdirSync(itemsDir, { recursive : true });
+    const sampleItemPath = path.join(itemsDir, 'sample_item.json');
+    if (!fs.existsSync(sampleItemPath)) {
+        const sampleItem = {
+            key: 'sample_item',
+            name: 'Sample Item',
+            icon: 'sample_item.png',
+            description: 'Placeholder Item',
+            rarity: 'common',
+            stackable: false,
+            maxStack: 1,
+            value: 0,
+            stats: []
+        };
+        fs.writeFileSync(sampleItemPath, JSON.stringify(sampleItem, null, 2));
+    }
 }
 
 function createWindow() {
@@ -833,8 +853,8 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
                 result[lib] = [];
             }
         });
-		
-		const itemsDir = path.join(dir, 'items');
+
+        const itemsDir = path.join(dir, 'items');
         const items = [];
         if (fs.existsSync(itemsDir)) {
             fs.readdirSync(itemsDir).forEach(f => {
@@ -842,10 +862,11 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
                     const jsonPath = path.join(itemsDir, f);
                     const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
                     const base = f.slice(0, -5);
-                    const imgPath = path.join(itemsDir, `${base}.png`);
+                    const imgPath = path.join(itemsDir, data.icon || `${base}.png`);
                     if (fs.existsSync(imgPath)) {
-                        data.imagePath = pathToFileURL(imgPath).href;
+                        data.icon = pathToFileURL(imgPath).href;
                     }
+                    data.key = data.key || base;
                     items.push(data);
                 }
             });
@@ -864,19 +885,20 @@ ipcMain.handle('save-lexicon', (event, worldName, library, data) => {
         fs.mkdirSync(dir, { recursive: true });
 		
 		if (library === 'items') {
-			const itemsDir = path.join(dir, 'items');
-			fs.mkdirSync(itemsDir, { recursive : true });
-			const names = new Set();
-			data.forEach(item => {
-				const base = (item.name || 'item').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+            const itemsDir = path.join(dir, 'items');
+            fs.mkdirSync(itemsDir, { recursive : true });
+            const names = new Set();
+            data.forEach(item => {
+                const base = (item.key || item.name || 'item').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
                 names.add(base);
                 const jsonPath = path.join(itemsDir, `${base}.json`);
                 const imgPath = path.join(itemsDir, `${base}.png`);
-                const { imagePath, ...rest } = item;
-                rest.image = `${base}.png`;
+                const { icon, ...rest } = item;
+                rest.key = item.key || base;
+                rest.icon = `${base}.png`;
                 fs.writeFileSync(jsonPath, JSON.stringify(rest, null, 2));
-                if (imagePath) {
-                    const src = imagePath.startsWith('file://') ? fileURLToPath(imagePath) : imagePath;
+                if (icon) {
+                    const src = icon.startsWith('file://') ? fileURLToPath(icon) : icon;
                     if (path.resolve(src) !== imgPath) {
                         fs.copyFileSync(src, imgPath);
                     }
