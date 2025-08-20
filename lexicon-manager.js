@@ -165,7 +165,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
-        removeBtn.textContent = 'X';
+        removeBtn.textContent = 'Delete Stat';
         removeBtn.className = 'remove-stat-btn delete-btn';
         removeBtn.addEventListener('click', () => row.remove());
         row.appendChild(removeBtn);
@@ -643,6 +643,7 @@ function buildItemsTable() {
                 input.type = type;
                 input.value = value;
                 input.addEventListener('input', e => onInput(e.target.value));
+                if (type === 'number') input.classList.add('small-num');
                 wrap.appendChild(label);
                 wrap.appendChild(input);
                 return wrap;
@@ -664,7 +665,7 @@ function buildItemsTable() {
             descDiv.appendChild(descInput);
             top.appendChild(descDiv);
 
-            function arraySection(title, prop, listId) {
+            function arraySection(title, prop, listId, singular) {
                 const section = document.createElement('div');
                 section.className = 'npc-array-section';
                 const label = document.createElement('div');
@@ -679,14 +680,14 @@ function buildItemsTable() {
                     input.value = val || '';
                     input.addEventListener('input', e => npc[prop][vIdx] = e.target.value);
                     const rem = document.createElement('button');
-                    rem.textContent = '×';
+                    rem.textContent = `Delete ${singular}`;
                     rem.addEventListener('click', () => { npc[prop].splice(vIdx, 1); buildNPCBlueprintsTable(); });
                     entry.appendChild(input);
                     entry.appendChild(rem);
                     listDiv.appendChild(entry);
                 });
                 const addBtn = document.createElement('button');
-                addBtn.textContent = '+';
+                addBtn.textContent = `Add ${singular}`;
                 addBtn.addEventListener('click', () => {
                     npc[prop] = npc[prop] || [];
                     npc[prop].push('');
@@ -706,17 +707,20 @@ function buildItemsTable() {
                 const grid = document.createElement('div');
                 grid.className = 'type-grid';
                 const allTypes = (lexicon.typing && lexicon.typing.types) || [];
+                const cols = Math.ceil(Math.sqrt(allTypes.length || 1));
+                grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
                 allTypes.forEach(t => {
-                    const btn = document.createElement('button');
-                    btn.textContent = t;
-                    if ((npc.types || []).includes(t)) btn.classList.add('active');
-                    btn.addEventListener('click', () => {
+                    const chipEl = document.createElement('div');
+                    chipEl.className = 'type-chip';
+                    chipEl.textContent = t;
+                    if ((npc.types || []).includes(t)) chipEl.classList.add('selected');
+                    chipEl.addEventListener('click', () => {
                         npc.types = npc.types || [];
                         const i = npc.types.indexOf(t);
                         if (i >= 0) npc.types.splice(i, 1); else npc.types.push(t);
                         buildNPCBlueprintsTable();
                     });
-                    grid.appendChild(btn);
+                    grid.appendChild(chipEl);
                 });
                 section.appendChild(grid);
                 return section;
@@ -740,7 +744,7 @@ function buildItemsTable() {
                     if (trait && trait.color) text.style.color = trait.color;
                     chipEl.appendChild(text);
                     const rem = document.createElement('button');
-                    rem.textContent = '×';
+                    rem.textContent = 'Delete Trait';
                     rem.addEventListener('click', () => { npc.traits.splice(tIdx, 1); buildNPCBlueprintsTable(); });
                     chipEl.appendChild(rem);
                     chips.appendChild(chipEl);
@@ -748,14 +752,18 @@ function buildItemsTable() {
                 section.appendChild(chips);
                 const input = document.createElement('input');
                 input.setAttribute('list', traitListId);
-                input.addEventListener('change', e => {
-                    const val = e.target.value.trim();
+                const addBtn = document.createElement('button');
+                addBtn.textContent = 'Add Trait';
+                addBtn.addEventListener('click', () => {
+                    const val = input.value.trim();
                     if (!val) return;
                     npc.traits = npc.traits || [];
                     npc.traits.push(val);
+                    input.value = '';
                     buildNPCBlueprintsTable();
                 });
                 section.appendChild(input);
+                section.appendChild(addBtn);
                 return section;
             }
 
@@ -767,29 +775,42 @@ function buildItemsTable() {
                 section.appendChild(label);
                 const listDiv = document.createElement('div');
                 (npc.inventory || []).forEach((val, vIdx) => {
+                    if (typeof val === 'string') val = { item: val, qty: 1 };
+                    npc.inventory[vIdx] = val;
                     const entry = document.createElement('div');
-                    entry.className = 'npc-array-entry';
+                    entry.className = 'inventory-chip';
                     const icon = document.createElement('img');
                     icon.className = 'item-icon';
-                    const itemData = (lexicon.items || []).find(i => i.key === val);
-                    if (itemData && itemData.icon) icon.src = itemData.icon;
+                    const itemData = (lexicon.items || []).find(i => i.key === val.item);
+                    if (itemData && itemData.icon) icon.src = `resources/items/${itemData.icon}`;
+                    entry.appendChild(icon);
                     const input = document.createElement('input');
                     input.setAttribute('list', itemListId);
-                    input.value = val || '';
-                    input.addEventListener('input', e => { npc.inventory[vIdx] = e.target.value; buildNPCBlueprintsTable(); });
-                    const rem = document.createElement('button');
-                    rem.textContent = '×';
-                    rem.addEventListener('click', () => { npc.inventory.splice(vIdx, 1); buildNPCBlueprintsTable(); });
-                    entry.appendChild(icon);
+                    input.value = val.item || '';
+                    input.addEventListener('input', e => { val.item = e.target.value; buildNPCBlueprintsTable(); });
                     entry.appendChild(input);
+                    const qtyInput = document.createElement('input');
+                    qtyInput.type = 'number';
+                    qtyInput.className = 'small-num';
+                    qtyInput.value = val.qty != null ? val.qty : 1;
+                    if (itemData && itemData.stackable) {
+                        qtyInput.addEventListener('input', e => val.qty = parseInt(e.target.value) || 0);
+                    } else {
+                        qtyInput.value = 1;
+                        qtyInput.disabled = true;
+                    }
+                    entry.appendChild(qtyInput);
+                    const rem = document.createElement('button');
+                    rem.textContent = 'Delete Item';
+                    rem.addEventListener('click', () => { npc.inventory.splice(vIdx, 1); buildNPCBlueprintsTable(); });
                     entry.appendChild(rem);
                     listDiv.appendChild(entry);
                 });
                 const addBtn = document.createElement('button');
-                addBtn.textContent = '+';
+                addBtn.textContent = 'Add Inventory Item';
                 addBtn.addEventListener('click', () => {
                     npc.inventory = npc.inventory || [];
-                    npc.inventory.push('');
+                    npc.inventory.push({ item: '', qty: 1 });
                     buildNPCBlueprintsTable();
                 });
                 section.appendChild(listDiv);
@@ -809,7 +830,7 @@ function buildItemsTable() {
             traitInvWrap.appendChild(buildTraitsSection());
             traitInvWrap.appendChild(buildInventorySection());
             taDiv.appendChild(traitInvWrap);
-            taDiv.appendChild(arraySection('Abilities', 'abilities', abilityListId));
+            taDiv.appendChild(arraySection('Abilities', 'abilities', abilityListId, 'Ability'));
             top.appendChild(taDiv);
 
             chip.appendChild(top);
@@ -818,7 +839,7 @@ function buildItemsTable() {
             lootDiv.className = 'npc-loot';
             const lootTable = document.createElement('table');
             const head = document.createElement('tr');
-            ['Icon','Item','Chance','Min','Max',''].forEach(h => {
+            ['Icon','Item','Chance','Qty',''].forEach(h => {
                 const th = document.createElement('th');
                 th.textContent = h;
                 head.appendChild(th);
@@ -831,7 +852,7 @@ function buildItemsTable() {
                 const icon = document.createElement('img');
                 icon.className = 'item-icon';
                 const itemData = (lexicon.items || []).find(i => i.key === loot.item);
-                if (itemData && itemData.icon) icon.src = itemData.icon;
+                if (itemData && itemData.icon) icon.src = `resources/items/${itemData.icon}`;
                 iconTd.appendChild(icon);
                 ltr.appendChild(iconTd);
 
@@ -845,31 +866,34 @@ function buildItemsTable() {
 
                 const chanceInput = document.createElement('input');
                 chanceInput.type = 'number';
+                chanceInput.className = 'small-num';
                 chanceInput.value = loot.chance != null ? loot.chance : 100;
                 chanceInput.addEventListener('input', e => loot.chance = parseFloat(e.target.value) || 0);
                 const chanceTd = document.createElement('td');
                 chanceTd.appendChild(chanceInput);
                 ltr.appendChild(chanceTd);
 
+                const qtyTd = document.createElement('td');
+                const qtyWrap = document.createElement('div');
+                qtyWrap.className = 'quantity-inputs';
                 const minInput = document.createElement('input');
                 minInput.type = 'number';
+                minInput.className = 'small-num';
                 minInput.value = loot.min != null ? loot.min : 1;
                 minInput.addEventListener('input', e => loot.min = parseInt(e.target.value) || 0);
-                const minTd = document.createElement('td');
-                minTd.appendChild(minInput);
-                ltr.appendChild(minTd);
-
                 const maxInput = document.createElement('input');
                 maxInput.type = 'number';
+                maxInput.className = 'small-num';
                 maxInput.value = loot.max != null ? loot.max : 1;
                 maxInput.addEventListener('input', e => loot.max = parseInt(e.target.value) || 0);
-                const maxTd = document.createElement('td');
-                maxTd.appendChild(maxInput);
-                ltr.appendChild(maxTd);
+                qtyWrap.appendChild(minInput);
+                qtyWrap.appendChild(maxInput);
+                qtyTd.appendChild(qtyWrap);
+                ltr.appendChild(qtyTd);
 
                 const remLootTd = document.createElement('td');
                 const remLootBtn = document.createElement('button');
-                remLootBtn.textContent = '×';
+                remLootBtn.textContent = 'Delete Loot Item';
                 remLootBtn.addEventListener('click', () => {
                     npc.lootTable.splice(lidx, 1);
                     buildNPCBlueprintsTable();
@@ -880,7 +904,7 @@ function buildItemsTable() {
                 lootTable.appendChild(ltr);
             });
             const addLootBtn = document.createElement('button');
-            addLootBtn.textContent = '+';
+            addLootBtn.textContent = 'Add Loot Item';
             addLootBtn.addEventListener('click', () => {
                 npc.lootTable = npc.lootTable || [];
                 npc.lootTable.push({ item: '', chance: 100, min: 1, max: 1 });
@@ -891,7 +915,7 @@ function buildItemsTable() {
             chip.appendChild(lootDiv);
 
             const remBtn = document.createElement('button');
-            remBtn.textContent = '×';
+            remBtn.textContent = 'Delete NPC';
             remBtn.className = 'delete-btn';
             remBtn.addEventListener('click', () => {
                 data.splice(idx, 1);
