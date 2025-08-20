@@ -142,8 +142,20 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     function buildTypingUI() {
-        if (!lexicon.typing) {
-            lexicon.typing = { types: [], table: {} };
+        if (!lexicon.typing || !Array.isArray(lexicon.typing.types)) {
+            if (Array.isArray(lexicon.typing)) {
+                const types = lexicon.typing.map(t => t.name || t);
+                const table = {};
+                for (const atk of types) {
+                    table[atk] = {};
+                    for (const def of types) {
+                        table[atk][def] = 1;
+                    }
+                }
+                lexicon.typing = { types, table };
+            } else {
+                lexicon.typing = { types: [], table: {} };
+            }
         }
         buildTypeChips();
         buildTypeTable();
