@@ -697,14 +697,118 @@ function buildItemsTable() {
                 return section;
             }
 
+            function buildTypeGrid() {
+                const section = document.createElement('div');
+                section.className = 'npc-array-section';
+                const label = document.createElement('div');
+                label.textContent = 'Types';
+                section.appendChild(label);
+                const grid = document.createElement('div');
+                grid.className = 'type-grid';
+                const allTypes = (lexicon.typing && lexicon.typing.types) || [];
+                allTypes.forEach(t => {
+                    const btn = document.createElement('button');
+                    btn.textContent = t;
+                    if ((npc.types || []).includes(t)) btn.classList.add('active');
+                    btn.addEventListener('click', () => {
+                        npc.types = npc.types || [];
+                        const i = npc.types.indexOf(t);
+                        if (i >= 0) npc.types.splice(i, 1); else npc.types.push(t);
+                        buildNPCBlueprintsTable();
+                    });
+                    grid.appendChild(btn);
+                });
+                section.appendChild(grid);
+                return section;
+            }
+
+            function buildTraitsSection() {
+                const section = document.createElement('div');
+                section.className = 'npc-array-section';
+                const label = document.createElement('div');
+                label.textContent = 'Traits';
+                section.appendChild(label);
+                const chips = document.createElement('div');
+                chips.className = 'npc-trait-chips';
+                (npc.traits || []).forEach((name, tIdx) => {
+                    const trait = (lexicon.traits || []).find(tr => (tr.name || tr.text) === name);
+                    const chipEl = document.createElement('div');
+                    chipEl.className = 'trait-chip';
+                    const text = document.createElement('span');
+                    text.className = 'trait-name';
+                    text.textContent = name;
+                    if (trait && trait.color) text.style.color = trait.color;
+                    chipEl.appendChild(text);
+                    const rem = document.createElement('button');
+                    rem.textContent = '×';
+                    rem.addEventListener('click', () => { npc.traits.splice(tIdx, 1); buildNPCBlueprintsTable(); });
+                    chipEl.appendChild(rem);
+                    chips.appendChild(chipEl);
+                });
+                section.appendChild(chips);
+                const input = document.createElement('input');
+                input.setAttribute('list', traitListId);
+                input.addEventListener('change', e => {
+                    const val = e.target.value.trim();
+                    if (!val) return;
+                    npc.traits = npc.traits || [];
+                    npc.traits.push(val);
+                    buildNPCBlueprintsTable();
+                });
+                section.appendChild(input);
+                return section;
+            }
+
+            function buildInventorySection() {
+                const section = document.createElement('div');
+                section.className = 'npc-array-section npc-inventory';
+                const label = document.createElement('div');
+                label.textContent = 'Inventory';
+                section.appendChild(label);
+                const listDiv = document.createElement('div');
+                (npc.inventory || []).forEach((val, vIdx) => {
+                    const entry = document.createElement('div');
+                    entry.className = 'npc-array-entry';
+                    const icon = document.createElement('img');
+                    icon.className = 'item-icon';
+                    const itemData = (lexicon.items || []).find(i => i.key === val);
+                    if (itemData && itemData.icon) icon.src = itemData.icon;
+                    const input = document.createElement('input');
+                    input.setAttribute('list', itemListId);
+                    input.value = val || '';
+                    input.addEventListener('input', e => { npc.inventory[vIdx] = e.target.value; buildNPCBlueprintsTable(); });
+                    const rem = document.createElement('button');
+                    rem.textContent = '×';
+                    rem.addEventListener('click', () => { npc.inventory.splice(vIdx, 1); buildNPCBlueprintsTable(); });
+                    entry.appendChild(icon);
+                    entry.appendChild(input);
+                    entry.appendChild(rem);
+                    listDiv.appendChild(entry);
+                });
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '+';
+                addBtn.addEventListener('click', () => {
+                    npc.inventory = npc.inventory || [];
+                    npc.inventory.push('');
+                    buildNPCBlueprintsTable();
+                });
+                section.appendChild(listDiv);
+                section.appendChild(addBtn);
+                return section;
+            }
+
             const typesDiv = document.createElement('div');
             typesDiv.className = 'npc-types';
-            typesDiv.appendChild(arraySection('Types', 'types', typeListId));
+            typesDiv.appendChild(buildTypeGrid());
             top.appendChild(typesDiv);
 
             const taDiv = document.createElement('div');
             taDiv.className = 'npc-traits-abilities';
-            taDiv.appendChild(arraySection('Traits', 'traits', traitListId));
+            const traitInvWrap = document.createElement('div');
+            traitInvWrap.className = 'npc-trait-inventory';
+            traitInvWrap.appendChild(buildTraitsSection());
+            traitInvWrap.appendChild(buildInventorySection());
+            taDiv.appendChild(traitInvWrap);
             taDiv.appendChild(arraySection('Abilities', 'abilities', abilityListId));
             top.appendChild(taDiv);
 
@@ -713,12 +817,28 @@ function buildItemsTable() {
             const lootDiv = document.createElement('div');
             lootDiv.className = 'npc-loot';
             const lootTable = document.createElement('table');
+            const head = document.createElement('tr');
+            ['Icon','Item','Chance','Min','Max',''].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                head.appendChild(th);
+            });
+            lootTable.appendChild(head);
             (npc.lootTable || []).forEach((loot, lidx) => {
                 const ltr = document.createElement('tr');
+
+                const iconTd = document.createElement('td');
+                const icon = document.createElement('img');
+                icon.className = 'item-icon';
+                const itemData = (lexicon.items || []).find(i => i.key === loot.item);
+                if (itemData && itemData.icon) icon.src = itemData.icon;
+                iconTd.appendChild(icon);
+                ltr.appendChild(iconTd);
+
                 const itemInput = document.createElement('input');
                 itemInput.setAttribute('list', itemListId);
                 itemInput.value = loot.item || '';
-                itemInput.addEventListener('input', e => loot.item = e.target.value);
+                itemInput.addEventListener('input', e => { loot.item = e.target.value; buildNPCBlueprintsTable(); });
                 const itemTd = document.createElement('td');
                 itemTd.appendChild(itemInput);
                 ltr.appendChild(itemTd);
@@ -785,7 +905,7 @@ function buildItemsTable() {
 
     addNpcBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
-        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], lootTable: [] });
+        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], inventory: [], lootTable: [] });
         lexicon.npc_blueprints = data;
         buildNPCBlueprintsTable();
     });

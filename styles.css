@@ -2019,3 +2019,30 @@ button:hover {
     width: 100%;
     margin-top: 5px;
 }
+
+/* NPC blueprint enhancements */
+.type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 5px;
+}
+
+.type-grid button.active {
+    background-color: #666;
+    color: #fff;
+}
+
+.npc-trait-inventory {
+    display: flex;
+    gap: 10px;
+}
+
+.npc-trait-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.npc-inventory .npc-array-entry {
+    align-items: center;
+}

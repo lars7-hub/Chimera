@@ -85,9 +85,19 @@ function ensureDefaultLexicon(worldName) {
     });
 	
 	const itemsDir = path.join(lexiconDir, 'items');
-    if (!fs.existsSync(itemsDir)) fs.mkdirSync(itemsDir, { recursive : true });
-    const sampleItemPath = path.join(itemsDir, 'sample_item.json');
-    if (!fs.existsSync(sampleItemPath)) {
+    if (!fs.existsSync(itemsDir)) fs.mkdirSync(itemsDir, { recursive: true });
+
+    const itemsJsonPath = path.join(lexiconDir, 'items.json');
+    let itemsData = [];
+    if (fs.existsSync(itemsJsonPath)) {
+        try {
+            itemsData = JSON.parse(fs.readFileSync(itemsJsonPath, 'utf-8'));
+        } catch {
+            itemsData = [];
+        }
+    }
+
+    if (itemsData.length === 0) {
         const sampleItem = {
             key: 'sample_item',
             name: 'Sample Item',
@@ -100,21 +110,28 @@ function ensureDefaultLexicon(worldName) {
             value: 0,
             stats: []
         };
-        fs.writeFileSync(sampleItemPath, JSON.stringify(sampleItem, null, 2));
+
+        const sampleItemPath = path.join(itemsDir, 'sample_item.json');
+        if (!fs.existsSync(sampleItemPath)) {
+            fs.writeFileSync(sampleItemPath, JSON.stringify(sampleItem, null, 2));
+        }
+
+        if (!fs.existsSync(itemsJsonPath)) {
+            fs.writeFileSync(itemsJsonPath, JSON.stringify([sampleItem], null, 2));
+        }
     }
-}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'), // Correctly reference the preload.js file
+            preload: path.join(__dirname, 'preload.js'), 
             nodeIntegration: false,
             contextIsolation: true,
         }
     });
-    mainWindow.loadFile('index.html'); // Load the character selector page by default
+    mainWindow.loadFile('index.html'); 
 }
 
 app.whenReady().then(() => {
