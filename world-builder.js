@@ -95,6 +95,12 @@ function rebuildItemIndex() {
 }
 rebuildItemIndex();
 
+function resolveItemIcon(icon) {
+	if (!icon) return '';
+	return icon.startsWith('file://') ? icon : `resources/ui/items/${icon}`;
+}
+
+
 async function loadLexiconItems() {
     if (!currentWorld) return;
     try {
@@ -190,7 +196,7 @@ function openTileItemsPopup(items) {
                     r.description = def.description;
                     r.value = def.value;
                     r.stats = def.stats;
-                    r.image = r.image || (def.icon ? (def.icon.startsWith('file://') ? def.icon : `resources/ui/items/${def.icon}`) : '');
+                    r.image = r.image || resolveItemIcon(def && def.icon);
                 }
                 r.quantity = r.quantity != null ? r.quantity : (r.amount || 0);
                 img.src = r.image || '';
@@ -238,7 +244,7 @@ function openTileItemsPopup(items) {
                         r.description = first.description;
                         r.value = first.value;
                         r.stats = first.stats;
-                        r.image = `resources/ui/items/${first.icon}`;
+                        r.image = resolveItemIcon(first && first.icon);
                         img.src = r.image;
                     }
                 });
@@ -252,7 +258,7 @@ function openTileItemsPopup(items) {
                         r.description = d.description;
                         r.value = d.value;
                         r.stats = d.stats;
-                        r.image = `resources/ui/items/${d.icon}`;
+                        r.image = resolveItemIcon(d && d.icon);
                         img.src = r.image;
                     }
                 });
@@ -304,7 +310,7 @@ function openTileItemsPopup(items) {
                     description: firstItem.description,
                     value: firstItem.value,
                     stats: firstItem.stats,
-                    image: `resources/ui/items/${firstItem.icon}`,
+                    image: resolveItemIcon(firstItem && firstItem.icon),
                     _lastRegen: Date.now()
                 });
                 render();
@@ -1281,7 +1287,7 @@ function updateTileVisual(entry, key) {
         if (!def || !def.icon) return;
         const img = document.createElement('img');
         img.className = 'tile-resource-img';
-        img.src = `resources/ui/items/${def.icon}`;
+        img.src = resolveItemIcon(def.icon);
         entry.el.appendChild(img);
     });
 
@@ -1661,7 +1667,7 @@ function displayTile(tile, key = currentKey) {
             const def = itemByKey[r.key] || itemDefs.find(d => d.name === r.name);
             if (def) {
                 const img = document.createElement('img');
-                img.src = r.image || `resources/ui/items/${def.icon}`;
+                img.src = r.image || resolveItemIcon(def && def.icon);
                 img.className = 'item-icon';
                 if (r.renewable) {
                     img.style.borderRadius = '50%';
@@ -1749,7 +1755,7 @@ function pickUpTileItem(idx) {
                         const add = Math.min(maxStack, remaining);
                         const item = { ...base, quantity: add, amount: add, stackable: true, maxStack };
                         if (!item.image && def.icon) {
-                                item.image = `resources/ui/items/${def.icon}`;
+                                item.image = resolveItemIcon(def.icon);
                         }
                         worldInventory[slot] = item;
                         remaining -= add;
@@ -1767,7 +1773,7 @@ function pickUpTileItem(idx) {
                         }
                         const item = { ...base, quantity: 1, amount: 1, stackable: false, maxStack: 1 };
                         if (!item.image && def.icon) {
-                                item.image = `resources/ui/items/${def.icon}`;
+                                item.image = resolveItemIcon(def.icon);
                         }
                         worldInventory[slot] = item;
                         remaining--;
@@ -1778,10 +1784,23 @@ function pickUpTileItem(idx) {
         if (leftover > 0) {
                 ref.quantity = leftover;
                 ref.amount = leftover;
-                if (ref.renewable && ref.maxAmount == null) ref.maxAmount = (base.quantity != null ? base.quantity : (base.amount || 1));
-        } else {
+                if (ref.renewable) {
+					const maxVal = base.quantity != null ? base.quantity : (base.amount || 1);
+					if (ref.maxQuantity == null) ref.maxQuantity = maxVal;
+					if (ref.maxAmount == null) ref.maxAmount = maxVal;
+				}
+		} else {
+			if (ref.renewable) {
+				const maxVal = base.quantity != null ? base.quantity : (base.amount || 1);
+				if (ref.maxQuantity == null) ref.maxQuantity = maxVal;
+				if (ref.maxAmount == null) ref.maxAmount = maxVal;
+				ref.quantity = 0;
+				ref.amount = 0;
+				ref._lastRegen = Date.now();
+			} else {
                 entry.data.items.splice(idx, 1);
-        }
+			}
+		}
         renderWorldInventory();
         displayTile(entry.data);
         saveRegion();
@@ -2050,7 +2069,7 @@ async function paintItem(x, y) {
                 existing.description = def.description;
                 existing.value = def.value;
                 existing.stats = def.stats;
-                existing.image = `resources/ui/items/${def.icon}`;
+                existing.image = resolveItemIcon(def.icon);
             } else {
                 entry.data.items.push({
                     key: def.key,
@@ -2065,7 +2084,7 @@ async function paintItem(x, y) {
                     description: def.description,
                     value: def.value,
                     stats: def.stats,
-                    image: `resources/ui/items/${def.icon}`,
+                    image: resolveItemIcon(def.icon),
                     _lastRegen: Date.now()
                 });
             }
