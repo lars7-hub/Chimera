@@ -17,7 +17,7 @@
   }
 
   function hasItem(inventory, key){
-    return Array.isArray(inventory) && inventory.some(i => i && i.key === key);
+    return Array.isArray(inventory) && inventory.some(i => i && i.key === key && (!i.stackable || (i.quantity && i.quantity > 0)));
   }
 
   function isPassable(tile, inventory){

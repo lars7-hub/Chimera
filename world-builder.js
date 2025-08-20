@@ -1673,30 +1673,67 @@ function pickUpTileItem(idx) {
         const ref = entry.data.items[idx];
         const def = itemByKey[ref.key] || itemDefs.find(d => d.name === ref.name) || {};
         const base = { ...def, ...ref };
-        const totalQty = base.quantity != null ? base.quantity : (base.amount || 1);
+        const stackable = base.stackable !== false;
+        const maxStack = base.maxStack || 1;
+        let remaining = base.quantity != null ? base.quantity : (base.amount || 1);
         const maxSlots = 12;
-        let remaining = totalQty;
-        while (remaining > 0) {
-                let slot = worldInventory.findIndex(i => !i);
-                if (slot === -1) {
-                        if (worldInventory.length < maxSlots) {
-                                slot = worldInventory.length;
-                        } else {
-                                break;
+
+        if (stackable) {
+                // Fill existing stacks
+                worldInventory.forEach(invItem => {
+                        if (remaining <= 0) return;
+                        if (invItem && invItem.key === base.key && invItem.stackable) {
+                                const room = invItem.maxStack - (invItem.quantity || 0);
+                                if (room > 0) {
+                                        const add = Math.min(room, remaining);
+                                        invItem.quantity = (invItem.quantity || 0) + add;
+                                        remaining -= add;
+                                }
                         }
+                });
+                // Create new stacks
+                while (remaining > 0) {
+                        let slot = worldInventory.findIndex(i => !i);
+                        if (slot === -1) {
+                                if (worldInventory.length < maxSlots) {
+                                        slot = worldInventory.length;
+                                } else {
+                                        break;
+                                }
+                        }
+                        const add = Math.min(maxStack, remaining);
+                        const item = { ...base, quantity: add, amount: add, stackable: true, maxStack };
+                        if (!item.image && def.icon) {
+                                item.image = `resources/ui/items/${def.icon}`;
+                        }
+                        worldInventory[slot] = item;
+                        remaining -= add;
                 }
-                const item = { ...base, quantity: 1, amount: 1 };
-                if (!item.image && def.icon) {
-                        item.image = `resources/ui/items/${def.icon}`;
+        } else {
+                // Non-stackable items occupy separate slots
+                while (remaining > 0) {
+                        let slot = worldInventory.findIndex(i => !i);
+                        if (slot === -1) {
+                                if (worldInventory.length < maxSlots) {
+                                        slot = worldInventory.length;
+                                } else {
+                                        break;
+                                }
+                        }
+                        const item = { ...base, quantity: 1, amount: 1, stackable: false, maxStack: 1 };
+                        if (!item.image && def.icon) {
+                                item.image = `resources/ui/items/${def.icon}`;
+                        }
+                        worldInventory[slot] = item;
+                        remaining--;
                 }
-                worldInventory[slot] = item;
-                remaining--;
         }
+
         const leftover = remaining;
         if (leftover > 0) {
                 ref.quantity = leftover;
                 ref.amount = leftover;
-                if (ref.renewable && ref.maxAmount == null) ref.maxAmount = totalQty;
+                if (ref.renewable && ref.maxAmount == null) ref.maxAmount = (base.quantity != null ? base.quantity : (base.amount || 1));
         } else {
                 entry.data.items.splice(idx, 1);
         }
@@ -2464,6 +2501,12 @@ function renderWorldInventory() {
             span.textContent = item.name;
             tile.appendChild(span);
         }
+        if (item.stackable && item.quantity > 1) {
+            const qty = document.createElement('div');
+            qty.className = 'qty';
+            qty.textContent = item.quantity;
+            tile.appendChild(qty);
+        }
         tile.addEventListener('click', () => openItemInfo(index));
         grid.appendChild(tile);
     });
@@ -2626,7 +2669,8 @@ function openItemInfo(index) {
     hideMiniItemInfo();
     const item = worldInventory[index];
     if (!item) return;
-    document.getElementById('item-info-name').textContent = item.name || '';
+    const displayName = item.stackable ? `${item.name} [ x${item.quantity} ]` : item.name;
+    document.getElementById('item-info-name').textContent = displayName || '';
     document.getElementById('item-info-rarity').textContent = item.rarity || '';
     const img = document.getElementById('item-info-image');
     if (item.image) {
@@ -2643,7 +2687,13 @@ function openItemInfo(index) {
         statsDiv.appendChild(p);
     });
     document.getElementById('item-info-description').textContent = item.description || '';
-    document.getElementById('item-info-value-text').textContent = (item.value != null ? item.value : '');
+    const valueEl = document.getElementById('item-info-value-text');
+    if (item.stackable) {
+        const total = (item.value || 0) * (item.quantity || 0);
+        valueEl.textContent = `Base: ${item.value || 0} | Total: ${total}`;
+    } else {
+        valueEl.textContent = (item.value != null ? item.value : '');
+    }
     document.getElementById('item-drop-btn').onclick = () => {
         dropInventoryItem(index);
         document.getElementById('item-info-modal').classList.add('hidden');

@@ -261,6 +261,12 @@ function renderInventory() {
             span.textContent = item.name;
             tile.appendChild(span);
         }
+        if (item.stackable && item.quantity > 1) {
+            const qty = document.createElement('div');
+            qty.className = 'qty';
+            qty.textContent = item.quantity;
+            tile.appendChild(qty);
+        }
         const left = document.createElement('button');
         left.className = 'move-left';
         left.textContent = '<';
@@ -300,6 +306,8 @@ function openItemModal(index = null) {
     const form = document.getElementById('item-form');
     form.reset();
     document.getElementById('item-quantity-multiplier').checked = false;
+    document.getElementById('item-maxstack').value = 1;
+    document.getElementById('item-quantity').value = 1;
     document.getElementById('item-modal-title').innerText = index === null ? 'Create Item' : 'Edit Item';
     const statsContainer = document.getElementById('item-stats');
     statsContainer.innerHTML = '';
@@ -473,7 +481,7 @@ async function handleItemFormSubmit(e) {
         name: document.getElementById('item-name').value.trim(),
         rarity: document.getElementById('item-rarity').value,
         description: document.getElementById('item-description').value,
-         stackable: document.getElementById('item-stackable').checked,
+        stackable: document.getElementById('item-stackable').checked,
         maxStack: parseInt(document.getElementById('item-maxstack').value) || 0,
         quantity: parseInt(document.getElementById('item-quantity').value) || 0,
         quantityMultiplier: document.getElementById('item-quantity-multiplier').checked,
@@ -493,6 +501,13 @@ async function handleItemFormSubmit(e) {
         item.tempImagePath = file.path;
     } else if (index !== null) {
         item.image = inventory[index].image;
+    }
+    if (item.stackable) {
+        item.maxStack = item.maxStack > 0 ? item.maxStack : 1;
+        item.quantity = item.quantity > 0 ? Math.min(item.quantity, item.maxStack) : 1;
+    } else {
+        item.maxStack = 1;
+        item.quantity = 1;
     }
     if (index !== null) {
         inventory[index] = item;
