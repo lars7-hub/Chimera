@@ -68,6 +68,14 @@ function ensureDefaultLexicon(worldName) {
             fs.writeFileSync(jsonPath, JSON.stringify(samples[lib] || [], null, 2));
         }
     });
+	
+	const itemsDir = path.join(lexiconDir, 'items');
+	if (!fs.existsSync(itemsDir)) fs.mkdirSync(itemsDir, { recursive : true });
+	const sampleItemPath = path.join(itemsDir, 'sample_items.json');
+	if (!fs.existsSync(sampleItemPath)) {
+		const sampleItem = { name: 'Sample Item', description: 'Placeholder Item', value: 0, image: 'sample_item.png' };
+		fs.writeFileSync(sampleItemPath, JSON.stringify(sampleItem, null, 2));
+	}
 }
 
 function createWindow() {
@@ -815,7 +823,7 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
     try {
         ensureDefaultLexicon(worldName);
         const dir = path.join(worldRoot, worldName, 'Lexicon');
-        const libs = ['traits', 'typing', 'abilities', 'items', 'npc_blueprints'];
+        const libs = ['traits', 'typing', 'abilities', 'npc_blueprints'];
         const result = {};
         libs.forEach(lib => {
             const file = path.join(dir, `${lib}.json`);
@@ -825,6 +833,24 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
                 result[lib] = [];
             }
         });
+		
+		const itemsDir = path.join(dir, 'items');
+        const items = [];
+        if (fs.existsSync(itemsDir)) {
+            fs.readdirSync(itemsDir).forEach(f => {
+                if (f.endsWith('.json')) {
+                    const jsonPath = path.join(itemsDir, f);
+                    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+                    const base = f.slice(0, -5);
+                    const imgPath = path.join(itemsDir, `${base}.png`);
+                    if (fs.existsSync(imgPath)) {
+                        data.imagePath = pathToFileURL(imgPath).href;
+                    }
+                    items.push(data);
+                }
+            });
+        }
+        result.items = items;
         return result;
     } catch (err) {
         console.error('Error loading lexicon:', err);
@@ -836,8 +862,36 @@ ipcMain.handle('save-lexicon', (event, worldName, library, data) => {
     try {
         const dir = path.join(worldRoot, worldName, 'Lexicon');
         fs.mkdirSync(dir, { recursive: true });
-        const file = path.join(dir, `${library}.json`);
-        fs.writeFileSync(file, JSON.stringify(data, null, 2));
+		
+		if (library === 'items') {
+			const itemsDir = path.join(dir, 'items');
+			fs.mkdirSync(itemsDir, { recursive : true });
+			const names = new Set();
+			data.forEach(item => {
+				const base = (item.name || 'item').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+                names.add(base);
+                const jsonPath = path.join(itemsDir, `${base}.json`);
+                const imgPath = path.join(itemsDir, `${base}.png`);
+                const { imagePath, ...rest } = item;
+                rest.image = `${base}.png`;
+                fs.writeFileSync(jsonPath, JSON.stringify(rest, null, 2));
+                if (imagePath) {
+                    const src = imagePath.startsWith('file://') ? fileURLToPath(imagePath) : imagePath;
+                    if (path.resolve(src) !== imgPath) {
+                        fs.copyFileSync(src, imgPath);
+                    }
+                }
+            });
+            fs.readdirSync(itemsDir).forEach(f => {
+                const base = f.replace(/\.(json|png)$/i, '');
+                if (!names.has(base)) {
+                    fs.unlinkSync(path.join(itemsDir, f));
+                }
+            });
+        } else {
+            const file = path.join(dir, `${library}.json`);
+            fs.writeFileSync(file, JSON.stringify(data, null, 2));
+        }
         return { success: true };
     } catch (err) {
         console.error('Error saving lexicon:', err);
@@ -905,6 +959,8 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
         return { success: false };
     }
 });
+
+
 
 ipcMain.handle('save-zone', (event, regionName, worldName, zone) => {
     try {

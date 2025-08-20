@@ -16,6 +16,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     const addTypeBtn = document.getElementById('add-type-btn');
     const typeTable = document.getElementById('type-table');
 
+    const itemsEditor = document.getElementById('items-editor');
+    const itemsTable = document.getElementById('items-table');
+    const addItemBtn = document.getElementById('add-item-btn');
+
     const RELATIONS = [
         { label: 'Neutral', value: 1, class: 'relation-neutral' },
         { label: 'Weak', value: 0.75, class: 'relation-weak' },
@@ -179,14 +183,93 @@ window.addEventListener('DOMContentLoaded', async () => {
         buildTypingUI();
     });
 
+function buildItemsTable() {
+	const data = Array.isArray(lexicon.items) ? lexicon.items : [];
+	lexicon.items = data;
+	itemsTable.innerHTML = '';
+	const head = document.createElement('tr');
+	['Name', 'Description', 'Value', 'Image', ''].forEach(h => {
+		const th = document.createElement('th');
+		th.textContent = h;
+		head.appendChild(th);
+	});
+	itemsTable.appendChild(head);
+	data.forEach((item, idx) => {
+		const tr = document.createElement('input');
+		nameInput.vlaue = item.name || '';
+		nameInput.addEventListener('input', e => item.name = e.target.value);
+		const nameTd = document.createElement('td');
+		nameTd.appendChild(nameInput);
+		tr.appendChild(nameTd);
+		
+		const descInput = document.createElement('input');
+		descInput.value = item.description || '';
+		descInput.addEventListener('input', e => item.description = e.target.value);
+		const descTd = document.createElement('td');
+		descTd.appendChild(descInput);
+		tr.appendChild(descTd);
+		
+		const valInput = document.createElement('input');
+		valInput.type = 'number';
+		valInput.value = item.value != null ? item.value : 0;
+		valInput.addEventListener('input', e => item.value = parseInt(e.target.value) || 0);
+		valTd.appendChild(valInput);
+		tr.appendChild(valTd);
+		
+		const imgTd = document.createElement('td');
+            const img = document.createElement('img');
+            img.className = 'item-thumb';
+            if (item.imagePath) img.src = item.imagePath;
+            const imgBtn = document.createElement('button');
+            imgBtn.textContent = 'Image';
+            imgBtn.addEventListener('click', async () => {
+                const p = await window.electron.openFileDialog();
+                if (p) {
+                    const url = p.startsWith('file://') ? p : `file://${p}`;
+                    item.imagePath = url;
+                    img.src = url;
+                }
+            });
+            imgTd.appendChild(img);
+            imgTd.appendChild(imgBtn);
+            tr.appendChild(imgTd);
+
+            const remTd = document.createElement('td');
+            const remBtn = document.createElement('button');
+            remBtn.textContent = '×';
+            remBtn.addEventListener('click', () => {
+                data.splice(idx, 1);
+                buildItemsTable();
+            });
+            remTd.appendChild(remBtn);
+            tr.appendChild(remTd);
+
+            itemsTable.appendChild(tr);
+        });
+    }
+
+    addItemBtn.addEventListener('click', () => {
+        const data = Array.isArray(lexicon.items) ? lexicon.items : [];
+        data.push({ name: '', description: '', value: 0, imagePath: null });
+        lexicon.items = data;
+        buildItemsTable();
+    });
+
     function showLibrary() {
         const lib = librarySelect.value;
         if (lib === 'typing') {
             chipEditor.classList.add('hidden');
+			itemsEditor.classList.add('hidden');
             typingEditor.classList.remove('hidden');
             buildTypingUI();
+		} else if (lib === 'items') {
+			typingEditor.classList.add('hidden');
+			chipEditor.classList.add('hidden');
+			itemsEditor.classList.remove('hidden');
+			buildItemsTable();
         } else {
             typingEditor.classList.add('hidden');
+			itemsEditor.classList.add('hidden');
             chipEditor.classList.remove('hidden');
             buildChips();
         }

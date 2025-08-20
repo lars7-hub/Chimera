@@ -285,6 +285,25 @@ button:hover {
     text-align: center;
 }
 
+#items-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 10px;
+}
+
+#items-table th,
+#items-table td {
+	border: 1px solid #666;
+}
+
+.item-thumb {
+	width: 32px;
+	height: 32px;
+	object-fit: contain;
+	display: block;
+	margin-bottom: 4px;
+}
+
 .relation-neutral {
     background: #333;
 }
