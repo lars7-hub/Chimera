@@ -20,6 +20,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     const itemsTable = document.getElementById('items-table');
     const addItemBtn = document.getElementById('add-item-btn');
 
+    const traitsEditor = document.getElementById('traits-editor');
+    const traitsContainer = document.getElementById('traits-container');
+    const addTraitBtn = document.getElementById('add-trait-btn');
+    const traitModal = document.getElementById('trait-modal');
+    const traitForm = document.getElementById('trait-form');
+    const traitModalTitle = document.getElementById('trait-modal-title');
+    const traitNameInput = document.getElementById('trait-name');
+    const traitDescInput = document.getElementById('trait-desc');
+    const traitColorInput = document.getElementById('trait-color');
+    const traitDeleteBtn = document.getElementById('trait-delete-btn');
+    const traitStatsContainer = document.getElementById('trait-stats-container');
+    const addStatBtn = document.getElementById('add-stat-btn');
+    const traitModalClose = document.getElementById('trait-modal-close');
+    const traitInfoModal = document.getElementById('trait-info-modal');
+    const traitInfoClose = document.getElementById('trait-info-close');
+
     const npcEditor = document.getElementById('npc-editor');
     const npcTable = document.getElementById('npc-table');
     const addNpcBtn = document.getElementById('add-npc-btn');
@@ -89,6 +105,245 @@ window.addEventListener('DOMContentLoaded', async () => {
         chipInput.value = '';
         buildChips();
     });
+
+    // Trait editor functions
+    let traitsData = [];
+    let editingTraitIndex = null;
+
+    function createTypeToggle(initialType = 'boost') {
+        const toggle = document.createElement('div');
+        toggle.className = 'type-toggle';
+        const boostBtn = document.createElement('button');
+        boostBtn.type = 'button';
+        boostBtn.textContent = 'Stat Boost';
+        boostBtn.className = 'type-btn';
+        boostBtn.dataset.type = 'boost';
+        const multBtn = document.createElement('button');
+        multBtn.type = 'button';
+        multBtn.textContent = 'Multiplier';
+        multBtn.className = 'type-btn';
+        multBtn.dataset.type = 'mult';
+        toggle.appendChild(boostBtn);
+        toggle.appendChild(multBtn);
+        toggle.querySelectorAll('.type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                toggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        const type = (initialType === 'mul' || initialType === 'mult') ? 'mult' : 'boost';
+        toggle.querySelector(`.type-btn[data-type="${type}"]`).classList.add('active');
+        return toggle;
+    }
+
+    function createStatRow(data = {}) {
+        const row = document.createElement('div');
+        row.className = 'trait-stat-row';
+
+        const statSelect = document.createElement('select');
+        statSelect.className = 'stat-select';
+        statSelect.innerHTML = `
+            <option value="">None</option>
+            <option value="strength">Strength</option>
+            <option value="dexterity">Dexterity</option>
+            <option value="constitution">Constitution</option>
+            <option value="endurance">Endurance</option>
+            <option value="intelligence">Intelligence</option>
+            <option value="charisma">Charisma</option>
+            <option value="fortitude">Fortitude</option>`;
+        statSelect.value = data.stat || '';
+        row.appendChild(statSelect);
+
+        const valueInput = document.createElement('input');
+        valueInput.type = 'number';
+        valueInput.className = 'stat-value';
+        valueInput.value = data.value || 0;
+        row.appendChild(valueInput);
+
+        const toggle = createTypeToggle(data.type || 'boost');
+        row.appendChild(toggle);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = 'X';
+        removeBtn.className = 'remove-stat-btn delete-btn';
+        removeBtn.addEventListener('click', () => row.remove());
+        row.appendChild(removeBtn);
+
+        traitStatsContainer.appendChild(row);
+    }
+
+    addStatBtn.addEventListener('click', () => createStatRow());
+
+    function renderTraits() {
+        traitsContainer.innerHTML = '';
+        traitsData.forEach((t, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'trait-chip';
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'trait-text';
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'trait-name';
+            nameDiv.textContent = t.name || t.text;
+            nameDiv.style.color = t.color || '#ffffff';
+            textDiv.appendChild(nameDiv);
+            if (t.description) {
+                const descDiv = document.createElement('div');
+                descDiv.className = 'trait-desc';
+                descDiv.textContent = t.description;
+                textDiv.appendChild(descDiv);
+            }
+            chip.appendChild(textDiv);
+
+            const modsDiv = document.createElement('div');
+            modsDiv.className = 'trait-modifiers';
+            const statsArr = Array.isArray(t.stats) ? t.stats : [];
+            statsArr.forEach(s => {
+                if (!s.stat) return;
+                const chipEl = document.createElement('div');
+                chipEl.className = 'stat-chip';
+                const imgEl = document.createElement('img');
+                imgEl.src = `resources/ui/${s.stat}.png`;
+                imgEl.alt = s.stat;
+                chipEl.appendChild(imgEl);
+                const textEl = document.createElement('span');
+                textEl.className = 'stat-chip-value';
+                let display = '';
+                if (s.type === 'mult' || s.type === 'mul') {
+                    display = `${s.value}x`;
+                    if (s.value > 1) textEl.classList.add('positive');
+                    else if (s.value < 1) textEl.classList.add('negative');
+                } else {
+                    const num = s.value;
+                    display = num > 0 ? `+${num}` : `${num}`;
+                    if (num > 0) textEl.classList.add('positive');
+                    else if (num < 0) textEl.classList.add('negative');
+                }
+                textEl.textContent = display;
+                chipEl.appendChild(textEl);
+                modsDiv.appendChild(chipEl);
+            });
+            chip.appendChild(modsDiv);
+            chip.addEventListener('click', () => openTraitInfo(index));
+            traitsContainer.appendChild(chip);
+        });
+    }
+
+    function openTraitInfo(index) {
+        const trait = traitsData[index];
+        document.getElementById('trait-info-name').textContent = trait.name || '';
+        document.getElementById('trait-info-description').textContent = trait.description || '';
+        const statsDiv = document.getElementById('trait-info-stats');
+        statsDiv.innerHTML = '';
+        (trait.stats || []).forEach(s => {
+            if (!s.stat) return;
+            const chipEl = document.createElement('div');
+            chipEl.className = 'stat-chip';
+            const imgEl = document.createElement('img');
+            imgEl.src = `resources/ui/${s.stat}.png`;
+            imgEl.alt = s.stat;
+            chipEl.appendChild(imgEl);
+            const textEl = document.createElement('span');
+            textEl.className = 'stat-chip-value';
+            let display = '';
+            if (s.type === 'mult' || s.type === 'mul') {
+                display = `${s.value}x`;
+                if (s.value > 1) textEl.classList.add('positive');
+                else if (s.value < 1) textEl.classList.add('negative');
+            } else {
+                const num = s.value;
+                display = num > 0 ? `+${num}` : `${num}`;
+                if (num > 0) textEl.classList.add('positive');
+                else if (num < 0) textEl.classList.add('negative');
+            }
+            textEl.textContent = display;
+            chipEl.appendChild(textEl);
+            statsDiv.appendChild(chipEl);
+        });
+        traitInfoModal.classList.remove('hidden');
+        document.getElementById('trait-edit-btn').onclick = () => { traitInfoModal.classList.add('hidden'); openTraitModal(index); };
+        document.getElementById('trait-remove-btn').onclick = () => {
+            traitsData.splice(index, 1);
+            renderTraits();
+            traitInfoModal.classList.add('hidden');
+        };
+    }
+
+    function closeTraitInfo() {
+        traitInfoModal.classList.add('hidden');
+    }
+
+    traitInfoClose.addEventListener('click', closeTraitInfo);
+
+    function openTraitModal(index) {
+        editingTraitIndex = index;
+        traitStatsContainer.innerHTML = '';
+        if (index != null) {
+            const t = traitsData[index];
+            traitModalTitle.textContent = 'Edit Trait';
+            traitNameInput.value = t.name || t.text || '';
+            traitDescInput.value = t.description || '';
+            const statsArr = Array.isArray(t.stats) && t.stats.length ? t.stats : [{}];
+            statsArr.forEach(s => createStatRow(s));
+            traitColorInput.value = t.color || '#ffffff';
+            traitDeleteBtn.style.display = 'inline-block';
+        } else {
+            traitModalTitle.textContent = 'Add Trait';
+            traitNameInput.value = '';
+            traitDescInput.value = '';
+            createStatRow();
+            traitColorInput.value = '#ffffff';
+            traitDeleteBtn.style.display = 'none';
+        }
+        traitModal.classList.remove('hidden');
+    }
+
+    function closeTraitModal() {
+        traitModal.classList.add('hidden');
+    }
+
+    traitModalClose.addEventListener('click', closeTraitModal);
+    addTraitBtn.addEventListener('click', () => openTraitModal());
+
+    traitDeleteBtn.addEventListener('click', () => {
+        if (editingTraitIndex != null) {
+            traitsData.splice(editingTraitIndex, 1);
+            renderTraits();
+        }
+        closeTraitModal();
+    });
+
+    traitForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const name = traitNameInput.value.trim();
+        if (!name) return;
+        const description = traitDescInput.value.trim();
+        const color = traitColorInput.value;
+        const stats = [];
+        traitStatsContainer.querySelectorAll('.trait-stat-row').forEach(row => {
+            const stat = row.querySelector('.stat-select').value;
+            if (!stat) return;
+            const value = parseFloat(row.querySelector('.stat-value').value) || 0;
+            const typeBtn = row.querySelector('.type-btn.active');
+            const type = typeBtn ? typeBtn.dataset.type : 'boost';
+            stats.push({ stat, value, type });
+        });
+        const trait = { name, description, stats, color };
+        if (editingTraitIndex != null) {
+            traitsData[editingTraitIndex] = trait;
+        } else {
+            traitsData.push(trait);
+        }
+        renderTraits();
+        closeTraitModal();
+    });
+
+    function buildTraitsUI() {
+        traitsData = Array.isArray(lexicon.traits) ? lexicon.traits : [];
+        lexicon.traits = traitsData;
+        renderTraits();
+    }
 
     function buildTypeChips() {
         const typing = lexicon.typing;
@@ -371,64 +626,92 @@ function buildItemsTable() {
         buildList(abilityListId, Array.isArray(lexicon.abilities) ? lexicon.abilities : [], npcEditor);
         buildList(itemListId, Array.isArray(lexicon.items) ? lexicon.items : [], npcEditor);
 
-        const head = document.createElement('tr');
-        ['Species', 'Name', 'Description', 'Level', 'Types', 'Traits', 'Abilities', 'Inventory', 'Loot', 'XP', ''].forEach(h => {
-            const th = document.createElement('th');
-            th.textContent = h;
-            head.appendChild(th);
-        });
-        npcTable.appendChild(head);
-
         data.forEach((npc, idx) => {
-            const tr = document.createElement('tr');
+            const chip = document.createElement('div');
+            chip.className = 'npc-chip';
 
-            const speciesInput = document.createElement('input');
-            speciesInput.value = npc.species || '';
-            speciesInput.addEventListener('input', e => npc.species = e.target.value);
-            const speciesTd = document.createElement('td');
-            speciesTd.appendChild(speciesInput);
-            tr.appendChild(speciesTd);
+            const top = document.createElement('div');
+            top.className = 'npc-top';
 
-            const nameInput = document.createElement('input');
-            nameInput.value = npc.name || '';
-            nameInput.addEventListener('input', e => npc.name = e.target.value);
-            const nameTd = document.createElement('td');
-            nameTd.appendChild(nameInput);
-            tr.appendChild(nameTd);
+            const details = document.createElement('div');
+            details.className = 'npc-details';
+            function labeledInput(labelText, value, onInput, type = 'text') {
+                const wrap = document.createElement('div');
+                const label = document.createElement('label');
+                label.textContent = labelText;
+                const input = document.createElement('input');
+                input.type = type;
+                input.value = value;
+                input.addEventListener('input', e => onInput(e.target.value));
+                wrap.appendChild(label);
+                wrap.appendChild(input);
+                return wrap;
+            }
+            details.appendChild(labeledInput('Species', npc.species || '', v => npc.species = v));
+            details.appendChild(labeledInput('Name', npc.name || '', v => npc.name = v));
+            details.appendChild(labeledInput('Level', npc.level != null ? npc.level : 1, v => npc.level = parseInt(v) || 1, 'number'));
+            details.appendChild(labeledInput('XP', npc.xp != null ? npc.xp : 0, v => npc.xp = parseInt(v) || 0, 'number'));
+            top.appendChild(details);
 
-            const descInput = document.createElement('input');
+            const descDiv = document.createElement('div');
+            descDiv.className = 'npc-description';
+            const descLabel = document.createElement('label');
+            descLabel.textContent = 'Description';
+            const descInput = document.createElement('textarea');
             descInput.value = npc.description || '';
             descInput.addEventListener('input', e => npc.description = e.target.value);
-            const descTd = document.createElement('td');
-            descTd.appendChild(descInput);
-            tr.appendChild(descTd);
+            descDiv.appendChild(descLabel);
+            descDiv.appendChild(descInput);
+            top.appendChild(descDiv);
 
-            const levelInput = document.createElement('input');
-            levelInput.type = 'number';
-            levelInput.value = npc.level != null ? npc.level : 1;
-            levelInput.addEventListener('input', e => npc.level = parseInt(e.target.value) || 1);
-            const levelTd = document.createElement('td');
-            levelTd.appendChild(levelInput);
-            tr.appendChild(levelTd);
-
-            function arrayInput(values, listId, prop) {
-                const input = document.createElement('input');
-                input.setAttribute('list', listId);
-                input.value = (npc[prop] || []).join(', ');
-                input.addEventListener('input', e => {
-                    npc[prop] = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+            function arraySection(title, prop, listId) {
+                const section = document.createElement('div');
+                section.className = 'npc-array-section';
+                const label = document.createElement('div');
+                label.textContent = title;
+                section.appendChild(label);
+                const listDiv = document.createElement('div');
+                (npc[prop] || []).forEach((val, vIdx) => {
+                    const entry = document.createElement('div');
+                    entry.className = 'npc-array-entry';
+                    const input = document.createElement('input');
+                    if (listId) input.setAttribute('list', listId);
+                    input.value = val || '';
+                    input.addEventListener('input', e => npc[prop][vIdx] = e.target.value);
+                    const rem = document.createElement('button');
+                    rem.textContent = '×';
+                    rem.addEventListener('click', () => { npc[prop].splice(vIdx, 1); buildNPCBlueprintsTable(); });
+                    entry.appendChild(input);
+                    entry.appendChild(rem);
+                    listDiv.appendChild(entry);
                 });
-                const td = document.createElement('td');
-                td.appendChild(input);
-                tr.appendChild(td);
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '+';
+                addBtn.addEventListener('click', () => {
+                    npc[prop] = npc[prop] || [];
+                    npc[prop].push('');
+                    buildNPCBlueprintsTable();
+                });
+                section.appendChild(listDiv);
+                section.appendChild(addBtn);
+                return section;
             }
 
-            arrayInput((npc.types || []), typeListId, 'types');
-            arrayInput((npc.traits || []), traitListId, 'traits');
-            arrayInput((npc.abilities || []), abilityListId, 'abilities');
-            arrayInput((npc.inventory || []), itemListId, 'inventory');
+            const typesDiv = document.createElement('div');
+            typesDiv.className = 'npc-types';
+            typesDiv.appendChild(arraySection('Types', 'types', typeListId));
+            top.appendChild(typesDiv);
 
-            const lootTd = document.createElement('td');
+            const taDiv = document.createElement('div');
+            taDiv.className = 'npc-traits-abilities';
+            taDiv.appendChild(arraySection('Traits', 'traits', traitListId));
+            taDiv.appendChild(arraySection('Abilities', 'abilities', abilityListId));
+            top.appendChild(taDiv);
+
+            chip.appendChild(top);
+
+            const lootDiv = document.createElement('div');
+            lootDiv.className = 'npc-loot';
             const lootTable = document.createElement('table');
             (npc.lootTable || []).forEach((loot, lidx) => {
                 const ltr = document.createElement('tr');
@@ -483,35 +766,26 @@ function buildItemsTable() {
                 npc.lootTable.push({ item: '', chance: 100, min: 1, max: 1 });
                 buildNPCBlueprintsTable();
             });
-            lootTd.appendChild(lootTable);
-            lootTd.appendChild(addLootBtn);
-            tr.appendChild(lootTd);
+            lootDiv.appendChild(lootTable);
+            lootDiv.appendChild(addLootBtn);
+            chip.appendChild(lootDiv);
 
-            const xpInput = document.createElement('input');
-            xpInput.type = 'number';
-            xpInput.value = npc.xp != null ? npc.xp : 0;
-            xpInput.addEventListener('input', e => npc.xp = parseInt(e.target.value) || 0);
-            const xpTd = document.createElement('td');
-            xpTd.appendChild(xpInput);
-            tr.appendChild(xpTd);
-
-            const remTd = document.createElement('td');
             const remBtn = document.createElement('button');
             remBtn.textContent = '×';
+            remBtn.className = 'delete-btn';
             remBtn.addEventListener('click', () => {
                 data.splice(idx, 1);
                 buildNPCBlueprintsTable();
             });
-            remTd.appendChild(remBtn);
-            tr.appendChild(remTd);
+            chip.appendChild(remBtn);
 
-            npcTable.appendChild(tr);
+            npcTable.appendChild(chip);
         });
     }
 
     addNpcBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
-        data.push({ species: '', name: '', description: '', level: 1, types: [], traits: [], abilities: [], inventory: [], lootTable: [], xp: 0 });
+        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], lootTable: [] });
         lexicon.npc_blueprints = data;
         buildNPCBlueprintsTable();
     });
@@ -522,24 +796,35 @@ function buildItemsTable() {
             chipEditor.classList.add('hidden');
             itemsEditor.classList.add('hidden');
             npcEditor.classList.add('hidden');
+            traitsEditor.classList.add('hidden');
             typingEditor.classList.remove('hidden');
             buildTypingUI();
         } else if (lib === 'items') {
             typingEditor.classList.add('hidden');
             chipEditor.classList.add('hidden');
             npcEditor.classList.add('hidden');
+            traitsEditor.classList.add('hidden');
             itemsEditor.classList.remove('hidden');
             buildItemsTable();
         } else if (lib === 'npc_blueprints') {
             typingEditor.classList.add('hidden');
             chipEditor.classList.add('hidden');
             itemsEditor.classList.add('hidden');
+            traitsEditor.classList.add('hidden');
             npcEditor.classList.remove('hidden');
             buildNPCBlueprintsTable();
+        } else if (lib === 'traits') {
+            typingEditor.classList.add('hidden');
+            chipEditor.classList.add('hidden');
+            itemsEditor.classList.add('hidden');
+            npcEditor.classList.add('hidden');
+            traitsEditor.classList.remove('hidden');
+            buildTraitsUI();
         } else {
             typingEditor.classList.add('hidden');
             itemsEditor.classList.add('hidden');
             npcEditor.classList.add('hidden');
+            traitsEditor.classList.add('hidden');
             chipEditor.classList.remove('hidden');
             buildChips();
         }

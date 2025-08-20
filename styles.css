@@ -272,6 +272,15 @@ button:hover {
     cursor: pointer;
 }
 
+.type-grid {
+    display: grid;
+    gap: 4px;
+}
+
+.type-grid button.selected {
+    border: 2px solid #0f0;
+}
+
 #type-table {
     width: 100%;
     border-collapse: collapse;
@@ -1948,4 +1957,65 @@ button:hover {
 
 #info-buttons button {
     margin-bottom: 10px;
+}
+
+/* NPC blueprint editor layout */
+#npc-table {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.npc-chip {
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+
+.npc-top {
+    display: flex;
+    gap: 10px;
+}
+
+.npc-details {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.npc-details label {
+    font-weight: bold;
+}
+
+.npc-description {
+    display: flex;
+    flex-direction: column;
+}
+
+.npc-description textarea {
+    width: 200px;
+    height: 100px;
+}
+
+.npc-types,
+.npc-traits-abilities {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.npc-array-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.npc-array-entry {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.npc-loot table {
+    width: 100%;
+    margin-top: 5px;
 }

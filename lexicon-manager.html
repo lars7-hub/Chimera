@@ -49,19 +49,64 @@
                 </div>
             </div>
 
-                        <div id="items-editor" class="editor-section hidden">
+                         <div id="traits-editor" class="editor-section hidden">
+                <div id="traits-container"></div>
+                <button id="add-trait-btn" type="button">Add Trait</button>
+            </div>
+
+            <div id="items-editor" class="editor-section hidden">
                 <table id="items-table"></table>
                                 <button id="add-item-btn" type="button">Add Item</button>
             </div>
 
             <div id="npc-editor" class="editor-section hidden">
-                <table id="npc-table"></table>
+                <div id="npc-table"></div>
                 <button id="add-npc-btn" type="button">Add NPC</button>
             </div>
 
             <button id="save-btn">Save</button>
         </div>
     </div>
+
+    <div id="trait-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="trait-modal-close" class="close">&times;</span>
+            <h3 id="trait-modal-title">Add Trait</h3>
+            <form id="trait-form">
+                <div class="modal-row">
+                    <label for="trait-name">Trait Name</label>
+                    <input type="text" id="trait-name" required>
+                </div>
+                <div class="modal-row">
+                    <label for="trait-desc">Description</label>
+                    <textarea id="trait-desc"></textarea>
+                </div>
+                <div id="trait-stats-container"></div>
+                <button type="button" id="add-stat-btn">Add Stat Modifier</button>
+                <div class="modal-row">
+                    <label for="trait-color">Color</label>
+                    <input type="color" id="trait-color" value="#ffffff">
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" id="trait-save-btn">Save</button>
+                    <button type="button" id="trait-delete-btn" class="delete-btn">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="trait-info-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="trait-info-close" class="close">&times;</span>
+            <h3 id="trait-info-name" class="name-tag"></h3>
+            <div id="trait-info-stats"></div>
+            <p id="trait-info-description"></p>
+            <div id="trait-info-actions" class="modal-buttons">
+                <button id="trait-edit-btn">Edit</button>
+                <button id="trait-remove-btn" class="delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <script src="modules.js"></script>
     <script src="items-data.js"></script>
     <script src="lexicon-manager.js"></script>
