@@ -20,6 +20,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     const itemsTable = document.getElementById('items-table');
     const addItemBtn = document.getElementById('add-item-btn');
 
+    const npcEditor = document.getElementById('npc-editor');
+    const npcTable = document.getElementById('npc-table');
+    const addNpcBtn = document.getElementById('add-npc-btn');
+
     const RELATIONS = [
         { label: 'Neutral', value: 1, class: 'relation-neutral' },
         { label: 'Weak', value: 0.75, class: 'relation-weak' },
@@ -329,21 +333,213 @@ function buildItemsTable() {
         buildItemsTable();
     });
 
+    function buildNPCBlueprintsTable() {
+        const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
+        lexicon.npc_blueprints = data;
+        npcTable.innerHTML = '';
+
+        const typeListId = 'npc-type-list';
+        const traitListId = 'npc-trait-list';
+        const abilityListId = 'npc-ability-list';
+        const itemListId = 'npc-item-list';
+
+        function buildList(id, values, parent) {
+            let list = document.getElementById(id);
+            if (!list) {
+                list = document.createElement('datalist');
+                list.id = id;
+                parent.appendChild(list);
+            }
+            list.innerHTML = '';
+            values.forEach(v => {
+                const opt = document.createElement('option');
+                if (typeof v === 'string') {
+                    opt.value = v;
+                } else if (v && v.name) {
+                    opt.value = v.name;
+                } else if (v && v.key) {
+                    opt.value = v.key;
+                    if (v.name) opt.label = v.name;
+                }
+                list.appendChild(opt);
+            });
+            return list;
+        }
+
+        buildList(typeListId, (lexicon.typing && lexicon.typing.types) || [], npcEditor);
+        buildList(traitListId, Array.isArray(lexicon.traits) ? lexicon.traits : [], npcEditor);
+        buildList(abilityListId, Array.isArray(lexicon.abilities) ? lexicon.abilities : [], npcEditor);
+        buildList(itemListId, Array.isArray(lexicon.items) ? lexicon.items : [], npcEditor);
+
+        const head = document.createElement('tr');
+        ['Species', 'Name', 'Description', 'Level', 'Types', 'Traits', 'Abilities', 'Inventory', 'Loot', 'XP', ''].forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            head.appendChild(th);
+        });
+        npcTable.appendChild(head);
+
+        data.forEach((npc, idx) => {
+            const tr = document.createElement('tr');
+
+            const speciesInput = document.createElement('input');
+            speciesInput.value = npc.species || '';
+            speciesInput.addEventListener('input', e => npc.species = e.target.value);
+            const speciesTd = document.createElement('td');
+            speciesTd.appendChild(speciesInput);
+            tr.appendChild(speciesTd);
+
+            const nameInput = document.createElement('input');
+            nameInput.value = npc.name || '';
+            nameInput.addEventListener('input', e => npc.name = e.target.value);
+            const nameTd = document.createElement('td');
+            nameTd.appendChild(nameInput);
+            tr.appendChild(nameTd);
+
+            const descInput = document.createElement('input');
+            descInput.value = npc.description || '';
+            descInput.addEventListener('input', e => npc.description = e.target.value);
+            const descTd = document.createElement('td');
+            descTd.appendChild(descInput);
+            tr.appendChild(descTd);
+
+            const levelInput = document.createElement('input');
+            levelInput.type = 'number';
+            levelInput.value = npc.level != null ? npc.level : 1;
+            levelInput.addEventListener('input', e => npc.level = parseInt(e.target.value) || 1);
+            const levelTd = document.createElement('td');
+            levelTd.appendChild(levelInput);
+            tr.appendChild(levelTd);
+
+            function arrayInput(values, listId, prop) {
+                const input = document.createElement('input');
+                input.setAttribute('list', listId);
+                input.value = (npc[prop] || []).join(', ');
+                input.addEventListener('input', e => {
+                    npc[prop] = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                });
+                const td = document.createElement('td');
+                td.appendChild(input);
+                tr.appendChild(td);
+            }
+
+            arrayInput((npc.types || []), typeListId, 'types');
+            arrayInput((npc.traits || []), traitListId, 'traits');
+            arrayInput((npc.abilities || []), abilityListId, 'abilities');
+            arrayInput((npc.inventory || []), itemListId, 'inventory');
+
+            const lootTd = document.createElement('td');
+            const lootTable = document.createElement('table');
+            (npc.lootTable || []).forEach((loot, lidx) => {
+                const ltr = document.createElement('tr');
+                const itemInput = document.createElement('input');
+                itemInput.setAttribute('list', itemListId);
+                itemInput.value = loot.item || '';
+                itemInput.addEventListener('input', e => loot.item = e.target.value);
+                const itemTd = document.createElement('td');
+                itemTd.appendChild(itemInput);
+                ltr.appendChild(itemTd);
+
+                const chanceInput = document.createElement('input');
+                chanceInput.type = 'number';
+                chanceInput.value = loot.chance != null ? loot.chance : 100;
+                chanceInput.addEventListener('input', e => loot.chance = parseFloat(e.target.value) || 0);
+                const chanceTd = document.createElement('td');
+                chanceTd.appendChild(chanceInput);
+                ltr.appendChild(chanceTd);
+
+                const minInput = document.createElement('input');
+                minInput.type = 'number';
+                minInput.value = loot.min != null ? loot.min : 1;
+                minInput.addEventListener('input', e => loot.min = parseInt(e.target.value) || 0);
+                const minTd = document.createElement('td');
+                minTd.appendChild(minInput);
+                ltr.appendChild(minTd);
+
+                const maxInput = document.createElement('input');
+                maxInput.type = 'number';
+                maxInput.value = loot.max != null ? loot.max : 1;
+                maxInput.addEventListener('input', e => loot.max = parseInt(e.target.value) || 0);
+                const maxTd = document.createElement('td');
+                maxTd.appendChild(maxInput);
+                ltr.appendChild(maxTd);
+
+                const remLootTd = document.createElement('td');
+                const remLootBtn = document.createElement('button');
+                remLootBtn.textContent = '×';
+                remLootBtn.addEventListener('click', () => {
+                    npc.lootTable.splice(lidx, 1);
+                    buildNPCBlueprintsTable();
+                });
+                remLootTd.appendChild(remLootBtn);
+                ltr.appendChild(remLootTd);
+
+                lootTable.appendChild(ltr);
+            });
+            const addLootBtn = document.createElement('button');
+            addLootBtn.textContent = '+';
+            addLootBtn.addEventListener('click', () => {
+                npc.lootTable = npc.lootTable || [];
+                npc.lootTable.push({ item: '', chance: 100, min: 1, max: 1 });
+                buildNPCBlueprintsTable();
+            });
+            lootTd.appendChild(lootTable);
+            lootTd.appendChild(addLootBtn);
+            tr.appendChild(lootTd);
+
+            const xpInput = document.createElement('input');
+            xpInput.type = 'number';
+            xpInput.value = npc.xp != null ? npc.xp : 0;
+            xpInput.addEventListener('input', e => npc.xp = parseInt(e.target.value) || 0);
+            const xpTd = document.createElement('td');
+            xpTd.appendChild(xpInput);
+            tr.appendChild(xpTd);
+
+            const remTd = document.createElement('td');
+            const remBtn = document.createElement('button');
+            remBtn.textContent = '×';
+            remBtn.addEventListener('click', () => {
+                data.splice(idx, 1);
+                buildNPCBlueprintsTable();
+            });
+            remTd.appendChild(remBtn);
+            tr.appendChild(remTd);
+
+            npcTable.appendChild(tr);
+        });
+    }
+
+    addNpcBtn.addEventListener('click', () => {
+        const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
+        data.push({ species: '', name: '', description: '', level: 1, types: [], traits: [], abilities: [], inventory: [], lootTable: [], xp: 0 });
+        lexicon.npc_blueprints = data;
+        buildNPCBlueprintsTable();
+    });
+
     function showLibrary() {
         const lib = librarySelect.value;
         if (lib === 'typing') {
             chipEditor.classList.add('hidden');
-			itemsEditor.classList.add('hidden');
+            itemsEditor.classList.add('hidden');
+            npcEditor.classList.add('hidden');
             typingEditor.classList.remove('hidden');
             buildTypingUI();
-		} else if (lib === 'items') {
-			typingEditor.classList.add('hidden');
-			chipEditor.classList.add('hidden');
-			itemsEditor.classList.remove('hidden');
-			buildItemsTable();
+        } else if (lib === 'items') {
+            typingEditor.classList.add('hidden');
+            chipEditor.classList.add('hidden');
+            npcEditor.classList.add('hidden');
+            itemsEditor.classList.remove('hidden');
+            buildItemsTable();
+        } else if (lib === 'npc_blueprints') {
+            typingEditor.classList.add('hidden');
+            chipEditor.classList.add('hidden');
+            itemsEditor.classList.add('hidden');
+            npcEditor.classList.remove('hidden');
+            buildNPCBlueprintsTable();
         } else {
             typingEditor.classList.add('hidden');
-			itemsEditor.classList.add('hidden');
+            itemsEditor.classList.add('hidden');
+            npcEditor.classList.add('hidden');
             chipEditor.classList.remove('hidden');
             buildChips();
         }

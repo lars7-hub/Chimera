@@ -63,12 +63,16 @@ function ensureDefaultLexicon(worldName) {
             stats: []
         }],
         npc_blueprints: [{
-            name: 'Sample NPC',
+            species: 'Sample Species',
+            name: 'Sample Species',
+            description: 'Placeholder NPC.',
+            level: 1,
+            types: ['Normal'],
             traits: ['Brave'],
-            typing: ['Normal'],
             abilities: ['Sample Strike'],
-            items: ['Sample Item'],
-            stats: { strength: 1, dexterity: 1 }
+            inventory: ['sample_item'],
+            lootTable: [{ item: 'sample_item', chance: 100, min: 1, max: 1 }],
+            xp: 0
         }]
     };
     libs.forEach(lib => {
