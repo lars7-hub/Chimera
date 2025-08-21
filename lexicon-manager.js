@@ -175,6 +175,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         const valueInput = document.createElement('input');
         valueInput.type = 'number';
         valueInput.className = 'stat-value';
+        valueInput.step = 'any';
         valueInput.value = data.value || 0;
         row.appendChild(valueInput);
 
@@ -507,6 +508,78 @@ function buildItemsTable() {
             return wrap;
         }
 
+        function buildStatsEditor(item) {
+            const wrap = document.createElement('div');
+            const stats = Array.isArray(item.stats) ? item.stats : [];
+            item.stats = stats;
+
+            function sync() {
+                const arr = [];
+                wrap.querySelectorAll('.item-stat-row').forEach(row => {
+                    const stat = row.querySelector('.stat-select').value;
+                    if (!stat) return;
+                    const value = parseFloat(row.querySelector('.stat-value').value) || 0;
+                    const type = row.querySelector('.type-btn.active')?.dataset.type || 'boost';
+                    arr.push({ stat, value, type });
+                });
+                item.stats = arr;
+            }
+
+            function addRow(data = {}) {
+                const row = document.createElement('div');
+                row.className = 'item-stat-row';
+
+                const statSelect = document.createElement('select');
+                statSelect.className = 'stat-select';
+                statSelect.innerHTML = `
+                    <option value="">None</option>
+                    <option value="strength">Strength</option>
+                    <option value="dexterity">Dexterity</option>
+                    <option value="constitution">Constitution</option>
+                    <option value="endurance">Endurance</option>
+                    <option value="intelligence">Intelligence</option>
+                    <option value="charisma">Charisma</option>
+                    <option value="fortitude">Fortitude</option>`;
+                statSelect.value = data.stat || '';
+                row.appendChild(statSelect);
+
+                const valInput = document.createElement('input');
+                valInput.type = 'number';
+                valInput.className = 'stat-value';
+                valInput.step = 'any';
+                valInput.value = data.value != null ? data.value : 0;
+                row.appendChild(valInput);
+
+                const toggle = createTypeToggle(data.type || 'boost');
+                toggle.querySelectorAll('.type-btn').forEach(btn => btn.addEventListener('click', sync));
+                row.appendChild(toggle);
+
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.textContent = '×';
+                delBtn.addEventListener('click', () => {
+                    row.remove();
+                    sync();
+                });
+                row.appendChild(delBtn);
+
+                wrap.appendChild(row);
+            }
+
+            stats.forEach(s => addRow(s));
+
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.textContent = 'Add Stat';
+            addBtn.addEventListener('click', () => { addRow(); sync(); });
+            wrap.appendChild(addBtn);
+
+            wrap.addEventListener('input', sync);
+            wrap.addEventListener('change', sync);
+
+            return wrap;
+        }
+
         data.forEach((item, idx) => {
             const tr = document.createElement('tr');
 
@@ -585,18 +658,8 @@ function buildItemsTable() {
             iconTd.appendChild(imgBtn);
             tr.appendChild(iconTd);
 
-            const statsInput = document.createElement('input');
-            statsInput.value = JSON.stringify(item.stats || []);
-            statsInput.addEventListener('input', e => {
-                try {
-                    item.stats = JSON.parse(e.target.value || '[]');
-                    statsInput.classList.remove('error');
-                } catch {
-                    statsInput.classList.add('error');
-                }
-            });
             const statsTd = document.createElement('td');
-            statsTd.appendChild(statsInput);
+            statsTd.appendChild(buildStatsEditor(item));
             tr.appendChild(statsTd);
 
             const remTd = document.createElement('td');
@@ -951,7 +1014,7 @@ function buildItemsTable() {
             const head = document.createElement('tr');
             ['Icon','Item','Key','Chance','Qty',''].forEach(h => {
                 const th = document.createElement('th');
-                th.textContent = h;
+                if (h) th.textContent = h; else th.innerHTML = '&nbsp;';
                 head.appendChild(th);
             });
             lootTable.appendChild(head);
