@@ -20,6 +20,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     const itemsTable = document.getElementById('items-table');
     const addItemBtn = document.getElementById('add-item-btn');
 
+    const abilitiesEditor = document.getElementById('abilities-editor');
+    const abilitiesTable = document.getElementById('abilities-table');
+    const addAbilityBtn = document.getElementById('add-ability-btn');
+
     const traitsEditor = document.getElementById('traits-editor');
     const traitsContainer = document.getElementById('traits-container');
     const addTraitBtn = document.getElementById('add-trait-btn');
@@ -684,6 +688,115 @@ function buildItemsTable() {
         buildItemsTable();
     });
 
+    function updateAbilityCategories(ability, cat, checked) {
+        const arr = Array.isArray(ability.categories) ? ability.categories : [];
+        ability.categories = arr;
+        const idx = arr.indexOf(cat);
+        if (checked && idx === -1) arr.push(cat);
+        if (!checked && idx !== -1) arr.splice(idx, 1);
+    }
+
+    function buildAbilitiesTable() {
+        const data = Array.isArray(lexicon.abilities) ? lexicon.abilities : [];
+        lexicon.abilities = data;
+        abilitiesTable.innerHTML = '';
+
+        const head = document.createElement('tr');
+        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', ''].forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            head.appendChild(th);
+        });
+        abilitiesTable.appendChild(head);
+
+        data.forEach((ab, idx) => {
+            const tr = document.createElement('tr');
+
+            const keyTd = document.createElement('td');
+            const keyInput = document.createElement('input');
+            keyInput.value = ab.key || '';
+            keyInput.addEventListener('input', e => ab.key = e.target.value);
+            keyTd.appendChild(keyInput);
+            tr.appendChild(keyTd);
+
+            const nameTd = document.createElement('td');
+            const nameInput = document.createElement('input');
+            nameInput.value = ab.name || '';
+            nameInput.addEventListener('input', e => ab.name = e.target.value);
+            nameTd.appendChild(nameInput);
+            tr.appendChild(nameTd);
+
+            const catTd = document.createElement('td');
+            ['utility','combat'].forEach(cat => {
+                const label = document.createElement('label');
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = Array.isArray(ab.categories) ? ab.categories.includes(cat) : false;
+                cb.addEventListener('change', e => updateAbilityCategories(ab, cat, e.target.checked));
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(' ' + cat.charAt(0).toUpperCase() + cat.slice(1)));
+                catTd.appendChild(label);
+            });
+            tr.appendChild(catTd);
+
+            const typeTd = document.createElement('td');
+            const typeSel = document.createElement('select');
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '--select type--';
+            typeSel.appendChild(placeholder);
+            const types = (lexicon.typing && Array.isArray(lexicon.typing.types)) ? lexicon.typing.types : [];
+            types.forEach(t => {
+                const name = t.name || t;
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                typeSel.appendChild(opt);
+            });
+            typeSel.value = ab.type || '';
+            typeSel.addEventListener('change', e => ab.type = e.target.value);
+            typeTd.appendChild(typeSel);
+            tr.appendChild(typeTd);
+
+            const accTd = document.createElement('td');
+            const accInput = document.createElement('input');
+            accInput.type = 'number';
+            accInput.min = 0;
+            accInput.max = 100;
+            accInput.value = ab.accuracy != null ? ab.accuracy : 100;
+            accInput.addEventListener('input', e => ab.accuracy = parseInt(e.target.value) || 0);
+            accTd.appendChild(accInput);
+            tr.appendChild(accTd);
+
+            const powTd = document.createElement('td');
+            const powInput = document.createElement('input');
+            powInput.type = 'number';
+            powInput.value = ab.power != null ? ab.power : 0;
+            powInput.addEventListener('input', e => ab.power = parseFloat(e.target.value) || 0);
+            powTd.appendChild(powInput);
+            tr.appendChild(powTd);
+
+            const remTd = document.createElement('td');
+            const remBtn = document.createElement('button');
+            remBtn.textContent = '×';
+            remBtn.addEventListener('click', () => {
+                data.splice(idx, 1);
+                buildAbilitiesTable();
+            });
+            remTd.appendChild(remBtn);
+            tr.appendChild(remTd);
+
+            abilitiesTable.appendChild(tr);
+        });
+    }
+
+    addAbilityBtn.addEventListener('click', () => {
+        const data = Array.isArray(lexicon.abilities) ? lexicon.abilities : [];
+        data.push({ key: '', name: '', categories: [], type: '', accuracy: 100, power: 0 });
+        lexicon.abilities = data;
+        buildAbilitiesTable();
+    });
+
     function buildNPCBlueprintsTable() {
         const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
         lexicon.npc_blueprints = data;
@@ -1125,13 +1238,23 @@ function buildItemsTable() {
             itemsEditor.classList.add('hidden');
             npcEditor.classList.add('hidden');
             traitsEditor.classList.add('hidden');
+            abilitiesEditor.classList.add('hidden');
             typingEditor.classList.remove('hidden');
             buildTypingUI();
+        } else if (lib === 'abilities') {
+            typingEditor.classList.add('hidden');
+            chipEditor.classList.add('hidden');
+            itemsEditor.classList.add('hidden');
+            npcEditor.classList.add('hidden');
+            traitsEditor.classList.add('hidden');
+            abilitiesEditor.classList.remove('hidden');
+            buildAbilitiesTable();
         } else if (lib === 'items') {
             typingEditor.classList.add('hidden');
             chipEditor.classList.add('hidden');
             npcEditor.classList.add('hidden');
             traitsEditor.classList.add('hidden');
+            abilitiesEditor.classList.add('hidden');
             itemsEditor.classList.remove('hidden');
             buildItemsTable();
         } else if (lib === 'npc_blueprints') {
@@ -1139,6 +1262,7 @@ function buildItemsTable() {
             chipEditor.classList.add('hidden');
             itemsEditor.classList.add('hidden');
             traitsEditor.classList.add('hidden');
+            abilitiesEditor.classList.add('hidden');
             npcEditor.classList.remove('hidden');
             buildNPCBlueprintsTable();
         } else if (lib === 'traits') {
@@ -1146,6 +1270,7 @@ function buildItemsTable() {
             chipEditor.classList.add('hidden');
             itemsEditor.classList.add('hidden');
             npcEditor.classList.add('hidden');
+            abilitiesEditor.classList.add('hidden');
             traitsEditor.classList.remove('hidden');
             buildTraitsUI();
         } else {
@@ -1153,6 +1278,7 @@ function buildItemsTable() {
             itemsEditor.classList.add('hidden');
             npcEditor.classList.add('hidden');
             traitsEditor.classList.add('hidden');
+            abilitiesEditor.classList.add('hidden');
             chipEditor.classList.remove('hidden');
             buildChips();
         }

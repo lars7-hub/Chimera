@@ -49,7 +49,7 @@ function ensureDefaultLexicon(worldName) {
     const samples = {
         traits: [{ name: 'Brave', description: 'Unafraid of danger.' }],
         typing: [{ name: 'Normal', weaknesses: [], resistances: [] }],
-        abilities: [{ name: 'Sample Strike', description: 'A basic attack.', typing: 'Normal', power: 0 }],
+        abilities: [{ key: 'sample_strike', name: 'Sample Strike', description: 'A basic attack.', categories: ['combat'], type: 'Normal', accuracy: 100, power: 0 }],
         items: [{
             key: 'sample_item',
             name: 'Sample Item',
@@ -69,7 +69,7 @@ function ensureDefaultLexicon(worldName) {
             level: 1,
             types: ['Normal'],
             traits: ['Brave'],
-            abilities: ['Sample Strike'],
+            abilities: ['sample_strike'],
             inventory: ['sample_item'],
             lootTable: [{ item: 'sample_item', chance: 100, min: 1, max: 1 }],
             xp: 0
