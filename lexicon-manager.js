@@ -711,11 +711,6 @@ function buildItemsTable() {
                 inputTd.appendChild(input);
                 tr.appendChild(inputTd);
 
-                const descTd = document.createElement('td');
-                descTd.className = 'stat-desc';
-                descTd.textContent = si.desc;
-                tr.appendChild(descTd);
-
                 table.appendChild(tr);
             });
             section.appendChild(table);
@@ -748,6 +743,7 @@ function buildItemsTable() {
             details.appendChild(labeledInput('Name', npc.name || '', v => npc.name = v));
             details.appendChild(labeledInput('Level', npc.level != null ? npc.level : 1, v => npc.level = parseInt(v) || 1, 'number'));
             details.appendChild(labeledInput('XP', npc.xp != null ? npc.xp : 0, v => npc.xp = parseInt(v) || 0, 'number'));
+            details.appendChild(buildStatsSection(npc));
             top.appendChild(details);
 
             const descDiv = document.createElement('div');
@@ -760,8 +756,6 @@ function buildItemsTable() {
             descDiv.appendChild(descLabel);
             descDiv.appendChild(descInput);
             top.appendChild(descDiv);
-
-            top.appendChild(buildStatsSection(npc));
 
             function arraySection(title, prop, listId, singular) {
                 const section = document.createElement('div');
@@ -841,6 +835,21 @@ function buildItemsTable() {
                     text.textContent = name;
                     if (trait && trait.color) text.style.color = trait.color;
                     chipEl.appendChild(text);
+                    if (trait) {
+                        const mods = document.createElement('div');
+                        mods.className = 'trait-mods';
+                        (trait.stats || []).forEach(st => {
+                            const mod = document.createElement('div');
+                            const sign = st.type === 'boost' ? '+' : '-';
+                            mod.textContent = `${st.stat} ${sign}${st.value}`;
+                            mods.appendChild(mod);
+                        });
+                        chipEl.appendChild(mods);
+                        const desc = document.createElement('div');
+                        desc.className = 'trait-desc';
+                        desc.textContent = trait.description || '';
+                        chipEl.appendChild(desc);
+                    }
                     const rem = document.createElement('button');
                     rem.textContent = 'Delete Trait';
                     rem.addEventListener('click', () => { npc.traits.splice(tIdx, 1); buildNPCBlueprintsTable(); });
@@ -975,6 +984,8 @@ function buildItemsTable() {
                 chanceInput.value = loot.chance != null ? loot.chance : 100;
                 chanceInput.addEventListener('input', e => loot.chance = parseFloat(e.target.value) || 0);
                 const chanceTd = document.createElement('td');
+                chanceTd.appendChild(chanceInput);
+                ltr.appendChild(chanceTd);
 
                 const qtyTd = document.createElement('td');
                 const qtyWrap = document.createElement('div');

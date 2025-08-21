@@ -45,7 +45,7 @@ function ensureSampleMap(targetMapPath) {
 function ensureDefaultLexicon(worldName) {
     const lexiconDir = path.join(worldRoot, worldName, 'Lexicon');
     fs.mkdirSync(lexiconDir, { recursive: true });
-    const libs = ['traits', 'typing', 'abilities', 'items', 'npc_blueprints'];
+    const libs = ['traits', 'typing', 'abilities'];
     const samples = {
         traits: [{ name: 'Brave', description: 'Unafraid of danger.' }],
         typing: [{ name: 'Normal', weaknesses: [], resistances: [] }],
@@ -77,14 +77,12 @@ function ensureDefaultLexicon(worldName) {
     };
     libs.forEach(lib => {
         const jsonPath = path.join(lexiconDir, `${lib}.json`);
-        const imgDir = path.join(lexiconDir, lib);
-        if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
         if (!fs.existsSync(jsonPath)) {
             fs.writeFileSync(jsonPath, JSON.stringify(samples[lib] || [], null, 2));
         }
     });
-	
-	const itemsDir = path.join(lexiconDir, 'items');
+
+    const itemsDir = path.join(lexiconDir, 'items');
     if (!fs.existsSync(itemsDir)) fs.mkdirSync(itemsDir, { recursive: true });
 
     const itemsJsonPath = path.join(lexiconDir, 'items.json');
@@ -119,6 +117,13 @@ function ensureDefaultLexicon(worldName) {
         if (!fs.existsSync(itemsJsonPath)) {
             fs.writeFileSync(itemsJsonPath, JSON.stringify([sampleItem], null, 2));
         }
+    }
+
+    const npcDir = path.join(lexiconDir, 'npc_blueprints');
+    fs.mkdirSync(npcDir, { recursive: true });
+    const sampleNpcPath = path.join(npcDir, 'sample_npc.json');
+    if (!fs.existsSync(sampleNpcPath)) {
+        fs.writeFileSync(sampleNpcPath, JSON.stringify(samples.npc_blueprints[0], null, 2));
     }
 }
 
@@ -867,7 +872,7 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
     try {
         ensureDefaultLexicon(worldName);
         const dir = path.join(worldRoot, worldName, 'Lexicon');
-        const libs = ['traits', 'typing', 'abilities', 'npc_blueprints'];
+        const libs = ['traits', 'typing', 'abilities'];
         const result = {};
         libs.forEach(lib => {
             const file = path.join(dir, `${lib}.json`);
@@ -896,6 +901,19 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
             });
         }
         result.items = items;
+
+        const npcDir = path.join(dir, 'npc_blueprints');
+        const npcs = [];
+        if (fs.existsSync(npcDir)) {
+            fs.readdirSync(npcDir).forEach(f => {
+                if (f.endsWith('.json')) {
+                    const jsonPath = path.join(npcDir, f);
+                    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+                    npcs.push(data);
+                }
+            });
+        }
+        result.npc_blueprints = npcs;
         return result;
     } catch (err) {
         console.error('Error loading lexicon:', err);
@@ -907,8 +925,8 @@ ipcMain.handle('save-lexicon', (event, worldName, library, data) => {
     try {
         const dir = path.join(worldRoot, worldName, 'Lexicon');
         fs.mkdirSync(dir, { recursive: true });
-		
-		if (library === 'items') {
+
+        if (library === 'items') {
             const itemsDir = path.join(dir, 'items');
             fs.mkdirSync(itemsDir, { recursive : true });
             const names = new Set();
@@ -932,6 +950,22 @@ ipcMain.handle('save-lexicon', (event, worldName, library, data) => {
                 const base = f.replace(/\.(json|png)$/i, '');
                 if (!names.has(base)) {
                     fs.unlinkSync(path.join(itemsDir, f));
+                }
+            });
+        } else if (library === 'npc_blueprints') {
+            const npcDir = path.join(dir, 'npc_blueprints');
+            fs.mkdirSync(npcDir, { recursive: true });
+            const names = new Set();
+            data.forEach(npc => {
+                const base = (npc.name || npc.species || 'npc').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+                names.add(base);
+                const jsonPath = path.join(npcDir, `${base}.json`);
+                fs.writeFileSync(jsonPath, JSON.stringify(npc, null, 2));
+            });
+            fs.readdirSync(npcDir).forEach(f => {
+                const base = f.replace(/\.json$/i, '');
+                if (!names.has(base)) {
+                    fs.unlinkSync(path.join(npcDir, f));
                 }
             });
         } else {

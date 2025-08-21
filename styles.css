@@ -2011,7 +2011,7 @@ button:hover {
 }
 
 .npc-chip {
-    border: 1px solid #ccc;
+    border: 3px solid #ccc;
     padding: 10px;
 }
 
@@ -2074,6 +2074,20 @@ button:hover {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
+}
+
+.npc-trait-chips .trait-chip {
+    width: 400px;
+    height: 200px;
+    overflow: auto;
+}
+
+.npc-trait-chips .trait-mods {
+    font-size: 0.9em;
+}
+
+.npc-trait-chips .trait-desc {
+    font-size: 0.8em;
 }
 
 .inventory-chip {
