@@ -45,10 +45,9 @@ function ensureSampleMap(targetMapPath) {
 function ensureDefaultLexicon(worldName) {
     const lexiconDir = path.join(worldRoot, worldName, 'Lexicon');
     fs.mkdirSync(lexiconDir, { recursive: true });
-    const libs = ['traits', 'typing', 'abilities'];
     const samples = {
         traits: [{ name: 'Brave', description: 'Unafraid of danger.' }],
-        typing: [{ name: 'Normal', weaknesses: [], resistances: [] }],
+        typing: [{ name: 'Normal', relations: {} }],
         abilities: [{ key: 'sample_strike', name: 'Sample Strike', description: 'A basic attack.', categories: ['combat'], type: 'Normal', accuracy: 100, power: 0, stats: [{ stat: 'dexterity', value: 10, type:'boost' }] }],
         items: [{
             key: 'sample_item',
@@ -75,55 +74,36 @@ function ensureDefaultLexicon(worldName) {
             xp: 0
         }]
     };
-    libs.forEach(lib => {
-        const jsonPath = path.join(lexiconDir, `${lib}.json`);
-        if (!fs.existsSync(jsonPath)) {
-            fs.writeFileSync(jsonPath, JSON.stringify(samples[lib] || [], null, 2));
-        }
-    });
-
-    const itemsDir = path.join(lexiconDir, 'items');
-    if (!fs.existsSync(itemsDir)) fs.mkdirSync(itemsDir, { recursive: true });
-
-    const itemsJsonPath = path.join(lexiconDir, 'items.json');
-    let itemsData = [];
-    if (fs.existsSync(itemsJsonPath)) {
-        try {
-            itemsData = JSON.parse(fs.readFileSync(itemsJsonPath, 'utf-8'));
-        } catch {
-            itemsData = [];
-        }
+    const abilitiesDir = path.join(lexiconDir, 'abilities');
+    fs.mkdirSync(abilitiesDir, { recursive: true });
+    if (fs.readdirSync(abilitiesDir).filter(f => f.endsWith('.json')).length === 0) {
+        fs.writeFileSync(path.join(abilitiesDir, 'sample_strike.json'), JSON.stringify(samples.abilities[0], null, 2));
     }
 
-    if (itemsData.length === 0) {
-        const sampleItem = {
-            key: 'sample_item',
-            name: 'Sample Item',
-            category: 'miscellaneous',
-            icon: 'sample_item.png',
-            description: 'Placeholder Item',
-            rarity: 'common',
-            stackable: false,
-            maxStack: 1,
-            value: 0,
-            stats: []
-        };
+    const traitsDir = path.join(lexiconDir, 'traits');
+    fs.mkdirSync(traitsDir, { recursive: true });
+    if (fs.readdirSync(traitsDir).filter(f => f.endsWith('.json')).length === 0) {
+        fs.writeFileSync(path.join(traitsDir, 'brave.json'), JSON.stringify(samples.traits[0], null, 2));
+    }
 
+    const typingDir = path.join(lexiconDir, 'typing');
+    fs.mkdirSync(typingDir, { recursive: true });
+    if (fs.readdirSync(typingDir).filter(f => f.endsWith('.json')).length === 0) {
+        fs.writeFileSync(path.join(typingDir, 'normal.json'), JSON.stringify(samples.typing[0], null, 2));
+    }
+
+    const itemsDir = path.join(lexiconDir, 'items');
+    fs.mkdirSync(itemsDir, { recursive: true });
+    const itemFiles = fs.readdirSync(itemsDir).filter(f => f.endsWith('.json'));
+    if (itemFiles.length === 0) {
         const sampleItemPath = path.join(itemsDir, 'sample_item.json');
-        if (!fs.existsSync(sampleItemPath)) {
-            fs.writeFileSync(sampleItemPath, JSON.stringify(sampleItem, null, 2));
-        }
-
-        if (!fs.existsSync(itemsJsonPath)) {
-            fs.writeFileSync(itemsJsonPath, JSON.stringify([sampleItem], null, 2));
-        }
+        fs.writeFileSync(sampleItemPath, JSON.stringify(samples.items[0], null, 2));
     }
 
     const npcDir = path.join(lexiconDir, 'npc_blueprints');
     fs.mkdirSync(npcDir, { recursive: true });
-    const sampleNpcPath = path.join(npcDir, 'sample_npc.json');
-    if (!fs.existsSync(sampleNpcPath)) {
-        fs.writeFileSync(sampleNpcPath, JSON.stringify(samples.npc_blueprints[0], null, 2));
+    if (fs.readdirSync(npcDir).filter(f => f.endsWith('.json')).length === 0) {
+        fs.writeFileSync(path.join(npcDir, 'sample_npc.json'), JSON.stringify(samples.npc_blueprints[0], null, 2));
     }
 }
 
@@ -872,16 +852,67 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
     try {
         ensureDefaultLexicon(worldName);
         const dir = path.join(worldRoot, worldName, 'Lexicon');
-        const libs = ['traits', 'typing', 'abilities'];
         const result = {};
-        libs.forEach(lib => {
-            const file = path.join(dir, `${lib}.json`);
-            if (fs.existsSync(file)) {
-                result[lib] = JSON.parse(fs.readFileSync(file, 'utf-8'));
-            } else {
-                result[lib] = [];
-            }
-        });
+
+        const abilitiesDir = path.join(dir, 'abilities');
+        const abilities = [];
+        if (fs.existsSync(abilitiesDir)) {
+            fs.readdirSync(abilitiesDir).forEach(f => {
+                if (f.endsWith('.json')) {
+                    const jsonPath = path.join(abilitiesDir, f);
+                    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+                    const base = f.slice(0, -5);
+                    const imgPath = path.join(abilitiesDir, data.icon || `${base}.png`);
+                    if (fs.existsSync(imgPath)) {
+                        data.icon = pathToFileURL(imgPath).href;
+                    }
+                    data.key = data.key || base;
+                    abilities.push(data);
+                }
+            });
+        }
+        result.abilities = abilities;
+
+        const traitsDir = path.join(dir, 'traits');
+        const traits = [];
+        if (fs.existsSync(traitsDir)) {
+            fs.readdirSync(traitsDir).forEach(f => {
+                if (f.endsWith('.json')) {
+                    const jsonPath = path.join(traitsDir, f);
+                    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+                    const base = f.slice(0, -5);
+                    const imgPath = path.join(traitsDir, data.icon || `${base}.png`);
+                    if (fs.existsSync(imgPath)) {
+                        data.icon = pathToFileURL(imgPath).href;
+                    }
+                    data.name = data.name || base;
+                    traits.push(data);
+                }
+            });
+        }
+        result.traits = traits;
+
+        const typingDir = path.join(dir, 'typing');
+        const types = [];
+        const table = {};
+        const icons = {};
+        if (fs.existsSync(typingDir)) {
+            fs.readdirSync(typingDir).forEach(f => {
+                if (f.endsWith('.json')) {
+                    const jsonPath = path.join(typingDir, f);
+                    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+                    const base = f.slice(0, -5);
+                    const name = data.name || base;
+                    types.push(name);
+                    table[name] = data.relations || {};
+                    const imgPath = path.join(typingDir, data.icon || `${base}.png`);
+                    if (fs.existsSync(imgPath)) {
+                        icons[name] = pathToFileURL(imgPath).href;
+                    }
+                }
+            });
+        }
+        result.typing = { types, table, icons };
 
         const itemsDir = path.join(dir, 'items');
         const items = [];
@@ -909,6 +940,11 @@ ipcMain.handle('get-lexicon', (event, worldName) => {
                 if (f.endsWith('.json')) {
                     const jsonPath = path.join(npcDir, f);
                     const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+                    const base = f.slice(0, -5);
+                    const imgPath = path.join(npcDir, data.icon || `${base}.png`);
+                    if (fs.existsSync(imgPath)) {
+                        data.icon = pathToFileURL(imgPath).href;
+                    }
                     npcs.push(data);
                 }
             });
@@ -952,6 +988,86 @@ ipcMain.handle('save-lexicon', (event, worldName, library, data) => {
                     fs.unlinkSync(path.join(itemsDir, f));
                 }
             });
+        } else if (library === 'abilities') {
+            const abilDir = path.join(dir, 'abilities');
+            fs.mkdirSync(abilDir, { recursive: true });
+            const names = new Set();
+            data.forEach(ab => {
+                const base = (ab.key || ab.name || 'ability').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+                names.add(base);
+                const jsonPath = path.join(abilDir, `${base}.json`);
+                const imgPath = path.join(abilDir, `${base}.png`);
+                const { icon, ...rest } = ab;
+                rest.key = ab.key || base;
+                rest.icon = `${base}.png`;
+                fs.writeFileSync(jsonPath, JSON.stringify(rest, null, 2));
+                if (icon) {
+                    const src = icon.startsWith('file://') ? fileURLToPath(icon) : icon;
+                    if (path.resolve(src) !== imgPath) {
+                        fs.copyFileSync(src, imgPath);
+                    }
+                }
+            });
+            fs.readdirSync(abilDir).forEach(f => {
+                const base = f.replace(/\.(json|png)$/i, '');
+                if (!names.has(base)) {
+                    fs.unlinkSync(path.join(abilDir, f));
+                }
+            });
+        } else if (library === 'traits') {
+            const traitsDir = path.join(dir, 'traits');
+            fs.mkdirSync(traitsDir, { recursive: true });
+            const names = new Set();
+            data.forEach(tr => {
+                const base = (tr.name || 'trait').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+                names.add(base);
+                const jsonPath = path.join(traitsDir, `${base}.json`);
+                const imgPath = path.join(traitsDir, `${base}.png`);
+                const { icon, ...rest } = tr;
+                rest.name = tr.name || base;
+                rest.icon = `${base}.png`;
+                fs.writeFileSync(jsonPath, JSON.stringify(rest, null, 2));
+                if (icon) {
+                    const src = icon.startsWith('file://') ? fileURLToPath(icon) : icon;
+                    if (path.resolve(src) !== imgPath) {
+                        fs.copyFileSync(src, imgPath);
+                    }
+                }
+            });
+            fs.readdirSync(traitsDir).forEach(f => {
+                const base = f.replace(/\.(json|png)$/i, '');
+                if (!names.has(base)) {
+                    fs.unlinkSync(path.join(traitsDir, f));
+                }
+            });
+        } else if (library === 'typing') {
+            const typingDir = path.join(dir, 'typing');
+            fs.mkdirSync(typingDir, { recursive: true });
+            const names = new Set();
+            const types = data.types || [];
+            const table = data.table || {};
+            const icons = data.icons || {};
+            types.forEach(type => {
+                const base = type.replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+                names.add(base);
+                const jsonPath = path.join(typingDir, `${base}.json`);
+                const imgPath = path.join(typingDir, `${base}.png`);
+                const icon = icons[type];
+                const saveData = { name: type, relations: table[type] || {}, icon: `${base}.png` };
+                fs.writeFileSync(jsonPath, JSON.stringify(saveData, null, 2));
+                if (icon) {
+                    const src = icon.startsWith('file://') ? fileURLToPath(icon) : icon;
+                    if (path.resolve(src) !== imgPath) {
+                        fs.copyFileSync(src, imgPath);
+                    }
+                }
+            });
+            fs.readdirSync(typingDir).forEach(f => {
+                const base = f.replace(/\.(json|png)$/i, '');
+                if (!names.has(base)) {
+                    fs.unlinkSync(path.join(typingDir, f));
+                }
+            });
         } else if (library === 'npc_blueprints') {
             const npcDir = path.join(dir, 'npc_blueprints');
             fs.mkdirSync(npcDir, { recursive: true });
@@ -960,17 +1076,23 @@ ipcMain.handle('save-lexicon', (event, worldName, library, data) => {
                 const base = (npc.name || npc.species || 'npc').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
                 names.add(base);
                 const jsonPath = path.join(npcDir, `${base}.json`);
-                fs.writeFileSync(jsonPath, JSON.stringify(npc, null, 2));
+                const imgPath = path.join(npcDir, `${base}.png`);
+                const { icon, ...rest } = npc;
+                rest.icon = `${base}.png`;
+                fs.writeFileSync(jsonPath, JSON.stringify(rest, null, 2));
+                if (icon) {
+                    const src = icon.startsWith('file://') ? fileURLToPath(icon) : icon;
+                    if (path.resolve(src) !== imgPath) {
+                        fs.copyFileSync(src, imgPath);
+                    }
+                }
             });
             fs.readdirSync(npcDir).forEach(f => {
-                const base = f.replace(/\.json$/i, '');
+                const base = f.replace(/\.(json|png)$/i, '');
                 if (!names.has(base)) {
                     fs.unlinkSync(path.join(npcDir, f));
                 }
             });
-        } else {
-            const file = path.join(dir, `${library}.json`);
-            fs.writeFileSync(file, JSON.stringify(data, null, 2));
         }
         return { success: true };
     } catch (err) {

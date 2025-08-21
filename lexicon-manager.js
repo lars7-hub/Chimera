@@ -44,6 +44,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     const traitModalClose = document.getElementById('trait-modal-close');
     const traitInfoModal = document.getElementById('trait-info-modal');
     const traitInfoClose = document.getElementById('trait-info-close');
+    const traitIconImg = document.getElementById('trait-icon-preview');
+    const traitIconBtn = document.getElementById('trait-icon-btn');
+    let traitIconVal = null;
 
     const npcEditor = document.getElementById('npc-editor');
     const npcTable = document.getElementById('npc-table');
@@ -305,6 +308,12 @@ window.addEventListener('DOMContentLoaded', async () => {
         traitsData.forEach((t, index) => {
             const chip = document.createElement('div');
             chip.className = 'trait-chip';
+            if (t.icon) {
+                const img = document.createElement('img');
+                img.className = 'item-thumb';
+                img.src = t.icon;
+                chip.appendChild(img);
+            }
 
             const textDiv = document.createElement('div');
             textDiv.className = 'trait-text';
@@ -413,6 +422,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             statsArr.forEach(s => createStatRow(s));
             traitColorInput.value = t.color || '#ffffff';
             traitDeleteBtn.style.display = 'inline-block';
+            traitIconVal = t.icon || null;
+            traitIconImg.src = t.icon || '';
         } else {
             traitModalTitle.textContent = 'Add Trait';
             traitNameInput.value = '';
@@ -420,6 +431,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             createStatRow();
             traitColorInput.value = '#ffffff';
             traitDeleteBtn.style.display = 'none';
+            traitIconVal = null;
+            traitIconImg.src = '';
         }
         traitModal.classList.remove('hidden');
     }
@@ -429,6 +442,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     traitModalClose.addEventListener('click', closeTraitModal);
+    traitIconBtn.addEventListener('click', async () => {
+        const p = await window.electron.openFileDialog();
+        if (p) {
+            const url = p.startsWith('file://') ? p : `file://${p}`;
+            traitIconVal = url;
+            traitIconImg.src = url;
+        }
+    });
     addTraitBtn.addEventListener('click', () => openTraitModal());
 
     traitDeleteBtn.addEventListener('click', () => {
@@ -454,7 +475,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const type = typeBtn ? typeBtn.dataset.type : 'boost';
             stats.push({ stat, value, type });
         });
-        const trait = { name, description, stats, color };
+        const trait = { name, description, stats, color, icon: traitIconVal };
         if (editingTraitIndex != null) {
             traitsData[editingTraitIndex] = trait;
         } else {
@@ -472,16 +493,35 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     function buildTypeChips() {
         const typing = lexicon.typing;
+        typing.icons = typing.icons || {};
         typeChipsDiv.innerHTML = '';
         typing.types.forEach((type, idx) => {
             const chip = document.createElement('span');
             chip.className = 'chip';
-            chip.textContent = type;
+            const img = document.createElement('img');
+            img.className = 'item-thumb';
+            if (typing.icons[type]) img.src = typing.icons[type];
+            chip.appendChild(img);
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = type;
+            chip.appendChild(nameSpan);
+            const iconBtn = document.createElement('button');
+            iconBtn.textContent = 'Icon';
+            iconBtn.addEventListener('click', async () => {
+                const p = await window.electron.openFileDialog();
+                if (p) {
+                    const url = p.startsWith('file://') ? p : `file://${p}`;
+                    typing.icons[type] = url;
+                    buildTypeChips();
+                }
+            });
+            chip.appendChild(iconBtn);
             const btn = document.createElement('button');
             btn.textContent = '×';
             btn.addEventListener('click', () => {
                 const removed = typing.types.splice(idx, 1)[0];
                 delete typing.table[removed];
+                if (typing.icons) delete typing.icons[removed];
                 for (const t of typing.types) {
                     if (typing.table[t]) delete typing.table[t][removed];
                 }
@@ -542,18 +582,20 @@ window.addEventListener('DOMContentLoaded', async () => {
                 }
                 lexicon.typing = { types, table };
             } else {
-                lexicon.typing = { types: [], table: {} };
-            }
+            lexicon.typing = { types: [], table: {} };
         }
-        buildTypeChips();
-        buildTypeTable();
     }
+    lexicon.typing.icons = lexicon.typing.icons || {};
+    buildTypeChips();
+    buildTypeTable();
+}
 
     addTypeBtn.addEventListener('click', () => {
         const val = typeInput.value.trim();
         if (!val) return;
         const typing = lexicon.typing || { types: [], table: {} };
         lexicon.typing = typing;
+        typing.icons = typing.icons || {};
         if (!typing.types.includes(val)) {
             typing.types.push(val);
             if (!typing.table[val]) typing.table[val] = {};
@@ -562,6 +604,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 if (!typing.table[t]) typing.table[t] = {};
                 if (!typing.table[t][val]) typing.table[t][val] = 1;
             }
+            typing.icons[val] = typing.icons[val] || null;
         }
         typeInput.value = '';
         buildTypingUI();
@@ -804,7 +847,7 @@ function buildItemsTable() {
         abilitiesTable.innerHTML = '';
 
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', 'Stats', ''].forEach(h => {
+        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', 'Icon', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -878,6 +921,24 @@ function buildItemsTable() {
             powTd.appendChild(powInput);
             tr.appendChild(powTd);
 
+            const iconTd = document.createElement('td');
+            const img = document.createElement('img');
+            img.className = 'item-thumb';
+            if (ab.icon) img.src = ab.icon;
+            const iconBtn = document.createElement('button');
+            iconBtn.textContent = 'Icon';
+            iconBtn.addEventListener('click', async () => {
+                const p = await window.electron.openFileDialog();
+                if (p) {
+                    const url = p.startsWith('file://') ? p : `file://${p}`;
+                    ab.icon = url;
+                    img.src = url;
+                }
+            });
+            iconTd.appendChild(img);
+            iconTd.appendChild(iconBtn);
+            tr.appendChild(iconTd);
+
             const statsTd = document.createElement('td');
             const modsDiv = document.createElement('div');
             modsDiv.className = 'trait-modifiers';
@@ -907,7 +968,7 @@ function buildItemsTable() {
 
     addAbilityBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.abilities) ? lexicon.abilities : [];
-        data.push({ key: '', name: '', categories: [], type: '', accuracy: 100, power: 0, stats: [] });
+        data.push({ key: '', name: '', categories: [], type: '', accuracy: 100, power: 0, stats: [], icon: null });
         lexicon.abilities = data;
         buildAbilitiesTable();
     });
@@ -1014,6 +1075,24 @@ function buildItemsTable() {
 
             const top = document.createElement('div');
             top.className = 'npc-top';
+
+            const iconWrap = document.createElement('div');
+            const img = document.createElement('img');
+            img.className = 'item-thumb';
+            if (npc.icon) img.src = npc.icon;
+            const iconBtn = document.createElement('button');
+            iconBtn.textContent = 'Icon';
+            iconBtn.addEventListener('click', async () => {
+                const p = await window.electron.openFileDialog();
+                if (p) {
+                    const url = p.startsWith('file://') ? p : `file://${p}`;
+                    npc.icon = url;
+                    img.src = url;
+                }
+            });
+            iconWrap.appendChild(img);
+            iconWrap.appendChild(iconBtn);
+            top.appendChild(iconWrap);
 
             const details = document.createElement('div');
             details.className = 'npc-details';
@@ -1389,7 +1468,7 @@ function buildItemsTable() {
 
     addNpcBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
-        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], inventory: [], lootTable: [], stats: { strength: 0, dexterity: 0, constitution: 0, endurance: 0, intelligence: 0, charisma: 0, fortitude: 0 } });
+        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], inventory: [], lootTable: [], stats: { strength: 0, dexterity: 0, constitution: 0, endurance: 0, intelligence: 0, charisma: 0, fortitude: 0 }, icon: null });
         lexicon.npc_blueprints = data;
         buildNPCBlueprintsTable();
     });
