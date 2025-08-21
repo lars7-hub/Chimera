@@ -2092,6 +2092,31 @@ button:hover {
     font-size: 0.8em;
 }
 
+.npc-ability-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.ability-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #444;
+    border-radius: 10px;
+    padding: 5px;
+    margin: 5px 0;
+}
+
+.ability-name {
+    font-weight: bold;
+}
+
+.ability-mods {
+    display: flex;
+    gap: 4px;
+}
+
 .inventory-chip {
     display: flex;
     align-items: center;

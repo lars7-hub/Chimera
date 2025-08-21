@@ -23,6 +23,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     const abilitiesEditor = document.getElementById('abilities-editor');
     const abilitiesTable = document.getElementById('abilities-table');
     const addAbilityBtn = document.getElementById('add-ability-btn');
+    const abilityStatsModal = document.getElementById('ability-stats-modal');
+    const abilityStatsContainer = document.getElementById('ability-stats-container');
+    const abilityAddStatBtn = document.getElementById('ability-add-stat-btn');
+    const abilityStatsClose = document.getElementById('ability-stats-close');
+    const abilityStatsSaveBtn = document.getElementById('ability-stats-save-btn');
 
     const traitsEditor = document.getElementById('traits-editor');
     const traitsContainer = document.getElementById('traits-container');
@@ -126,6 +131,91 @@ window.addEventListener('DOMContentLoaded', async () => {
         lexicon[lib] = data;
         chipInput.value = '';
         buildChips();
+    });
+
+    function createStatChip(s) {
+        if (!s || !s.stat) return document.createElement('span');
+        const chipEl = document.createElement('div');
+        chipEl.className = 'stat-chip';
+        const imgEl = document.createElement('img');
+        imgEl.src = `resources/ui/${s.stat}.png`;
+        imgEl.alt = s.stat;
+        chipEl.appendChild(imgEl);
+        const textEl = document.createElement('span');
+        textEl.className = 'stat-chip-value';
+        const num = s.value || 0;
+        textEl.textContent = num > 0 ? `+${num}` : `${num}`;
+        if (num > 0) textEl.classList.add('positive');
+        else if (num < 0) textEl.classList.add('negative');
+        chipEl.appendChild(textEl);
+        return chipEl;
+    }
+
+    // Ability stat editor
+    let editingAbilityIndex = null;
+
+    function createAbilityStatRow(data = {}) {
+        const row = document.createElement('div');
+        row.className = 'trait-stat-row';
+
+        const statSelect = document.createElement('select');
+        statSelect.className = 'stat-select';
+        statSelect.innerHTML = `
+            <option value="">None</option>
+            <option value="strength">Strength</option>
+            <option value="dexterity">Dexterity</option>
+            <option value="constitution">Constitution</option>
+            <option value="endurance">Endurance</option>
+            <option value="intelligence">Intelligence</option>
+            <option value="charisma">Charisma</option>
+            <option value="fortitude">Fortitude</option>`;
+        statSelect.value = data.stat || '';
+        row.appendChild(statSelect);
+
+        const valueInput = document.createElement('input');
+        valueInput.type = 'number';
+        valueInput.className = 'stat-value';
+        valueInput.step = 'any';
+        valueInput.value = data.value || 0;
+        row.appendChild(valueInput);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = 'Delete Stat';
+        removeBtn.className = 'remove-stat-btn delete-btn';
+        removeBtn.addEventListener('click', () => row.remove());
+        row.appendChild(removeBtn);
+
+        abilityStatsContainer.appendChild(row);
+    }
+
+    abilityAddStatBtn.addEventListener('click', () => createAbilityStatRow());
+
+    function openAbilityStatsModal(index) {
+        editingAbilityIndex = index;
+        abilityStatsContainer.innerHTML = '';
+        const ab = (lexicon.abilities || [])[index] || {};
+        const statsArr = Array.isArray(ab.stats) && ab.stats.length ? ab.stats : [{}];
+        statsArr.forEach(s => createAbilityStatRow(s));
+        abilityStatsModal.classList.remove('hidden');
+    }
+
+    abilityStatsClose.addEventListener('click', () => abilityStatsModal.classList.add('hidden'));
+
+    abilityStatsSaveBtn.addEventListener('click', () => {
+        const rows = abilityStatsContainer.querySelectorAll('.trait-stat-row');
+        const stats = [];
+        rows.forEach(r => {
+            const stat = r.querySelector('.stat-select').value;
+            const val = parseFloat(r.querySelector('.stat-value').value) || 0;
+            if (stat) stats.push({ stat, value: val });
+        });
+        if (editingAbilityIndex != null) {
+            const ab = lexicon.abilities[editingAbilityIndex];
+            ab.stats = stats;
+        }
+        abilityStatsModal.classList.add('hidden');
+        buildAbilitiesTable();
     });
 
     // Trait editor functions
@@ -702,7 +792,7 @@ function buildItemsTable() {
         abilitiesTable.innerHTML = '';
 
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', ''].forEach(h => {
+        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -776,6 +866,19 @@ function buildItemsTable() {
             powTd.appendChild(powInput);
             tr.appendChild(powTd);
 
+            const statsTd = document.createElement('td');
+            const modsDiv = document.createElement('div');
+            modsDiv.className = 'trait-modifiers';
+            (ab.stats || []).forEach(s => {
+                modsDiv.appendChild(createStatChip(s));
+            });
+            statsTd.appendChild(modsDiv);
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit Stats';
+            editBtn.addEventListener('click', () => openAbilityStatsModal(idx));
+            statsTd.appendChild(editBtn);
+            tr.appendChild(statsTd);
+
             const remTd = document.createElement('td');
             const remBtn = document.createElement('button');
             remBtn.textContent = '×';
@@ -792,7 +895,7 @@ function buildItemsTable() {
 
     addAbilityBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.abilities) ? lexicon.abilities : [];
-        data.push({ key: '', name: '', categories: [], type: '', accuracy: 100, power: 0 });
+        data.push({ key: '', name: '', categories: [], type: '', accuracy: 100, power: 0, stats: [] });
         lexicon.abilities = data;
         buildAbilitiesTable();
     });
@@ -1050,6 +1153,54 @@ function buildItemsTable() {
                 return section;
             }
 
+            function buildAbilitiesSection() {
+                const section = document.createElement('div');
+                section.className = 'npc-array-section';
+                const label = document.createElement('div');
+                label.textContent = 'Abilities';
+                section.appendChild(label);
+                const chips = document.createElement('div');
+                chips.className = 'npc-ability-chips';
+                (npc.abilities || []).forEach((name, aIdx) => {
+                    const ab = (lexicon.abilities || []).find(a => a.key === name || a.name === name);
+                    const chipEl = document.createElement('div');
+                    chipEl.className = 'ability-chip';
+                    const text = document.createElement('span');
+                    text.className = 'ability-name';
+                    text.textContent = ab ? (ab.name || ab.key) : name;
+                    chipEl.appendChild(text);
+                    if (ab && Array.isArray(ab.stats)) {
+                        const mods = document.createElement('div');
+                        mods.className = 'ability-mods';
+                        ab.stats.forEach(st => {
+                            mods.appendChild(createStatChip(st));
+                        });
+                        chipEl.appendChild(mods);
+                    }
+                    const rem = document.createElement('button');
+                    rem.textContent = 'Delete Ability';
+                    rem.addEventListener('click', () => { npc.abilities.splice(aIdx, 1); buildNPCBlueprintsTable(); });
+                    chipEl.appendChild(rem);
+                    chips.appendChild(chipEl);
+                });
+                section.appendChild(chips);
+                const input = document.createElement('input');
+                input.setAttribute('list', abilityListId);
+                const addBtn = document.createElement('button');
+                addBtn.textContent = 'Add Ability';
+                addBtn.addEventListener('click', () => {
+                    const val = input.value.trim();
+                    if (!val) return;
+                    npc.abilities = npc.abilities || [];
+                    npc.abilities.push(val);
+                    input.value = '';
+                    buildNPCBlueprintsTable();
+                });
+                section.appendChild(input);
+                section.appendChild(addBtn);
+                return section;
+            }
+
             function buildInventorySection() {
                 const section = document.createElement('div');
                 section.className = 'npc-array-section npc-inventory';
@@ -1116,7 +1267,7 @@ function buildItemsTable() {
             traitInvWrap.appendChild(buildTraitsSection());
             traitInvWrap.appendChild(buildInventorySection());
             taDiv.appendChild(traitInvWrap);
-            taDiv.appendChild(arraySection('Abilities', 'abilities', abilityListId, 'Ability'));
+            taDiv.appendChild(buildAbilitiesSection());
             top.appendChild(taDiv);
 
             chip.appendChild(top);

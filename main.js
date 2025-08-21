@@ -49,7 +49,7 @@ function ensureDefaultLexicon(worldName) {
     const samples = {
         traits: [{ name: 'Brave', description: 'Unafraid of danger.' }],
         typing: [{ name: 'Normal', weaknesses: [], resistances: [] }],
-        abilities: [{ key: 'sample_strike', name: 'Sample Strike', description: 'A basic attack.', categories: ['combat'], type: 'Normal', accuracy: 100, power: 0 }],
+        abilities: [{ key: 'sample_strike', name: 'Sample Strike', description: 'A basic attack.', categories: ['combat'], type: 'Normal', accuracy: 100, power: 0, stats: [{ stat: 'dexterity', value: 10 }] }],
         items: [{
             key: 'sample_item',
             name: 'Sample Item',
