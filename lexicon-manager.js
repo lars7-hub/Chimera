@@ -143,10 +143,18 @@ window.addEventListener('DOMContentLoaded', async () => {
         chipEl.appendChild(imgEl);
         const textEl = document.createElement('span');
         textEl.className = 'stat-chip-value';
-        const num = s.value || 0;
-        textEl.textContent = num > 0 ? `+${num}` : `${num}`;
-        if (num > 0) textEl.classList.add('positive');
-        else if (num < 0) textEl.classList.add('negative');
+        let display = '';
+        if (s.type === 'mult' || s.type === 'mul') {
+            display = `${s.value}x`;
+            if (s.value > 1) textEl.classList.add('positive');
+            else if (s.value < 1) textEl.classList.add('negative');
+        } else {
+            const num = s.value || 0;
+            display = num > 0 ? `+${num}` : `${num}`;
+            if (num > 0) textEl.classList.add('positive');
+            else if (num < 0) textEl.classList.add('negative');
+        }
+        textEl.textContent = display;
         chipEl.appendChild(textEl);
         return chipEl;
     }
@@ -176,8 +184,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         valueInput.type = 'number';
         valueInput.className = 'stat-value';
         valueInput.step = 'any';
-        valueInput.value = data.value || 0;
+        valueInput.value = data.value != null ? data.value : 0;
         row.appendChild(valueInput);
+
+        const toggle = createTypeToggle(data.type || 'boost');
+        row.appendChild(toggle);
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -208,7 +219,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         rows.forEach(r => {
             const stat = r.querySelector('.stat-select').value;
             const val = parseFloat(r.querySelector('.stat-value').value) || 0;
-            if (stat) stats.push({ stat, value: val });
+            const type = r.querySelector('.type-btn.active')?.dataset.type || 'boost';
+            if (stat) stats.push({ stat, value: val, type });
         });
         if (editingAbilityIndex != null) {
             const ab = lexicon.abilities[editingAbilityIndex];
