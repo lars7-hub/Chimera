@@ -56,6 +56,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         return RELATIONS[(idx + 1) % RELATIONS.length];
     }
 
+    const RARITIES = ['common','uncommon','rare','epic','legendary'];
+    const RARITY_COLORS = {
+        common: '#ccc',
+        uncommon: '#5EAC24',
+        rare: '#4169E1',
+        epic: '#9932CC',
+        legendary: '#FFA500'
+    };
+    const STAT_INFO = [
+        { key: 'strength', label: 'Strength', desc: 'Increases physical power and physical damage-dealing potential.' },
+        { key: 'dexterity', label: 'Dexterity', desc: 'Improves agility and reflexes. Useful for delicate tools as well.' },
+        { key: 'constitution', label: 'Constitution', desc: 'Represents the amount of Health one has.' },
+        { key: 'endurance', label: 'Endurance', desc: 'Stamina reserves and Lifespan/longevity.' },
+        { key: 'intelligence', label: 'Intelligence', desc: 'Determines Intellect and reasoning. Also governs magical and mental abilities.' },
+        { key: 'charisma', label: 'Charisma', desc: 'Influences persuasion and charm. Represents physical attractiveness and verbal influence.' },
+        { key: 'fortitude', label: 'Fortitude', desc: 'Enhances resistance to damage. Affects resistance to the elements, toxins, crippling conditions, etc. Governs physical defense rating.' }
+    ];
+
     const worlds = await window.electron.listWorlds();
     for (const name of worlds) {
         const opt = document.createElement('option');
@@ -471,6 +489,24 @@ function buildItemsTable() {
         });
         itemsTable.appendChild(head);
 
+        function buildRaritySelector(item) {
+            const wrap = document.createElement('div');
+            wrap.className = 'rarity-chips';
+            RARITIES.forEach(r => {
+                const chip = document.createElement('span');
+                chip.className = 'rarity-chip';
+                chip.textContent = r.charAt(0).toUpperCase() + r.slice(1);
+                chip.style.backgroundColor = RARITY_COLORS[r];
+                if (item.rarity === r) chip.classList.add('selected');
+                chip.addEventListener('click', () => {
+                    item.rarity = r;
+                    buildItemsTable();
+                });
+                wrap.appendChild(chip);
+            });
+            return wrap;
+        }
+
         data.forEach((item, idx) => {
             const tr = document.createElement('tr');
 
@@ -503,11 +539,8 @@ function buildItemsTable() {
             descTd.appendChild(descInput);
             tr.appendChild(descTd);
 
-            const rarityInput = document.createElement('input');
-            rarityInput.value = item.rarity || '';
-            rarityInput.addEventListener('input', e => item.rarity = e.target.value);
             const rarityTd = document.createElement('td');
-            rarityTd.appendChild(rarityInput);
+            rarityTd.appendChild(buildRaritySelector(item));
             tr.appendChild(rarityTd);
 
             const stackInput = document.createElement('input');
@@ -596,7 +629,6 @@ function buildItemsTable() {
         const typeListId = 'npc-type-list';
         const traitListId = 'npc-trait-list';
         const abilityListId = 'npc-ability-list';
-        const itemListId = 'npc-item-list';
 
         function buildList(id, values, parent) {
             let list = document.getElementById(id);
@@ -624,7 +656,71 @@ function buildItemsTable() {
         buildList(typeListId, (lexicon.typing && lexicon.typing.types) || [], npcEditor);
         buildList(traitListId, Array.isArray(lexicon.traits) ? lexicon.traits : [], npcEditor);
         buildList(abilityListId, Array.isArray(lexicon.abilities) ? lexicon.abilities : [], npcEditor);
-        buildList(itemListId, Array.isArray(lexicon.items) ? lexicon.items : [], npcEditor);
+
+        function createItemSelect(selected, onChange) {
+            const sel = document.createElement('select');
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '--select item--';
+            sel.appendChild(placeholder);
+            (lexicon.items || []).forEach(i => {
+                const opt = document.createElement('option');
+                opt.value = i.key;
+                opt.textContent = i.name || i.key;
+                sel.appendChild(opt);
+            });
+            sel.value = selected || '';
+            sel.addEventListener('change', e => onChange(e.target.value));
+            return sel;
+        }
+
+        function buildStatsSection(npc) {
+            const section = document.createElement('div');
+            section.className = 'npc-stats';
+            const label = document.createElement('div');
+            label.textContent = 'Base Stats';
+            section.appendChild(label);
+            const table = document.createElement('table');
+            table.className = 'stats-table-editor';
+            STAT_INFO.forEach(si => {
+                const tr = document.createElement('tr');
+
+                const iconTd = document.createElement('td');
+                iconTd.className = 'stat-icon';
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'stat-icon-container';
+                const label = document.createElement('span');
+                label.textContent = si.label;
+                const img = document.createElement('img');
+                img.src = `resources/ui/${si.key}.png`;
+                img.alt = si.label;
+                iconWrap.appendChild(label);
+                iconWrap.appendChild(img);
+                iconTd.appendChild(iconWrap);
+                tr.appendChild(iconTd);
+
+                const inputTd = document.createElement('td');
+                inputTd.className = 'stat-input';
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = npc.stats && npc.stats[si.key] != null ? npc.stats[si.key] : 0;
+                input.addEventListener('input', e => {
+                    npc.stats = npc.stats || {};
+                    npc.stats[si.key] = parseInt(e.target.value) || 0;
+                });
+                inputTd.appendChild(input);
+                tr.appendChild(inputTd);
+
+                const descTd = document.createElement('td');
+                descTd.className = 'stat-desc';
+                descTd.textContent = si.desc;
+                tr.appendChild(descTd);
+
+                table.appendChild(tr);
+            });
+            section.appendChild(table);
+            return section;
+        }
 
         data.forEach((npc, idx) => {
             const chip = document.createElement('div');
@@ -664,6 +760,8 @@ function buildItemsTable() {
             descDiv.appendChild(descLabel);
             descDiv.appendChild(descInput);
             top.appendChild(descDiv);
+
+            top.appendChild(buildStatsSection(npc));
 
             function arraySection(title, prop, listId, singular) {
                 const section = document.createElement('div');
@@ -779,16 +877,19 @@ function buildItemsTable() {
                     npc.inventory[vIdx] = val;
                     const entry = document.createElement('div');
                     entry.className = 'inventory-chip';
+                    const itemData = (lexicon.items || []).find(i => i.key === val.item);
                     const icon = document.createElement('img');
                     icon.className = 'item-icon';
-                    const itemData = (lexicon.items || []).find(i => i.key === val.item);
-                    if (itemData && itemData.icon) icon.src = `resources/items/${itemData.icon}`;
+                    if (itemData && itemData.icon) {
+                        icon.src = /^(https?:|file:)/.test(itemData.icon) ? itemData.icon : `resources/items/${itemData.icon}`;
+                    }
                     entry.appendChild(icon);
-                    const input = document.createElement('input');
-                    input.setAttribute('list', itemListId);
-                    input.value = val.item || '';
-                    input.addEventListener('input', e => { val.item = e.target.value; buildNPCBlueprintsTable(); });
-                    entry.appendChild(input);
+                    const select = createItemSelect(val.item, v => { val.item = v; buildNPCBlueprintsTable(); });
+                    entry.appendChild(select);
+                    const keySpan = document.createElement('span');
+                    keySpan.className = 'item-key-display';
+                    keySpan.textContent = val.item || '';
+                    entry.appendChild(keySpan);
                     const qtyInput = document.createElement('input');
                     qtyInput.type = 'number';
                     qtyInput.className = 'small-num';
@@ -839,7 +940,7 @@ function buildItemsTable() {
             lootDiv.className = 'npc-loot';
             const lootTable = document.createElement('table');
             const head = document.createElement('tr');
-            ['Icon','Item','Chance','Qty',''].forEach(h => {
+            ['Icon','Item','Key','Chance','Qty',''].forEach(h => {
                 const th = document.createElement('th');
                 th.textContent = h;
                 head.appendChild(th);
@@ -852,17 +953,21 @@ function buildItemsTable() {
                 const icon = document.createElement('img');
                 icon.className = 'item-icon';
                 const itemData = (lexicon.items || []).find(i => i.key === loot.item);
-                if (itemData && itemData.icon) icon.src = `resources/items/${itemData.icon}`;
+                if (itemData && itemData.icon) {
+                    icon.src = /^(https?:|file:)/.test(itemData.icon) ? itemData.icon : `resources/items/${itemData.icon}`;
+                }
                 iconTd.appendChild(icon);
                 ltr.appendChild(iconTd);
 
-                const itemInput = document.createElement('input');
-                itemInput.setAttribute('list', itemListId);
-                itemInput.value = loot.item || '';
-                itemInput.addEventListener('input', e => { loot.item = e.target.value; buildNPCBlueprintsTable(); });
+                const itemSelect = createItemSelect(loot.item, v => { loot.item = v; buildNPCBlueprintsTable(); });
                 const itemTd = document.createElement('td');
-                itemTd.appendChild(itemInput);
+                itemTd.appendChild(itemSelect);
                 ltr.appendChild(itemTd);
+
+                const keyTd = document.createElement('td');
+                keyTd.className = 'item-key-display';
+                keyTd.textContent = loot.item || '';
+                ltr.appendChild(keyTd);
 
                 const chanceInput = document.createElement('input');
                 chanceInput.type = 'number';
@@ -870,8 +975,6 @@ function buildItemsTable() {
                 chanceInput.value = loot.chance != null ? loot.chance : 100;
                 chanceInput.addEventListener('input', e => loot.chance = parseFloat(e.target.value) || 0);
                 const chanceTd = document.createElement('td');
-                chanceTd.appendChild(chanceInput);
-                ltr.appendChild(chanceTd);
 
                 const qtyTd = document.createElement('td');
                 const qtyWrap = document.createElement('div');
@@ -880,12 +983,19 @@ function buildItemsTable() {
                 minInput.type = 'number';
                 minInput.className = 'small-num';
                 minInput.value = loot.min != null ? loot.min : 1;
-                minInput.addEventListener('input', e => loot.min = parseInt(e.target.value) || 0);
                 const maxInput = document.createElement('input');
                 maxInput.type = 'number';
                 maxInput.className = 'small-num';
                 maxInput.value = loot.max != null ? loot.max : 1;
-                maxInput.addEventListener('input', e => loot.max = parseInt(e.target.value) || 0);
+                if (itemData && itemData.stackable) {
+                    minInput.addEventListener('input', e => loot.min = parseInt(e.target.value) || 0);
+                    maxInput.addEventListener('input', e => loot.max = parseInt(e.target.value) || 0);
+                } else {
+                    minInput.value = 1;
+                    maxInput.value = 1;
+                    minInput.disabled = true;
+                    maxInput.disabled = true;
+                }
                 qtyWrap.appendChild(minInput);
                 qtyWrap.appendChild(maxInput);
                 qtyTd.appendChild(qtyWrap);
@@ -929,7 +1039,7 @@ function buildItemsTable() {
 
     addNpcBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
-        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], inventory: [], lootTable: [] });
+        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], inventory: [], lootTable: [], stats: { strength: 0, dexterity: 0, constitution: 0, endurance: 0, intelligence: 0, charisma: 0, fortitude: 0 } });
         lexicon.npc_blueprints = data;
         buildNPCBlueprintsTable();
     });

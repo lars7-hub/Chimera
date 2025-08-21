@@ -1590,10 +1590,37 @@ button:hover {
 }
 
 .rarity-tag {
-	padding: 2px 6px;
-	border-radius: 4px;
-	color: #000;
-	font-size: 0.8em;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #000;
+        font-size: 0.8em;
+}
+
+.rarity-chips {
+        display: flex;
+        gap: 4px;
+}
+
+.rarity-chip {
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #000;
+        cursor: pointer;
+}
+
+.rarity-chip.selected {
+        outline: 2px solid #fff;
+}
+
+.item-key-display {
+        font-style: italic;
+        opacity: 0.8;
+}
+
+.npc-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
 }
 
 .name-tag {
@@ -1757,21 +1784,25 @@ button:hover {
 	overflow-y: auto;
 }
 
-#stats-table-editor {
-	width: 100%;
-	border-collapse: collapse;
+#stats-table-editor,
+.stats-table-editor {
+        width: 100%;
+        border-collapse: collapse;
 }
 
-#stats-table-editor tr {
-	border-bottom: 1px solid #666;
+#stats-table-editor tr,
+.stats-table-editor tr {
+        border-bottom: 1px solid #666;
 }
 
-#stats-table-editor tr:last-child {
-	border-bottom: none;
+#stats-table-editor tr:last-child,
+.stats-table-editor tr:last-child {
+        border-bottom: none;
 }
 
-#stats-table-editor td {
-	padding: 5px 0;
+#stats-table-editor td,
+.stats-table-editor td {
+        padding: 5px 0;
 }
 
 .stat-icon-container {
