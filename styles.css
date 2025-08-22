@@ -594,7 +594,8 @@ button:hover {
 
 #biome-paint-options,
 #item-paint-options,
-#zone-tool-options {
+#zone-tool-options,
+#npc-manager-options {
         justify-content: center;
         align-content: center;
         display: flex;
@@ -606,6 +607,27 @@ button:hover {
 #current-zone-info {
     margin-top: 5px;
     font-weight: bold;
+}
+
+#npc-manager-panel textarea {
+    width: 200px;
+}
+
+#npc-spawn-biomes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+.biome-chip {
+    border: 1px solid #555;
+    padding: 2px 4px;
+    cursor: pointer;
+}
+
+.biome-chip.selected {
+    background-color: #444;
 }
 
 #prompt-overlay {

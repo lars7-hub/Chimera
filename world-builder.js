@@ -52,6 +52,20 @@ const tileGap = 1;
 let activeZoneIds = [];
 let zoneEntryTimeout = null;
 
+let npcPanel = null;
+let npcMode = 'manual';
+const npcBlueprints = [];
+let worldNpcs = [];
+let spawnPoints = [];
+
+function updateNpcCoords() {
+    const [x, y] = keyToCoords(currentKey);
+    const xInput = document.getElementById('npc-spawn-x');
+    const yInput = document.getElementById('npc-spawn-y');
+    if (xInput) xInput.value = x;
+    if (yInput) yInput.value = y;
+}
+
 function updateZoneInfo() {
     if (!currentZoneInfo) return;
     if (currentZone) {
@@ -107,6 +121,7 @@ async function loadLexiconItems() {
         await window.electron.ensureLexicon(currentWorld);
         const lex = await window.electron.getLexicon(currentWorld);
         const items = Array.isArray(lex.items) ? lex.items : [];
+        const npcs = Array.isArray(lex.npc_blueprints) ? lex.npc_blueprints : [];
 
         Object.keys(itemCategories).forEach(k => delete itemCategories[k]);
         Object.assign(itemCategories, JSON.parse(JSON.stringify(baseItemCategories)));
@@ -134,6 +149,9 @@ async function loadLexiconItems() {
         rebuildItemIndex();
         window.ITEMS = itemDefs;
         window.ITEM_CATEGORIES = itemCategories;
+
+        npcBlueprints.length = 0;
+        npcs.forEach(n => npcBlueprints.push({ ...n }));
     } catch (err) {
         console.error('Failed to load lexicon items:', err);
     }
@@ -833,6 +851,9 @@ window.onload = async function () {
     document.getElementById('item-info-close').addEventListener('click', () => {
         document.getElementById('item-info-modal').classList.add('hidden');
     });
+    document.getElementById('npc-info-close').addEventListener('click', () => {
+        document.getElementById('npc-info-modal').classList.add('hidden');
+    });
 
     document.getElementById('world-map-btn').addEventListener('click', () => {
         viewMode = 'world';
@@ -934,6 +955,122 @@ window.onload = async function () {
         });
     });
 
+    npcPanel = document.getElementById('npc-manager-panel');
+
+    function populateNpcBlueprints() {
+        const sel = document.getElementById('npc-blueprint-select');
+        sel.innerHTML = '';
+        npcBlueprints.forEach((b, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = b.name || b.species || `NPC ${idx + 1}`;
+            sel.appendChild(opt);
+        });
+        if (npcBlueprints.length > 0) {
+            sel.value = '0';
+            document.getElementById('npc-data-json').value = JSON.stringify(npcBlueprints[0], null, 2);
+        } else {
+            document.getElementById('npc-data-json').value = '{}';
+        }
+    }
+
+    function populateSpawnZoneSelect() {
+        const sel = document.getElementById('npc-spawn-zone');
+        sel.innerHTML = '<option value="none">None</option>';
+        Object.values(zones).forEach(z => {
+            const opt = document.createElement('option');
+            opt.value = z.id;
+            opt.textContent = z.name || `Zone ${z.id}`;
+            sel.appendChild(opt);
+        });
+    }
+
+    function renderSpawnBiomeChips(zoneId) {
+        const cont = document.getElementById('npc-spawn-biomes');
+        cont.innerHTML = '';
+        if (!zoneId || zoneId === 'none') return;
+        const z = zones[zoneId];
+        if (!z) return;
+        const types = new Set();
+        (z.tiles || []).forEach(k => {
+            const t = tileMap[k];
+            if (t) (t.data.types || []).forEach(tp => types.add(tp));
+        });
+        types.forEach(tp => {
+            const chip = document.createElement('div');
+            chip.className = 'biome-chip selected';
+            chip.textContent = tp;
+            chip.addEventListener('click', () => chip.classList.toggle('selected'));
+            cont.appendChild(chip);
+        });
+    }
+
+    document.getElementById('npc-blueprint-select').addEventListener('change', e => {
+        const idx = parseInt(e.target.value);
+        const bp = npcBlueprints[idx];
+        document.getElementById('npc-data-json').value = JSON.stringify(bp || {}, null, 2);
+    });
+
+    document.getElementById('npc-spawn-zone').addEventListener('change', e => {
+        renderSpawnBiomeChips(e.target.value);
+    });
+
+    document.querySelectorAll('input[name="npc-mode"]').forEach(r => {
+        r.addEventListener('change', e => {
+            npcMode = e.target.value;
+            document.getElementById('npc-manual-options').classList.toggle('hidden', npcMode !== 'manual');
+            document.getElementById('npc-spawn-options').classList.toggle('hidden', npcMode !== 'spawn');
+        });
+    });
+
+    document.getElementById('npc-spawn-btn').addEventListener('click', async () => {
+        try {
+            const data = JSON.parse(document.getElementById('npc-data-json').value || '{}');
+            const [x, y] = keyToCoords(currentKey);
+            data.tile = { x, y };
+            data.spawnPoint = null;
+            const res = await window.electron.saveNPC('region1', currentWorld, data);
+            if (res && res.success) {
+                worldNpcs.push(data);
+                alert('NPC spawned');
+                displayTile(tileMap[currentKey].data);
+            }
+        } catch (err) {
+            alert('Invalid NPC data');
+        }
+    });
+
+    document.getElementById('npc-save-spawn').addEventListener('click', async () => {
+        const name = document.getElementById('npc-spawn-name').value.trim();
+        if (!name) { alert('Spawner name required'); return; }
+        if (spawnPoints.some(s => s.name === name)) { alert('Spawner name exists'); return; }
+        try {
+            const data = JSON.parse(document.getElementById('npc-data-json').value || '{}');
+            const spawn = {
+                name,
+                tile: {
+                    x: parseInt(document.getElementById('npc-spawn-x').value, 10) || 0,
+                    y: parseInt(document.getElementById('npc-spawn-y').value, 10) || 0
+                },
+                maxPopulation: parseInt(document.getElementById('npc-spawn-max').value, 10) || 1,
+                levelRange: [
+                    parseInt(document.getElementById('npc-level-min').value, 10) || 1,
+                    parseInt(document.getElementById('npc-level-max').value, 10) || 1
+                ],
+                zone: document.getElementById('npc-spawn-zone').value !== 'none' ? document.getElementById('npc-spawn-zone').value : null,
+                biomes: Array.from(document.querySelectorAll('#npc-spawn-biomes .biome-chip.selected')).map(c => c.textContent),
+                blueprint: data
+            };
+            const res = await window.electron.saveNpcSpawn('region1', currentWorld, spawn);
+            if (res && res.success) {
+                spawnPoints.push(spawn);
+                alert('Spawn point created');
+            }
+        } catch (err) {
+            alert('Invalid NPC data');
+        }
+    });
+
     const biomeBtn = document.getElementById('biome-painter-btn');
     const itemBtn = document.getElementById('item-painter-btn');
     const zoneBtn = document.getElementById('zone-tool-btn');
@@ -943,8 +1080,10 @@ window.onload = async function () {
             biomePanel.classList.remove('hidden');
             itemPanel.classList.add('hidden');
             zonePanel.classList.add('hidden');
+            npcPanel.classList.add('hidden');
             itemPaintMode = false;
             zoneEditMode = false;
+            npcMode = 'manual';
             itemToggle.textContent = 'Item Paint Mode: Off';
             zoneToggle.textContent = 'Zone Mode: Off';
         } else {
@@ -959,8 +1098,10 @@ window.onload = async function () {
             itemPanel.classList.remove('hidden');
             biomePanel.classList.add('hidden');
             zonePanel.classList.add('hidden');
+            npcPanel.classList.add('hidden');
             biomePaintMode = false;
             zoneEditMode = false;
+            npcMode = 'manual';
             biomeToggle.textContent = 'Paint Mode: Off';
             zoneToggle.textContent = 'Zone Mode: Off';
         } else {
@@ -976,14 +1117,38 @@ window.onload = async function () {
             zonePanel.classList.remove('hidden');
             biomePanel.classList.add('hidden');
             itemPanel.classList.add('hidden');
+            npcPanel.classList.add('hidden');
             biomePaintMode = false;
             itemPaintMode = false;
+            npcMode = 'manual';
             biomeToggle.textContent = 'Paint Mode: Off';
             itemToggle.textContent = 'Item Paint Mode: Off';
         } else {
             zonePanel.classList.add('hidden');
             zoneEditMode = false;
             zoneToggle.textContent = 'Zone Mode: Off';
+        }
+    });
+
+    const npcBtn = document.getElementById('npc-manager-btn');
+    npcBtn.addEventListener('click', () => {
+        const hidden = npcPanel.classList.contains('hidden');
+        if (hidden) {
+            npcPanel.classList.remove('hidden');
+            biomePanel.classList.add('hidden');
+            itemPanel.classList.add('hidden');
+            zonePanel.classList.add('hidden');
+            biomePaintMode = false;
+            itemPaintMode = false;
+            zoneEditMode = false;
+            biomeToggle.textContent = 'Paint Mode: Off';
+            itemToggle.textContent = 'Item Paint Mode: Off';
+            zoneToggle.textContent = 'Zone Mode: Off';
+            populateNpcBlueprints();
+            populateSpawnZoneSelect();
+            updateNpcCoords();
+        } else {
+            npcPanel.classList.add('hidden');
         }
     });
 
@@ -1144,10 +1309,15 @@ async function loadWorld() {
     currentKey = originKey;
     updateBounds();
     renderGrid();
+	
     if (biomePanel) biomePanel.classList.add('hidden');
     if (itemPanel) itemPanel.classList.add('hidden');
+    if (npcPanel) npcPanel.classList.add('hidden');
 
-    // Auto-load character data if present for this world
+    const npcData = await window.electron.getNPCs('region1', currentWorld);
+    worldNpcs = npcData.npcs || [];
+    spawnPoints = npcData.spawns || [];
+	
     worldCharacter = await window.electron.getWorldCharacter(currentWorld);
     if (worldCharacter) {
         worldInventory = await window.electron.getWorldInventory(currentWorld);
@@ -1714,6 +1884,23 @@ function displayTile(tile, key = currentKey) {
         } else {
             shortDiv.classList.add('hidden');
         }
+    }
+    const interactBtn = document.getElementById('npc-interact-btn');
+    if (worldCharacter && interactBtn) {
+        const [cx, cy] = keyToCoords(currentKey);
+        const npc = worldNpcs.find(n => n.tile && n.tile.x === cx && n.tile.y === cy);
+        if (npc) {
+            interactBtn.classList.remove('hidden');
+            interactBtn.onclick = () => {
+                document.getElementById('npc-info-title').textContent = npc.name || npc.species || 'NPC';
+                document.getElementById('npc-info-content').textContent = JSON.stringify(npc, null, 2);
+                document.getElementById('npc-info-modal').classList.remove('hidden');
+            };
+        } else {
+            interactBtn.classList.add('hidden');
+        }
+    } else if (interactBtn) {
+        interactBtn.classList.add('hidden');
     }
     drawDirectionArrows();
 }

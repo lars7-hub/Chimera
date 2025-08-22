@@ -527,6 +527,66 @@ ipcMain.handle('get-zones', (event, regionName, worldName) => {
     return zones;
 });
 
+ipcMain.handle('get-npcs', (event, regionName, worldName) => {
+    const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+    const regionDir = path.join(baseMap, regionName);
+    const npcDir = path.join(regionDir, 'npcs');
+    const spawnDir = path.join(regionDir, 'spawns');
+    const npcs = [];
+    const spawns = [];
+    try {
+        if (fs.existsSync(npcDir)) {
+            fs.readdirSync(npcDir).forEach(file => {
+                if (file.endsWith('.json')) {
+                    const p = path.join(npcDir, file);
+                    npcs.push(JSON.parse(fs.readFileSync(p, 'utf-8')));
+                }
+            });
+        }
+        if (fs.existsSync(spawnDir)) {
+            fs.readdirSync(spawnDir).forEach(file => {
+                if (file.endsWith('.json')) {
+                    const p = path.join(spawnDir, file);
+                    spawns.push(JSON.parse(fs.readFileSync(p, 'utf-8')));
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error loading NPCs:', err);
+    }
+    return { npcs, spawns };
+});
+
+ipcMain.handle('save-npc', (event, regionName, worldName, npc) => {
+    try {
+        const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+        const npcDir = path.join(baseMap, regionName, 'npcs');
+        fs.mkdirSync(npcDir, { recursive: true });
+        const base = (npc.name || npc.species || 'npc').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+        const file = path.join(npcDir, `${base}_${Date.now()}.json`);
+        fs.writeFileSync(file, JSON.stringify(npc, null, 2));
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving NPC:', err);
+        return { success: false };
+    }
+});
+
+ipcMain.handle('save-npc-spawn', (event, regionName, worldName, spawn) => {
+    try {
+        const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+        const spawnDir = path.join(baseMap, regionName, 'spawns');
+        fs.mkdirSync(spawnDir, { recursive: true });
+        const base = (spawn.name || 'spawner').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+        const file = path.join(spawnDir, `${base}.json`);
+        fs.writeFileSync(file, JSON.stringify(spawn, null, 2));
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving NPC spawn:', err);
+        return { success: false };
+    }
+});
+
 ipcMain.handle('get-adventures', () => {
     try {
         if (!fs.existsSync(adventurePath)) return [];
