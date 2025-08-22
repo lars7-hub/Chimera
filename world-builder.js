@@ -968,10 +968,68 @@ window.onload = async function () {
         });
         if (npcBlueprints.length > 0) {
             sel.value = '0';
-            document.getElementById('npc-data-json').value = JSON.stringify(npcBlueprints[0], null, 2);
+            populateNpcFields(npcBlueprints[0]);
         } else {
-            document.getElementById('npc-data-json').value = '{}';
+            populateNpcFields({});
         }
+    }
+
+    function populateNpcFields(bp) {
+        const cont = document.getElementById('npc-data-fields');
+        cont.innerHTML = '';
+        Object.entries(bp || {}).forEach(([key, val]) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'npc-field';
+            const label = document.createElement('label');
+            label.textContent = key + ':';
+            let input;
+            if (typeof val === 'object') {
+                input = document.createElement('textarea');
+                input.value = JSON.stringify(val, null, 2);
+                input.rows = 2;
+                input.dataset.type = 'json';
+            } else if (typeof val === 'number') {
+                input = document.createElement('input');
+                input.type = 'number';
+                input.value = val;
+                input.dataset.type = 'number';
+            } else if (typeof val === 'boolean') {
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = val;
+                input.dataset.type = 'boolean';
+            } else {
+                input = document.createElement('input');
+                input.type = 'text';
+                input.value = val;
+                input.dataset.type = 'string';
+            }
+            input.dataset.key = key;
+            label.appendChild(input);
+            wrap.appendChild(label);
+            cont.appendChild(wrap);
+        });
+    }
+
+    function collectNpcData() {
+        const cont = document.getElementById('npc-data-fields');
+        const data = {};
+        cont.querySelectorAll('input, textarea').forEach(inp => {
+            const key = inp.dataset.key;
+            const type = inp.dataset.type;
+            let val;
+            if (type === 'number') {
+                val = parseFloat(inp.value) || 0;
+            } else if (type === 'boolean') {
+                val = inp.checked;
+            } else if (type === 'json') {
+                try { val = JSON.parse(inp.value || '{}'); } catch { val = {}; }
+            } else {
+                val = inp.value;
+            }
+            data[key] = val;
+        });
+        return data;
     }
 
     function populateSpawnZoneSelect() {
@@ -1008,7 +1066,7 @@ window.onload = async function () {
     document.getElementById('npc-blueprint-select').addEventListener('change', e => {
         const idx = parseInt(e.target.value);
         const bp = npcBlueprints[idx];
-        document.getElementById('npc-data-json').value = JSON.stringify(bp || {}, null, 2);
+        populateNpcFields(bp || {});
     });
 
     document.getElementById('npc-spawn-zone').addEventListener('change', e => {
@@ -1025,7 +1083,7 @@ window.onload = async function () {
 
     document.getElementById('npc-spawn-btn').addEventListener('click', async () => {
         try {
-            const data = JSON.parse(document.getElementById('npc-data-json').value || '{}');
+            const data = collectNpcData();
             const [x, y] = keyToCoords(currentKey);
             data.tile = { x, y };
             data.spawnPoint = null;
@@ -1045,7 +1103,7 @@ window.onload = async function () {
         if (!name) { alert('Spawner name required'); return; }
         if (spawnPoints.some(s => s.name === name)) { alert('Spawner name exists'); return; }
         try {
-            const data = JSON.parse(document.getElementById('npc-data-json').value || '{}');
+            const data = collectNpcData();
             const spawn = {
                 name,
                 tile: {

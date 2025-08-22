@@ -261,27 +261,41 @@
                 <label><input type="radio" name="npc-mode" value="spawn">Spawn Point</label>
             </div>
             <div id="npc-manager-options">
-                <label>Blueprint:
-                    <select id="npc-blueprint-select"></select>
-                </label>
-                <label>NPC Data:
-                    <textarea id="npc-data-json" rows="4"></textarea>
-                </label>
-                <div id="npc-manual-options">
-                    <button id="npc-spawn-btn">Spawn NPC</button>
-                </div>
-                <div id="npc-spawn-options" class="hidden">
-                    <label>Spawner Name:<input id="npc-spawn-name" /></label>
-                    <label>Grid X:<input id="npc-spawn-x" type="number" /></label>
-                    <label>Grid Y:<input id="npc-spawn-y" type="number" /></label>
-                    <label>Max Population:<input id="npc-spawn-max" type="number" value="1" /></label>
-                    <label>Level Min:<input id="npc-level-min" type="number" value="1" /></label>
-                    <label>Level Max:<input id="npc-level-max" type="number" value="1" /></label>
-                    <label>Zone Spawner:
-                        <select id="npc-spawn-zone"><option value="none">None</option></select>
+                <div id="npc-data-column">
+                    <label>Blueprint:
+                        <select id="npc-blueprint-select"></select>
                     </label>
-                    <div id="npc-spawn-biomes"></div>
-                    <button id="npc-save-spawn">Create Spawn Point</button>
+                    <div id="npc-data-fields"></div>
+                </div>
+                <div id="npc-spawn-column">
+                    <div id="npc-manual-options">
+                        <button id="npc-spawn-btn">Spawn NPC</button>
+                    </div>
+                    <div id="npc-spawn-options" class="hidden">
+                        <label>Spawner Name:
+                            <input id="npc-spawn-name" />
+                        </label>
+                        <label>Grid X:
+                            <input id="npc-spawn-x" type="number" />
+                        </label>
+                        <label>Grid Y:
+                            <input id="npc-spawn-y" type="number" />
+                        </label>
+                        <label>Max Population:
+                            <input id="npc-spawn-max" type="number" value="1" />
+                        </label>
+                        <label>Level Min:
+                            <input id="npc-level-min" type="number" value="1" />
+                        </label>
+                        <label>Level Max:
+                            <input id="npc-level-max" type="number" value="1" />
+                        </label>
+                        <label>Zone Spawner:
+                            <select id="npc-spawn-zone"><option value="none">None</option></select>
+                        </label>
+                        <div id="npc-spawn-biomes"></div>
+                        <button id="npc-save-spawn">Create Spawn Point</button>
+                    </div>
                 </div>
             </div>
         </div>

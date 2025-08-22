@@ -594,14 +594,37 @@ button:hover {
 
 #biome-paint-options,
 #item-paint-options,
-#zone-tool-options,
-#npc-manager-options {
+#zone-tool-options {
         justify-content: center;
         align-content: center;
         display: flex;
     flex-direction: column;
     gap: 5px;
     margin-top: 5px;
+}
+
+#npc-manager-options {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+#npc-data-column,
+#npc-spawn-column {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.npc-field label,
+#npc-spawn-column label {
+    display: flex;
+    flex-direction: column;
+}
+
+.npc-field input,
+.npc-field textarea {
+    width: 200px;
 }
 
 #current-zone-info {
