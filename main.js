@@ -66,6 +66,8 @@ function ensureDefaultLexicon(worldName) {
             name: 'Sample Species',
             description: 'Placeholder NPC.',
             level: 1,
+            attitude: 'Passive',
+            sightRange: 5,
             types: ['Normal'],
             traits: ['Brave'],
             abilities: ['sample_strike'],

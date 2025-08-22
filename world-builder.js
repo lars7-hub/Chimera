@@ -59,6 +59,10 @@ let worldNpcs = [];
 let spawnPoints = [];
 let editingSpawn = null;
 let showSpawnPoints = false;
+let npcMovementPaused = false;
+let hostileInteractionCooldown = 0;
+let hostilePursuitShield = 0;
+let hostileTimerEnd = 0;
 
 function updateNpcCoords() {
     const [x, y] = keyToCoords(currentKey);
@@ -988,13 +992,24 @@ window.onload = async function () {
     function populateNpcFields(bp) {
         const cont = document.getElementById('npc-data-fields');
         cont.innerHTML = '';
-        Object.entries(bp || {}).forEach(([key, val]) => {
+        const data = bp || {};
+        function addField(key, val) {
             const wrap = document.createElement('div');
             wrap.className = 'npc-field';
             const label = document.createElement('label');
             label.textContent = key + ':';
             let input;
-            if (typeof val === 'object') {
+            if (key === 'attitude') {
+                input = document.createElement('select');
+                ['Passive','Hostile','Friendly','Fearful'].forEach(optVal => {
+                    const opt = document.createElement('option');
+                    opt.value = optVal;
+                    opt.textContent = optVal;
+                    if (val === optVal) opt.selected = true;
+                    input.appendChild(opt);
+                });
+                input.dataset.type = 'string';
+            } else if (typeof val === 'object') {
                 input = document.createElement('textarea');
                 input.value = JSON.stringify(val, null, 2);
                 input.rows = 2;
@@ -1019,13 +1034,16 @@ window.onload = async function () {
             label.appendChild(input);
             wrap.appendChild(label);
             cont.appendChild(wrap);
-        });
+        }
+        Object.entries(data).forEach(([key, val]) => addField(key, val));
+        if (!('attitude' in data)) addField('attitude', 'Passive');
+        if (!('sightRange' in data)) addField('sightRange', 5);
     }
 
     function collectNpcData() {
         const cont = document.getElementById('npc-data-fields');
         const data = {};
-        cont.querySelectorAll('input, textarea').forEach(inp => {
+        cont.querySelectorAll('input, textarea, select').forEach(inp => {
             const key = inp.dataset.key;
             const type = inp.dataset.type;
             let val;
@@ -1136,6 +1154,8 @@ window.onload = async function () {
             const data = collectNpcData();
             const [x, y] = keyToCoords(currentKey);
             data.tile = { x, y };
+            data.home = { x, y };
+            data.state = 'wander';
             data.spawnPoint = null;
             const res = await window.electron.saveNPC('region1', currentWorld, data);
             if (res && res.success) {
@@ -1406,6 +1426,7 @@ window.onload = async function () {
     setInterval(tickRenewables, 1000);
     setInterval(tickSpawners, 1000);
     setInterval(tickNpcMovement, 1000);
+    setInterval(updateHostileTimer, 250);
 };
 
 async function loadWorld() {
@@ -1449,7 +1470,11 @@ async function loadWorld() {
     if (npcPanel) npcPanel.classList.add('hidden');
 
     const npcData = await window.electron.getNPCs('region1', currentWorld);
-    worldNpcs = npcData.npcs || [];
+    worldNpcs = (npcData.npcs || []).map(n => {
+        if (n.tile && !n.home) n.home = { ...n.tile };
+        if (!n.state) n.state = 'wander';
+        return n;
+    });
     spawnPoints = npcData.spawns || [];
 	renderGrid();
 	
@@ -2041,19 +2066,38 @@ function displayTile(tile, key = currentKey) {
         const npcsHere = worldNpcs.filter(n => n.tile && n.tile.x === x && n.tile.y === y);
         inspectWrap.innerHTML = '';
         if (npcsHere.length) {
-            inspectWrap.classList.remove('hidden');
-            npcsHere.forEach(npc => {
-                const name = npc.name || npc.species || 'NPC';
-                const lvl = npc.level != null ? npc.level : 1;
-                const btn = document.createElement('button');
-                btn.textContent = `Inspect ${name} L${lvl}`;
-                btn.addEventListener('click', () => {
-                    document.getElementById('npc-info-title').textContent = name;
-                    document.getElementById('npc-info-content').textContent = JSON.stringify(npc, null, 2);
-                    document.getElementById('npc-info-modal').classList.remove('hidden');
+            const hostileHere = npcsHere.find(n => n.attitude === 'Hostile');
+            if (hostileHere && Date.now() > hostileInteractionCooldown) {
+                inspectWrap.classList.add('hidden');
+                showHostileModal(hostileHere);
+            } else {
+                inspectWrap.classList.remove('hidden');
+                npcsHere.forEach(npc => {
+                    const name = npc.name || npc.species || 'NPC';
+                    const lvl = npc.level != null ? npc.level : 1;
+                    const wrapNpc = document.createElement('div');
+                    const btn = document.createElement('button');
+                    btn.textContent = `Inspect ${name} L${lvl}`;
+                    btn.addEventListener('click', () => {
+                        document.getElementById('npc-info-title').textContent = name;
+                        document.getElementById('npc-info-content').textContent = JSON.stringify(npc, null, 2);
+                        document.getElementById('npc-info-modal').classList.remove('hidden');
+                    });
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = `Destroy ${name}`;
+                    delBtn.className = 'destroy-btn';
+                    delBtn.addEventListener('click', () => {
+                        removeNpc(npc);
+                        if (npc.attitude === 'Hostile') {
+                            hostilePursuitShield = Date.now() + 10000;
+                            hostileTimerEnd = hostilePursuitShield;
+                        }
+                    });
+                    wrapNpc.appendChild(btn);
+                    wrapNpc.appendChild(delBtn);
+                    inspectWrap.appendChild(wrapNpc);
                 });
-                inspectWrap.appendChild(btn);
-            });
+            }
         } else {
             inspectWrap.classList.add('hidden');
         }
@@ -2763,7 +2807,9 @@ async function tickSpawners() {
 			if (count >= (spawn.maxPopulation || 1)) continue;
 			const npc = JSON.parse(JSON.stringify(spawn.blueprint || {}));
 			npc.tile = { ...spawn.tile };
-			npc.spawnPoint = spawn.name;
+                        npc.home = { ...spawn.tile };
+                        npc.state = 'wander';
+                        npc.spawnPoint = spawn.name;
 		if (spawn.levelRange && spawn.levelRange.length === 2) {
                         const [minL, maxL] = spawn.levelRange;
                         npc.level = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
@@ -2782,15 +2828,101 @@ async function tickSpawners() {
         }
 }
 
+function removeNpc(npc) {
+    const idx = worldNpcs.indexOf(npc);
+    if (idx >= 0) worldNpcs.splice(idx, 1);
+    if (npc.tile) {
+        const key = `${npc.tile.x}-${npc.tile.y}`;
+        if (tileMap[key]) updateTileVisual(tileMap[key], key);
+        if (key === currentKey && tileMap[currentKey]) displayTile(tileMap[currentKey].data);
+    }
+}
+
+function showHostileModal(npc) {
+    npcMovementPaused = true;
+    const modal = document.getElementById('hostile-npc-modal');
+    document.getElementById('hostile-npc-name').textContent = npc.name || npc.species || 'NPC';
+    document.getElementById('hostile-npc-content').textContent = JSON.stringify(npc, null, 2);
+    modal.classList.remove('hidden');
+    document.getElementById('hostile-destroy-btn').onclick = () => {
+        removeNpc(npc);
+        modal.classList.add('hidden');
+        npcMovementPaused = false;
+        hostilePursuitShield = Date.now() + 10000;
+        hostileTimerEnd = hostilePursuitShield;
+    };
+    document.getElementById('hostile-dismiss-btn').onclick = () => {
+        modal.classList.add('hidden');
+        npcMovementPaused = false;
+        hostileInteractionCooldown = Date.now() + 5000;
+        hostileTimerEnd = hostileInteractionCooldown;
+    };
+}
+
+function updateHostileTimer() {
+    const el = document.getElementById('hostile-timer');
+    const remaining = hostileTimerEnd - Date.now();
+    if (remaining > 0) {
+        el.textContent = Math.ceil(remaining / 1000);
+        el.classList.remove('hidden');
+    } else {
+        el.classList.add('hidden');
+    }
+}
+
+function moveNpcStep(npc, targetKey) {
+    const [tx, ty] = keyToCoords(targetKey);
+    const npcKey = `${npc.tile.x}-${npc.tile.y}`;
+    npc.tile.x = tx;
+    npc.tile.y = ty;
+    if (tileMap[npcKey]) updateTileVisual(tileMap[npcKey], npcKey);
+    if (tileMap[targetKey]) updateTileVisual(tileMap[targetKey], targetKey);
+    if ((npcKey === currentKey || targetKey === currentKey) && tileMap[currentKey]) {
+        displayTile(tileMap[currentKey].data);
+    }
+}
+
 function tickNpcMovement() {
+    if (npcMovementPaused) return;
+    const [px, py] = keyToCoords(currentKey);
     for (const npc of worldNpcs) {
         if (!npc.tile) continue;
-        if (Math.random() < 0.5) continue; // stay still
         const npcKey = `${npc.tile.x}-${npc.tile.y}`;
         const entry = tileMap[npcKey];
         if (!entry) continue;
         const spawn = npc.spawnPoint ? spawnPoints.find(s => s.name === npc.spawnPoint) : null;
-        if (!spawn) continue;
+
+        if (npc.attitude === 'Hostile') {
+            const range = npc.sightRange != null ? npc.sightRange : 0;
+            const dist = Math.hypot(npc.tile.x - px, npc.tile.y - py);
+            if (Date.now() > hostilePursuitShield) {
+                if (npc.state !== 'chase' && dist <= range) {
+                    npc.state = 'chase';
+                } else if (npc.state === 'chase' && dist > range) {
+                    npc.state = 'return';
+                }
+            } else if (npc.state === 'chase') {
+                npc.state = 'return';
+            }
+        }
+
+        if (npc.state === 'chase') {
+            const path = findPath(npcKey, currentKey);
+            if (path && path.length > 1) moveNpcStep(npc, path[1]);
+            continue;
+        }
+        if (npc.state === 'return') {
+            const homeKey = `${npc.home.x}-${npc.home.y}`;
+            if (npcKey === homeKey) {
+                npc.state = 'wander';
+            } else {
+                const path = findPath(npcKey, homeKey);
+                if (path && path.length > 1) moveNpcStep(npc, path[1]);
+            }
+            continue;
+        }
+
+        if (Math.random() < 0.5) continue; // stay still
         const options = (entry.data.connections || []).filter(key => {
             const next = tileMap[key];
             if (!next) return false;
@@ -2800,7 +2932,7 @@ function tickNpcMovement() {
                 if (spawn.zone && zones[spawn.zone]) {
                     const z = zones[spawn.zone];
                     if (!z.tiles.includes(key)) return false;
-                 } else if (spawn.wanderRadius != null && spawn.wanderRadius > 0) {
+                } else if (spawn && spawn.wanderRadius != null && spawn.wanderRadius > 0) {
                     const [sx, sy] = [spawn.tile.x, spawn.tile.y];
                     const [nx, ny] = keyToCoords(key);
                     const distNext = Math.hypot(nx - sx, ny - sy);
@@ -2815,14 +2947,7 @@ function tickNpcMovement() {
         });
         if (!options.length) continue;
         const targetKey = options[Math.floor(Math.random() * options.length)];
-        const [tx, ty] = keyToCoords(targetKey);
-        npc.tile.x = tx;
-        npc.tile.y = ty;
-        if (tileMap[npcKey]) updateTileVisual(tileMap[npcKey], npcKey);
-        if (tileMap[targetKey]) updateTileVisual(tileMap[targetKey], targetKey);
-          if ((npcKey === currentKey || targetKey === currentKey) && tileMap[currentKey]) {
-            displayTile(tileMap[currentKey].data);
-        }
+        moveNpcStep(npc, targetKey);
     }
     renderZoneBorders();
 }

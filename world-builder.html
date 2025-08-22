@@ -36,6 +36,7 @@
                         <button id="world-map-btn" title="World Map">🌐</button>
                         <button id="full-view-btn" title="Full View">🔍</button>
                     </div>
+                    <div id="hostile-timer" class="hidden"></div>
                 </div>
                 <div id="interact-module">
                     <button id="edit-btn">Edit Mode</button>
@@ -344,6 +345,16 @@
                 <span id="npc-info-close" class="close">&times;</span>
                 <h3 id="npc-info-title"></h3>
                 <pre id="npc-info-content"></pre>
+            </div>
+        </div>
+        <div id="hostile-npc-modal" class="modal hidden">
+            <div class="modal-content npc-profile">
+                <h3 id="hostile-npc-name"></h3>
+                <pre id="hostile-npc-content"></pre>
+                <div class="modal-buttons">
+                    <button id="hostile-destroy-btn" class="destroy-btn">Destroy npc</button>
+                    <button id="hostile-dismiss-btn">Dismiss</button>
+                </div>
             </div>
         </div>
         <div id="mini-item-popup" class="mini-item-popup hidden">
