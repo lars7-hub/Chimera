@@ -1130,6 +1130,9 @@ window.onload = async function () {
             if (res && res.success) {
                 worldNpcs.push(data);
                 alert('NPC spawned');
+                const key = `${x}-${y}`;
+                const entry = tileMap[key];
+                if (entry) updateTileVisual(entry, key);
                 displayTile(tileMap[currentKey].data);
             }
         } catch (err) {
@@ -1562,11 +1565,19 @@ function updateTileVisual(entry, key) {
         });
     }
 	if (spawnPoints.some(s => s.tile && s.tile.x === x && s.tile.y === y)) {
-		const img = document.createElement('img');
-		img.className = 'spawner-icon';
-		img.src = 'resources/map/stickers/spawner.png';
-		entry.el.appendChild(img);
-	}
+                const img = document.createElement('img');
+                img.className = 'spawner-icon';
+                img.src = 'resources/map/stickers/spawner.png';
+                entry.el.appendChild(img);
+        }
+    const npcsHere = worldNpcs.filter(n => n.tile && n.tile.x === x && n.tile.y === y);
+    npcsHere.forEach(npc => {
+        if (!npc.icon) return;
+        const img = document.createElement('img');
+        img.className = 'npc-icon';
+        img.src = npc.icon;
+        entry.el.appendChild(img);
+    });
     (entry.data.modifiers || []).forEach(m => {
         if (!m.icon) return;
         const img = document.createElement('img');
@@ -2010,32 +2021,41 @@ function displayTile(tile, key = currentKey) {
             shortDiv.classList.add('hidden');
         }
     }
-    const interactBtn = document.getElementById('npc-interact-btn');
-	const editSpawnerBtn = document.getElementById('edit-spawner-btn');
-    if (worldCharacter && interactBtn) {
-        const npc = worldNpcs.find(n => n.tile && n.tile.x === x && n.tile.y === y);
-        if (npc) {
-            interactBtn.classList.remove('hidden');
-            interactBtn.onclick = () => {
-                document.getElementById('npc-info-title').textContent = npc.name || npc.species || 'NPC';
-                document.getElementById('npc-info-content').textContent = JSON.stringify(npc, null, 2);
-                document.getElementById('npc-info-modal').classList.remove('hidden');
-            };
+    const inspectWrap = document.getElementById('npc-inspect-buttons');
+    const editSpawnerBtn = document.getElementById('edit-spawner-btn');
+    if (inspectWrap && worldCharacter) {
+        const npcsHere = worldNpcs.filter(n => n.tile && n.tile.x === x && n.tile.y === y);
+        inspectWrap.innerHTML = '';
+        if (npcsHere.length) {
+            inspectWrap.classList.remove('hidden');
+            npcsHere.forEach(npc => {
+                const name = npc.name || npc.species || 'NPC';
+                const lvl = npc.level != null ? npc.level : 1;
+                const btn = document.createElement('button');
+                btn.textContent = `Inspect ${name} L${lvl}`;
+                btn.addEventListener('click', () => {
+                    document.getElementById('npc-info-title').textContent = name;
+                    document.getElementById('npc-info-content').textContent = JSON.stringify(npc, null, 2);
+                    document.getElementById('npc-info-modal').classList.remove('hidden');
+                });
+                inspectWrap.appendChild(btn);
+            });
         } else {
-            interactBtn.classList.add('hidden');
+            inspectWrap.classList.add('hidden');
         }
-    } else if (interactBtn) {
-        interactBtn.classList.add('hidden');
+    } else if (inspectWrap) {
+        inspectWrap.classList.add('hidden');
+        inspectWrap.innerHTML = '';
     }
-	if (editSpawnerBtn) {
-		const spawn = spawnPoints.find(s => s.tile && s.tile.x === x && s.tile.y === y);
-		if (spawn) {
-			editSpawnerBtn.classList.remove('hidden');
-			editSpawnerBtn.onclick = () => openSpawnerEditor(spawn);
-		} else {
-			editSpawnerBtn.classList.add('hidden');
-		}
-	}
+    if (editSpawnerBtn) {
+        const spawn = spawnPoints.find(s => s.tile && s.tile.x === x && s.tile.y === y);
+        if (spawn) {
+            editSpawnerBtn.classList.remove('hidden');
+            editSpawnerBtn.onclick = () => openSpawnerEditor(spawn);
+        } else {
+            editSpawnerBtn.classList.add('hidden');
+        }
+    }
     drawDirectionArrows();
 }
 
@@ -2717,19 +2737,21 @@ async function tickSpawners() {
 			npc.tile = { ...spawn.tile };
 			npc.spawnPoint = spawn.name;
 		if (spawn.levelRange && spawn.levelRange.length === 2) {
-			const [minL, maxL] = spawn.levelRange;
-			npc.level = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
-		}
-		worldNpcs.push(npc);
-		try {
-			await window.electron.saveNPC('region1', currentWorld, npc);
-		} catch (err) {
-			console.error(err);
-		}
-		if (currentKey === `${spawn.tile.x}-${spawn.tile.y}` && tileMap[currentKey]) {
-			displayTile(tileMap[currentKey].data);
-		}
-	}
+                        const [minL, maxL] = spawn.levelRange;
+                        npc.level = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
+                }
+                worldNpcs.push(npc);
+                try {
+                        await window.electron.saveNPC('region1', currentWorld, npc);
+                } catch (err) {
+                        console.error(err);
+                }
+                const key = `${spawn.tile.x}-${spawn.tile.y}`;
+                if (tileMap[key]) updateTileVisual(tileMap[key], key);
+                if (currentKey === key && tileMap[currentKey]) {
+                        displayTile(tileMap[currentKey].data);
+                }
+        }
 }
 
 function tickRenewables() {
