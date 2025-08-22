@@ -57,6 +57,7 @@ let npcMode = 'manual';
 const npcBlueprints = [];
 let worldNpcs = [];
 let spawnPoints = [];
+let editingSpawn = null;
 
 function updateNpcCoords() {
     const [x, y] = keyToCoords(currentKey);
@@ -1063,6 +1064,44 @@ window.onload = async function () {
         });
     }
 
+    window.openSpawnerEditor = function(spawn) {
+        npcPanel.classList.remove('hidden');
+        if (biomePanel) biomePanel.classList.add('hidden');
+        if (itemPanel) itemPanel.classList.add('hidden');
+        if (zonePanel) zonePanel.classList.add('hidden');
+        biomePaintMode = false;
+        itemPaintMode = false;
+        zoneEditMode = false;
+        biomeToggle.textContent = 'Paint Mode: Off';
+        itemToggle.textContent = 'Item Paint Mode: Off';
+        zoneToggle.textContent = 'Zone Mode: Off';
+        populateNpcBlueprints();
+        populateSpawnZoneSelect();
+        npcMode = 'spawn';
+        document.querySelector('input[name="npc-mode"][value="spawn"]').checked = true;
+        document.getElementById('npc-manual-options').classList.add('hidden');
+        document.getElementById('npc-spawn-options').classList.remove('hidden');
+        populateNpcFields(spawn.blueprint);
+        document.getElementById('npc-spawn-name').value = spawn.name;
+        document.getElementById('npc-spawn-name').disabled = true;
+        document.getElementById('npc-spawn-x').value = spawn.tile.x;
+        document.getElementById('npc-spawn-y').value = spawn.tile.y;
+        document.getElementById('npc-spawn-max').value = spawn.maxPopulation || 1;
+        document.getElementById('npc-spawn-period').value = spawn.period || 60;
+        document.getElementById('npc-level-min').value = (spawn.levelRange && spawn.levelRange[0]) || 1;
+        document.getElementById('npc-level-max').value = (spawn.levelRange && spawn.levelRange[1]) || 1;
+        document.getElementById('npc-spawn-zone').value = spawn.zone || 'none';
+        renderSpawnBiomeChips(spawn.zone);
+        if (spawn.biomes) {
+            const chips = document.querySelectorAll('#npc-spawn-biomes .biome-chip');
+            chips.forEach(c => {
+                if (spawn.biomes.includes(c.textContent)) c.classList.add('selected');
+                else c.classList.remove('selected');
+            });
+        }
+        editingSpawn = spawn;
+    };
+
     document.getElementById('npc-blueprint-select').addEventListener('change', e => {
         const idx = parseInt(e.target.value);
         const bp = npcBlueprints[idx];
@@ -1101,7 +1140,7 @@ window.onload = async function () {
     document.getElementById('npc-save-spawn').addEventListener('click', async () => {
         const name = document.getElementById('npc-spawn-name').value.trim();
         if (!name) { alert('Spawner name required'); return; }
-        if (spawnPoints.some(s => s.name === name)) { alert('Spawner name exists'); return; }
+        if (!editingSpawn && spawnPoints.some(s => s.name === name)) { alert('Spawner name exists'); return; }
         try {
             const data = collectNpcData();
             const spawn = {
@@ -1111,6 +1150,7 @@ window.onload = async function () {
                     y: parseInt(document.getElementById('npc-spawn-y').value, 10) || 0
                 },
                 maxPopulation: parseInt(document.getElementById('npc-spawn-max').value, 10) || 1,
+                period: parseInt(document.getElementById('npc-spawn-period').value, 10) || 60,
                 levelRange: [
                     parseInt(document.getElementById('npc-level-min').value, 10) || 1,
                     parseInt(document.getElementById('npc-level-max').value, 10) || 1
@@ -1121,8 +1161,24 @@ window.onload = async function () {
             };
             const res = await window.electron.saveNpcSpawn('region1', currentWorld, spawn);
             if (res && res.success) {
-                spawnPoints.push(spawn);
-                alert('Spawn point created');
+                if (editingSpawn) {
+                    const oldX = editingSpawn.tile.x;
+                    const oldY = editingSpawn.tile.y;
+                    const idx = spawnPoints.findIndex(s => s.name === editingSpawn.name);
+                    if (idx >= 0) spawnPoints[idx] = spawn;
+                    const oldKey = `${oldX}-${oldY}`;
+                    const newKey = `${spawn.tile.x}-${spawn.tile.y}`;
+                    if (tileMap[oldKey]) updateTileVisual(tileMap[oldKey], oldKey);
+                    if (tileMap[newKey]) updateTileVisual(tileMap[newKey], newKey);
+                    alert('Spawn point updated');
+                } else {
+                    spawnPoints.push(spawn);
+                    const key = `${spawn.tile.x}-${spawn.tile.y}`;
+                    if (tileMap[key]) updateTileVisual(tileMap[key], key);
+                    alert('Spawn point created');
+                }
+                editingSpawn = null;
+                document.getElementById('npc-spawn-name').disabled = false;
             }
         } catch (err) {
             alert('Invalid NPC data');
@@ -1205,6 +1261,9 @@ window.onload = async function () {
             populateNpcBlueprints();
             populateSpawnZoneSelect();
             updateNpcCoords();
+			editingSpawn = null;
+			const nameInput = document.getElementById('npc-spawn-name');
+			if (nameInput) nameInput.disabled = false;
         } else {
             npcPanel.classList.add('hidden');
         }
@@ -1330,6 +1389,7 @@ window.onload = async function () {
     window.addEventListener('resize', renderGrid);
 
     setInterval(tickRenewables, 1000);
+	setInterval(tickSpawners, 1000);
 };
 
 async function loadWorld() {
@@ -1375,6 +1435,7 @@ async function loadWorld() {
     const npcData = await window.electron.getNPCs('region1', currentWorld);
     worldNpcs = npcData.npcs || [];
     spawnPoints = npcData.spawns || [];
+	renderGrid();
 	
     worldCharacter = await window.electron.getWorldCharacter(currentWorld);
     if (worldCharacter) {
@@ -1472,6 +1533,7 @@ function renderGrid() {
 
 function updateTileVisual(entry, key) {
     const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
+	const [x, y] = keyToCoords(key);
     entry.el.innerHTML = '';
     if (entry.el.classList.contains('current')) {
         const cur = document.createElement('div');
@@ -1499,7 +1561,12 @@ function updateTileVisual(entry, key) {
             entry.el.appendChild(img);
         });
     }
-
+	if (spawnPoints.some(s => s.tile && s.tile.x === x && s.tile.y === y)) {
+		const img = document.createElement('img');
+		img.className = 'spawner-icon';
+		img.src = 'resources/map/stickers/spawner.png';
+		entry.el.appendChild(img);
+	}
     (entry.data.modifiers || []).forEach(m => {
         if (!m.icon) return;
         const img = document.createElement('img');
@@ -1944,9 +2011,9 @@ function displayTile(tile, key = currentKey) {
         }
     }
     const interactBtn = document.getElementById('npc-interact-btn');
+	const editSpawnerBtn = document.getElementById('edit-spawner-btn');
     if (worldCharacter && interactBtn) {
-        const [cx, cy] = keyToCoords(currentKey);
-        const npc = worldNpcs.find(n => n.tile && n.tile.x === cx && n.tile.y === cy);
+        const npc = worldNpcs.find(n => n.tile && n.tile.x === x && n.tile.y === y);
         if (npc) {
             interactBtn.classList.remove('hidden');
             interactBtn.onclick = () => {
@@ -1960,6 +2027,15 @@ function displayTile(tile, key = currentKey) {
     } else if (interactBtn) {
         interactBtn.classList.add('hidden');
     }
+	if (editSpawnerBtn) {
+		const spawn = spawnPoints.find(s => s.tile && s.tile.x === x && s.tile.y === y);
+		if (spawn) {
+			editSpawnerBtn.classList.remove('hidden');
+			editSpawnerBtn.onclick = () => openSpawnerEditor(spawn);
+		} else {
+			editSpawnerBtn.classList.add('hidden');
+		}
+	}
     drawDirectionArrows();
 }
 
@@ -2626,6 +2702,34 @@ async function saveRegion() {
     });
     const [ox, oy] = keyToCoords(originKey);
     await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
+}
+
+async function tickSpawners() {
+	const now = Date.now();
+		for (const spawn of spawnPoints) {
+			const period =(spawn.period || 60) * 1000;
+			spawn._last = spawn._last || 0;
+			if (now - spawn._last < period) continue;
+			spawn._last = now;
+			const count = worldNpcs.filter(n => n.spawnPoint === spawn.name).length;
+			if (count >= (spawn.maxPopulation || 1)) continue;
+			const npc = JSON.parse(JSON.stringify(spawn.blueprint || {}));
+			npc.tile = { ...spawn.tile };
+			npc.spawnPoint = spawn.name;
+		if (spawn.levelRange && spawn.levelRange.length === 2) {
+			const [minL, maxL] = spawn.levelRange;
+			npc.level = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
+		}
+		worldNpcs.push(npc);
+		try {
+			await window.electron.saveNPC('region1', currentWorld, npc);
+		} catch (err) {
+			console.error(err);
+		}
+		if (currentKey === `${spawn.tile.x}-${spawn.tile.y}` && tileMap[currentKey]) {
+			displayTile(tileMap[currentKey].data);
+		}
+	}
 }
 
 function tickRenewables() {
