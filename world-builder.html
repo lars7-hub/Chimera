@@ -85,6 +85,7 @@
                     </div>
                     <div id="npc-inspect-buttons" class="hidden"></div>
                     <button id="edit-spawner-btn" class="hidden">Edit Spawner</button>
+                    <button id="delete-spawner-btn" class="hidden">Delete Spawner</button>
                 </div>
             </div>
         </div>
@@ -258,6 +259,9 @@
 
         <div id="npc-manager-panel" class="painter-popup hidden">
             <div>
+                <label><input type="checkbox" id="npc-spawn-toggle">Show Spawn Points</label>
+            </div>
+            <div>
                 <label><input type="radio" name="npc-mode" value="manual" checked>Manual Spawn</label>
                 <label><input type="radio" name="npc-mode" value="spawn">Spawn Point</label>
             </div>
@@ -293,6 +297,9 @@
                         </label>
                         <label>Level Max:
                             <input id="npc-level-max" type="number" value="1" />
+                        </label>
+                        <label>Wander Radius:
+                            <input id="npc-wander-radius" type="number" value="0" />
                         </label>
                         <label>Zone Spawner:
                             <select id="npc-spawn-zone"><option value="none">None</option></select>

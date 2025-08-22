@@ -58,6 +58,7 @@ const npcBlueprints = [];
 let worldNpcs = [];
 let spawnPoints = [];
 let editingSpawn = null;
+let showSpawnPoints = false;
 
 function updateNpcCoords() {
     const [x, y] = keyToCoords(currentKey);
@@ -957,6 +958,15 @@ window.onload = async function () {
     });
 
     npcPanel = document.getElementById('npc-manager-panel');
+    const spawnToggle = document.getElementById('npc-spawn-toggle');
+    if (spawnToggle) {
+        spawnToggle.checked = showSpawnPoints;
+        spawnToggle.addEventListener('change', () => {
+            showSpawnPoints = spawnToggle.checked;
+            Object.entries(tileMap).forEach(([k, e]) => updateTileVisual(e, k));
+            if (tileMap[currentKey]) displayTile(tileMap[currentKey].data);
+        });
+    }
 
     function populateNpcBlueprints() {
         const sel = document.getElementById('npc-blueprint-select');
@@ -1090,6 +1100,7 @@ window.onload = async function () {
         document.getElementById('npc-spawn-period').value = spawn.period || 60;
         document.getElementById('npc-level-min').value = (spawn.levelRange && spawn.levelRange[0]) || 1;
         document.getElementById('npc-level-max').value = (spawn.levelRange && spawn.levelRange[1]) || 1;
+        document.getElementById('npc-wander-radius').value = spawn.wanderRadius || 0;
         document.getElementById('npc-spawn-zone').value = spawn.zone || 'none';
         renderSpawnBiomeChips(spawn.zone);
         if (spawn.biomes) {
@@ -1158,6 +1169,7 @@ window.onload = async function () {
                     parseInt(document.getElementById('npc-level-min').value, 10) || 1,
                     parseInt(document.getElementById('npc-level-max').value, 10) || 1
                 ],
+                wanderRadius: parseInt(document.getElementById('npc-wander-radius').value, 10) || 0,
                 zone: document.getElementById('npc-spawn-zone').value !== 'none' ? document.getElementById('npc-spawn-zone').value : null,
                 biomes: Array.from(document.querySelectorAll('#npc-spawn-biomes .biome-chip.selected')).map(c => c.textContent),
                 blueprint: data
@@ -1392,7 +1404,8 @@ window.onload = async function () {
     window.addEventListener('resize', renderGrid);
 
     setInterval(tickRenewables, 1000);
-	setInterval(tickSpawners, 1000);
+    setInterval(tickSpawners, 1000);
+    setInterval(tickNpcMovement, 1000);
 };
 
 async function loadWorld() {
@@ -1564,7 +1577,7 @@ function updateTileVisual(entry, key) {
             entry.el.appendChild(img);
         });
     }
-	if (spawnPoints.some(s => s.tile && s.tile.x === x && s.tile.y === y)) {
+	if (showSpawnPoints && spawnPoints.some(s => s.tile && s.tile.x === x && s.tile.y === y)) {
                 const img = document.createElement('img');
                 img.className = 'spawner-icon';
                 img.src = 'resources/map/stickers/spawner.png';
@@ -2023,6 +2036,7 @@ function displayTile(tile, key = currentKey) {
     }
     const inspectWrap = document.getElementById('npc-inspect-buttons');
     const editSpawnerBtn = document.getElementById('edit-spawner-btn');
+    const deleteSpawnerBtn = document.getElementById('delete-spawner-btn');
     if (inspectWrap && worldCharacter) {
         const npcsHere = worldNpcs.filter(n => n.tile && n.tile.x === x && n.tile.y === y);
         inspectWrap.innerHTML = '';
@@ -2047,13 +2061,27 @@ function displayTile(tile, key = currentKey) {
         inspectWrap.classList.add('hidden');
         inspectWrap.innerHTML = '';
     }
-    if (editSpawnerBtn) {
-        const spawn = spawnPoints.find(s => s.tile && s.tile.x === x && s.tile.y === y);
+    if (editSpawnerBtn && deleteSpawnerBtn) {
+        const spawn = showSpawnPoints ? spawnPoints.find(s => s.tile && s.tile.x === x && s.tile.y === y) : null;
         if (spawn) {
             editSpawnerBtn.classList.remove('hidden');
+            deleteSpawnerBtn.classList.remove('hidden');
             editSpawnerBtn.onclick = () => openSpawnerEditor(spawn);
+            deleteSpawnerBtn.onclick = async () => {
+                const res = await window.electron.deleteNpcSpawn('region1', currentWorld, spawn.name);
+                if (res && res.success) {
+                    const idx = spawnPoints.findIndex(s => s.name === spawn.name);
+                    if (idx >= 0) spawnPoints.splice(idx, 1);
+                    const key = `${spawn.tile.x}-${spawn.tile.y}`;
+                    if (tileMap[key]) updateTileVisual(tileMap[key], key);
+                    if (currentKey === key && tileMap[currentKey]) displayTile(tileMap[currentKey].data);
+                    editSpawnerBtn.classList.add('hidden');
+                    deleteSpawnerBtn.classList.add('hidden');
+                }
+            };
         } else {
             editSpawnerBtn.classList.add('hidden');
+            deleteSpawnerBtn.classList.add('hidden');
         }
     }
     drawDirectionArrows();
@@ -2753,6 +2781,46 @@ async function tickSpawners() {
                 }
         }
 }
+
+function tickNpcMovement() {
+    for (const npc of worldNpcs) {
+        if (!npc.tile) continue;
+        if (Math.random() < 0.5) continue; // stay still
+        const npcKey = `${npc.tile.x}-${npc.tile.y}`;
+        const entry = tileMap[npcKey];
+        if (!entry) continue;
+        const spawn = npc.spawnPoint ? spawnPoints.find(s => s.name === npc.spawnPoint) : null;
+        if (!spawn) continue;
+        const options = (entry.data.connections || []).filter(key => {
+            const next = tileMap[key];
+            if (!next) return false;
+            const inv = npc.inventory || [];
+            if (!TileConditions.isPassable(next.data, inv)) return false;
+            if (spawn) {
+                if (spawn.zone && zones[spawn.zone]) {
+                    const z = zones[spawn.zone];
+                    if (!z.tiles.includes(key)) return false;
+                } else if (spawn.wanderRadius != null && spawn.wanderRadius > 0) {
+                    const [sx, sy] = [spawn.tile.x, spawn.tile.y];
+                    const [nx, ny] = keyToCoords(key);
+                    if (Math.hypot(nx - sx, ny - sy) > spawn.wanderRadius) return false;
+                }
+            }
+            return true;
+        });
+        if (!options.length) continue;
+        const targetKey = options[Math.floor(Math.random() * options.length)];
+        const [tx, ty] = keyToCoords(targetKey);
+        npc.tile.x = tx;
+        npc.tile.y = ty;
+        if (tileMap[npcKey]) updateTileVisual(tileMap[npcKey], npcKey);
+        if (tileMap[targetKey]) updateTileVisual(tileMap[targetKey], targetKey);
+        if ((npcKey === currentKey || targetKey === currentKey) && tileMap[currentKey]) {
+            displayTile(tileMap[currentKey].data);
+        }
+    }
+}
+
 
 function tickRenewables() {
     const now = Date.now();

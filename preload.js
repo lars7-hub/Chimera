@@ -45,5 +45,6 @@ contextBridge.exposeInMainWorld('electron', {
     hasLexicon: (worldName) => ipcRenderer.invoke('has-lexicon', worldName),
     getNPCs: (regionName, worldName) => ipcRenderer.invoke('get-npcs', regionName, worldName),
     saveNPC: (regionName, worldName, data) => ipcRenderer.invoke('save-npc', regionName, worldName, data),
-    saveNpcSpawn: (regionName, worldName, data) => ipcRenderer.invoke('save-npc-spawn', regionName, worldName, data)
+    saveNpcSpawn: (regionName, worldName, data) => ipcRenderer.invoke('save-npc-spawn', regionName, worldName, data),
+    deleteNpcSpawn: (regionName, worldName, name) => ipcRenderer.invoke('delete-npc-spawn', regionName, worldName, name)
 });

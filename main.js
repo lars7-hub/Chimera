@@ -587,6 +587,20 @@ ipcMain.handle('save-npc-spawn', (event, regionName, worldName, spawn) => {
     }
 });
 
+ipcMain.handle('delete-npc-spawn', (event, regionName, worldName, name) => {
+    try {
+        const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+        const spawnDir = path.join(baseMap, regionName, 'spawns');
+        const base = (name || 'spawner').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+        const file = path.join(spawnDir, `${base}.json`);
+        if (fs.existsSync(file)) fs.unlinkSync(file);
+        return { success: true };
+    } catch (err) {
+        console.error('Error deleting NPC spawn:', err);
+        return { success: false };
+    }
+});
+
 ipcMain.handle('get-adventures', () => {
     try {
         if (!fs.existsSync(adventurePath)) return [];
