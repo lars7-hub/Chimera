@@ -2800,10 +2800,15 @@ function tickNpcMovement() {
                 if (spawn.zone && zones[spawn.zone]) {
                     const z = zones[spawn.zone];
                     if (!z.tiles.includes(key)) return false;
-                } else if (spawn.wanderRadius != null && spawn.wanderRadius > 0) {
+                 } else if (spawn.wanderRadius != null && spawn.wanderRadius > 0) {
                     const [sx, sy] = [spawn.tile.x, spawn.tile.y];
                     const [nx, ny] = keyToCoords(key);
-                    if (Math.hypot(nx - sx, ny - sy) > spawn.wanderRadius) return false;
+                    const distNext = Math.hypot(nx - sx, ny - sy);
+                    if (distNext > spawn.wanderRadius) {
+                        const [cx, cy] = [npc.tile.x, npc.tile.y];
+                        const distCurrent = Math.hypot(cx - sx, cy - sy);
+                        if (distNext >= distCurrent) return false;
+                    }
                 }
             }
             return true;
@@ -2815,10 +2820,11 @@ function tickNpcMovement() {
         npc.tile.y = ty;
         if (tileMap[npcKey]) updateTileVisual(tileMap[npcKey], npcKey);
         if (tileMap[targetKey]) updateTileVisual(tileMap[targetKey], targetKey);
-        if ((npcKey === currentKey || targetKey === currentKey) && tileMap[currentKey]) {
+          if ((npcKey === currentKey || targetKey === currentKey) && tileMap[currentKey]) {
             displayTile(tileMap[currentKey].data);
         }
     }
+    renderZoneBorders();
 }
 
 
