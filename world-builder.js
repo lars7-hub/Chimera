@@ -60,6 +60,7 @@ let spawnPoints = [];
 let editingSpawn = null;
 let showSpawnPoints = false;
 let npcMovementPaused = false;
+let playerMovementLocked = false;
 let hostileInteractionCooldown = 0;
 let hostilePursuitShield = 0;
 let hostileTimerEnd = 0;
@@ -859,6 +860,7 @@ window.onload = async function () {
     });
     document.getElementById('npc-info-close').addEventListener('click', () => {
         document.getElementById('npc-info-modal').classList.add('hidden');
+        playerMovementLocked = false;
     });
 
     document.getElementById('world-map-btn').addEventListener('click', () => {
@@ -1038,6 +1040,7 @@ window.onload = async function () {
         Object.entries(data).forEach(([key, val]) => addField(key, val));
         if (!('attitude' in data)) addField('attitude', 'Passive');
         if (!('sightRange' in data)) addField('sightRange', 5);
+        if (!('pursuitTime' in data)) addField('pursuitTime', 0);
     }
 
     function collectNpcData() {
@@ -1159,12 +1162,14 @@ window.onload = async function () {
             data.spawnPoint = null;
             const res = await window.electron.saveNPC('region1', currentWorld, data);
             if (res && res.success) {
+                data._file = res.file;
                 worldNpcs.push(data);
                 alert('NPC spawned');
                 const key = `${x}-${y}`;
                 const entry = tileMap[key];
                 if (entry) updateTileVisual(entry, key);
                 displayTile(tileMap[currentKey].data);
+                renderZoneBorders();
             }
         } catch (err) {
             alert('Invalid NPC data');
@@ -1307,6 +1312,7 @@ window.onload = async function () {
     const mapModule = document.getElementById('map-module');
 	const miniMap = document.getElementById('minimap');
     mapModule.addEventListener('mousedown', async (e) => {
+        if (playerMovementLocked) return;
         if (!e.target.classList.contains('map-tile')) return;
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
@@ -1391,26 +1397,28 @@ window.onload = async function () {
         lastKey = null;
     });
 	if (miniMap) {
-		miniMap.addEventListener('click', (e) => {
+        miniMap.addEventListener('click', (e) => {
 			if (!useSplitView) return;
-            const regionW = maxX - minX + 1;
-            const regionH = maxY - minY + 1;
-            const tileW = miniMap.width / regionW;
-            const tileH = miniMap.height / regionH;
-            const tx = Math.floor(e.offsetX / tileW) + minX;
-            const ty = Math.floor(e.offsetY / tileH) + minY;
-            const key = `${tx}-${ty}`;
-            if (!tileMap[key]) return;
-            const path = findPath(currentKey, key);
-            if (path && path.length > 1) {
-                stopAutoMove();
-                startAutoMove(path);
+			if (playerMovementLocked) return;
+			const regionW = maxX - minX + 1;
+			const regionH = maxY - minY + 1;
+			const tileW = miniMap.width / regionW;
+			const tileH = miniMap.height / regionH;
+			const tx = Math.floor(e.offsetX / tileW) + minX;
+			const ty = Math.floor(e.offsetY / tileH) + minY;
+			const key = `${tx}-${ty}`;
+			if (!tileMap[key]) return;
+			const path = findPath(currentKey, key);
+			if (path && path.length > 1) {
+				stopAutoMove();
+				startAutoMove(path);
 			}
 		});
 	}
     window.addEventListener('keydown', (e) => {
         if (!document.getElementById('tile-editor-overlay').classList.contains('hidden')) return;
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+        if (playerMovementLocked) return;
         let dir = null;
         if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') dir = 'up';
         else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') dir = 'down';
@@ -1933,39 +1941,67 @@ function goToTile(target) {
             prev.el.classList.remove('current');
             updateTileVisual(prev, prevKey);
         }
-        const cur = tileMap[currentKey];
-        if (cur) {
-            cur.el.classList.add('current');
-            updateTileVisual(cur, currentKey);
-            displayTile(cur.data);
-            (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
-            renderZoneNames();
-            renderZoneBorders();
+        const curEntry = tileMap[currentKey];
+        if (curEntry) {
+            curEntry.el.classList.add('current');
+            updateTileVisual(curEntry, currentKey);
         }
     }
+    const cur = tileMap[currentKey];
+    if (cur) {
+        displayTile(cur.data);
+        (cur.data.modifiers || []).forEach(m => { if (m.message) alert(m.message); });
+    }
+    renderZoneNames();
+    renderZoneBorders();
 }
 
 
-function findPath(startKey, targetKey) {
-    const queue = [[startKey]];
-    const visited = new Set([startKey]);
-    while (queue.length) {
-        const path = queue.shift();
-        const last = path[path.length - 1];
-        if (last === targetKey) return path;
-        const entry = tileMap[last];
+function findPath(startKey, targetKey, inv = worldInventory || []) {
+    const open = new Set([startKey]);
+    const cameFrom = {};
+    const gScore = { [startKey]: 0 };
+    const fScore = { [startKey]: heuristic(startKey, targetKey) };
+    while (open.size) {
+        let current = null;
+        let best = Infinity;
+        for (const k of open) {
+            const score = fScore[k] != null ? fScore[k] : Infinity;
+            if (score < best) { best = score; current = k; }
+        }
+        if (current === targetKey) {
+            const path = [current];
+            while (cameFrom[current]) { current = cameFrom[current]; path.push(current); }
+            return path.reverse();
+        }
+        open.delete(current);
+        const entry = tileMap[current];
         if (!entry) continue;
-        (entry.data.connections || []).forEach(next => {
-            if (!visited.has(next)) {
-                const nextEntry = tileMap[next];
-                const inv = worldInventory || [];
-                if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv)) return;
-                visited.add(next);
-                queue.push([...path, next]);
+        for (const next of entry.data.connections || []) {
+            const nextEntry = tileMap[next];
+            if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv)) continue;
+            const tentativeG = (gScore[current] ?? Infinity) + moveCost(current, next);
+            if (tentativeG < (gScore[next] ?? Infinity)) {
+                cameFrom[next] = current;
+                gScore[next] = tentativeG;
+                fScore[next] = tentativeG + heuristic(next, targetKey);
+                open.add(next);
             }
-        });
+        }
     }
     return null;
+}
+
+function moveCost(aKey, bKey) {
+    const [ax, ay] = keyToCoords(aKey);
+    const [bx, by] = keyToCoords(bKey);
+    return (ax !== bx && ay !== by) ? 1.4 : 1;
+}
+
+function heuristic(aKey, bKey) {
+    const [ax, ay] = keyToCoords(aKey);
+    const [bx, by] = keyToCoords(bKey);
+    return Math.abs(ax - bx) + Math.abs(ay - by);
 }
 
 function stopAutoMove() {
@@ -1987,6 +2023,7 @@ function startAutoMove(path, index = 1) {
 }
 
 function moveDirection(dir) {
+    if (playerMovementLocked) return;
     const entry = tileMap[currentKey];
     if (!entry) return;
     const [cx, cy] = keyToCoords(currentKey);
@@ -2073,38 +2110,47 @@ function displayTile(tile, key = currentKey) {
     const deleteSpawnerBtn = document.getElementById('delete-spawner-btn');
     if (inspectWrap && worldCharacter) {
         const npcsHere = worldNpcs.filter(n => n.tile && n.tile.x === x && n.tile.y === y);
+        const hostileHere = npcsHere.find(n => n.attitude === 'Hostile');
+        if (hostileHere && Date.now() > hostileInteractionCooldown) {
+            inspectWrap.classList.add('hidden');
+            showHostileModal(hostileHere);
+            return;
+        }
+        const connections = (tileMap[key] && tileMap[key].data.connections) || [];
+        const npcsAdj = worldNpcs.filter(n => {
+            if (!n.tile) return false;
+            const nk = `${n.tile.x}-${n.tile.y}`;
+            return connections.includes(nk);
+        });
+        const npcsAround = [...npcsHere, ...npcsAdj.filter(n => !npcsHere.includes(n))];
         inspectWrap.innerHTML = '';
-        if (npcsHere.length) {
-            const hostileHere = npcsHere.find(n => n.attitude === 'Hostile');
-            if (hostileHere && Date.now() > hostileInteractionCooldown) {
-                inspectWrap.classList.add('hidden');
-                showHostileModal(hostileHere);
-            } else {
-                inspectWrap.classList.remove('hidden');
-                npcsHere.forEach(npc => {
-                    const name = npc.name || npc.species || 'NPC';
-                    const lvl = npc.level != null ? npc.level : 1;
-                    const wrapNpc = document.createElement('div');
-                    const btn = document.createElement('button');
-                    btn.textContent = `Inspect ${name} L${lvl}`;
-                    btn.addEventListener('click', () => {
-                        showNpcInfoModal(npc);
-                    });
-                    const delBtn = document.createElement('button');
-                    delBtn.textContent = `Destroy ${name}`;
-                    delBtn.className = 'destroy-btn';
-                    delBtn.addEventListener('click', () => {
-                        removeNpc(npc);
-                        if (npc.attitude === 'Hostile') {
-                            hostilePursuitShield = Date.now() + 10000;
-                            hostileTimerEnd = hostilePursuitShield;
-                        }
-                    });
-                    wrapNpc.appendChild(btn);
-                    wrapNpc.appendChild(delBtn);
-                    inspectWrap.appendChild(wrapNpc);
+        if (npcsAround.length) {
+            inspectWrap.classList.remove('hidden');
+            npcsAround.forEach(npc => {
+                const name = npc.name || npc.species || 'NPC';
+                const lvl = npc.level != null ? npc.level : 1;
+                const wrapNpc = document.createElement('div');
+                const btn = document.createElement('button');
+                btn.textContent = `Interact with ${name} L${lvl}`;
+                btn.addEventListener('click', () => {
+                    playerMovementLocked = true;
+                    stopAutoMove();
+                    showNpcInfoModal(npc);
                 });
-            }
+                const delBtn = document.createElement('button');
+                delBtn.textContent = `Destroy ${name}`;
+                delBtn.className = 'destroy-btn';
+                delBtn.addEventListener('click', async () => {
+                    await removeNpc(npc);
+                    if (npc.attitude === 'Hostile') {
+                        hostilePursuitShield = Date.now() + 10000;
+                        hostileTimerEnd = hostilePursuitShield;
+                    }
+                });
+                wrapNpc.appendChild(btn);
+                wrapNpc.appendChild(delBtn);
+                inspectWrap.appendChild(wrapNpc);
+            });
         } else {
             inspectWrap.classList.add('hidden');
         }
@@ -2821,28 +2867,34 @@ async function tickSpawners() {
                         const [minL, maxL] = spawn.levelRange;
                         npc.level = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
                 }
-                worldNpcs.push(npc);
                 try {
-                        await window.electron.saveNPC('region1', currentWorld, npc);
+                        const res = await window.electron.saveNPC('region1', currentWorld, npc);
+                        npc._file = res && res.file;
                 } catch (err) {
                         console.error(err);
                 }
+                worldNpcs.push(npc);
                 const key = `${spawn.tile.x}-${spawn.tile.y}`;
                 if (tileMap[key]) updateTileVisual(tileMap[key], key);
                 if (currentKey === key && tileMap[currentKey]) {
                         displayTile(tileMap[currentKey].data);
                 }
+                renderZoneBorders();
         }
 }
 
-function removeNpc(npc) {
+async function removeNpc(npc) {
     const idx = worldNpcs.indexOf(npc);
     if (idx >= 0) worldNpcs.splice(idx, 1);
+    if (npc._file) {
+        try { await window.electron.deleteNPC('region1', currentWorld, npc._file); } catch (err) { console.error(err); }
+    }
     if (npc.tile) {
         const key = `${npc.tile.x}-${npc.tile.y}`;
         if (tileMap[key]) updateTileVisual(tileMap[key], key);
         if (key === currentKey && tileMap[currentKey]) displayTile(tileMap[currentKey].data);
     }
+    renderZoneBorders();
 }
 
 function populateNpcModal(npc, prefix) {
@@ -2886,25 +2938,31 @@ function populateNpcModal(npc, prefix) {
 }
 
 function showNpcInfoModal(npc) {
+    playerMovementLocked = true;
+    stopAutoMove();
     populateNpcModal(npc, 'npc-info');
     document.getElementById('npc-info-modal').classList.remove('hidden');
 }
 
 function showHostileModal(npc) {
     npcMovementPaused = true;
+    playerMovementLocked = true;
+    stopAutoMove();
     const modal = document.getElementById('hostile-npc-modal');
     populateNpcModal(npc, 'hostile-npc');
     modal.classList.remove('hidden');
-    document.getElementById('hostile-destroy-btn').onclick = () => {
-        removeNpc(npc);
+    document.getElementById('hostile-destroy-btn').onclick = async () => {
+        await removeNpc(npc);
         modal.classList.add('hidden');
         npcMovementPaused = false;
+        playerMovementLocked = false;
         hostilePursuitShield = Date.now() + 10000;
         hostileTimerEnd = hostilePursuitShield;
     };
     document.getElementById('hostile-dismiss-btn').onclick = () => {
         modal.classList.add('hidden');
         npcMovementPaused = false;
+        playerMovementLocked = false;
         hostileInteractionCooldown = Date.now() + 5000;
         hostileTimerEnd = hostileInteractionCooldown;
     };
@@ -2940,6 +2998,25 @@ function moveNpcStep(npc, targetKey) {
     return true;
 }
 
+function directStep(startKey, targetKey, inv) {
+    const entry = tileMap[startKey];
+    if (!entry) return null;
+    const [tx, ty] = keyToCoords(targetKey);
+    let best = null;
+    let bestDist = Infinity;
+    for (const next of entry.data.connections || []) {
+        const nextEntry = tileMap[next];
+        if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv)) continue;
+        const [nx, ny] = keyToCoords(next);
+        const d = Math.hypot(tx - nx, ty - ny);
+        if (d < bestDist) {
+            bestDist = d;
+            best = next;
+        }
+    }
+    return best;
+}
+
 function tickNpcMovement() {
     if (npcMovementPaused) return;
     const [px, py] = keyToCoords(currentKey);
@@ -2953,9 +3030,14 @@ function tickNpcMovement() {
         if (npc.attitude === 'Hostile') {
             const range = npc.sightRange != null ? npc.sightRange : 0;
             const dist = Math.hypot(npc.tile.x - px, npc.tile.y - py);
-            if (Date.now() > hostilePursuitShield) {
+            if (npc.state === 'cooldown') {
+                if (npc._cooldownUntil && Date.now() >= npc._cooldownUntil) {
+                    npc.state = 'wander';
+                }
+            } else if (Date.now() > hostilePursuitShield) {
                 if (npc.state !== 'chase' && dist <= range) {
                     npc.state = 'chase';
+                    npc._pursuitStart = Date.now();
                 } else if (npc.state === 'chase' && dist > range) {
                     npc.state = 'return';
                 }
@@ -2965,8 +3047,24 @@ function tickNpcMovement() {
         }
 
         if (npc.state === 'chase') {
-            const path = findPath(npcKey, currentKey);
-            if (path && path.length > 1) moveNpcStep(npc, path[1]);
+            const range = npc.sightRange != null ? npc.sightRange : 0;
+            if (npc.pursuitTime && npc.pursuitTime > 0 && npc._pursuitStart && Date.now() - npc._pursuitStart > npc.pursuitTime * 1000) {
+                npc.state = 'cooldown';
+                npc._cooldownUntil = Date.now() + npc.pursuitTime * 1000;
+                continue;
+            }
+            const path = findPath(npcKey, currentKey, npc.inventory || []);
+            if (path && path.length > 1) {
+                if (path.length - 1 <= range + 3) {
+                    moveNpcStep(npc, path[1]);
+                } else {
+                    const step = directStep(npcKey, currentKey, npc.inventory || []);
+                    if (step) moveNpcStep(npc, step);
+                }
+            } else {
+                const step = directStep(npcKey, currentKey, npc.inventory || []);
+                if (step) moveNpcStep(npc, step);
+            }
             continue;
         }
         if (npc.state === 'return') {
@@ -2974,7 +3072,7 @@ function tickNpcMovement() {
             if (npcKey === homeKey) {
                 npc.state = 'wander';
             } else {
-                const path = findPath(npcKey, homeKey);
+                const path = findPath(npcKey, homeKey, npc.inventory || []);
                 if (path && path.length > 1) moveNpcStep(npc, path[1]);
             }
             continue;

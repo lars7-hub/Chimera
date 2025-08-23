@@ -541,7 +541,9 @@ ipcMain.handle('get-npcs', (event, regionName, worldName) => {
             fs.readdirSync(npcDir).forEach(file => {
                 if (file.endsWith('.json')) {
                     const p = path.join(npcDir, file);
-                    npcs.push(JSON.parse(fs.readFileSync(p, 'utf-8')));
+                    const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+                    data._file = file;
+                    npcs.push(data);
                 }
             });
         }
@@ -565,11 +567,25 @@ ipcMain.handle('save-npc', (event, regionName, worldName, npc) => {
         const npcDir = path.join(baseMap, regionName, 'npcs');
         fs.mkdirSync(npcDir, { recursive: true });
         const base = (npc.name || npc.species || 'npc').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
-        const file = path.join(npcDir, `${base}_${Date.now()}.json`);
+        const fileName = `${base}_${Date.now()}.json`;
+        const file = path.join(npcDir, fileName);
         fs.writeFileSync(file, JSON.stringify(npc, null, 2));
-        return { success: true };
+        return { success: true, file: fileName };
     } catch (err) {
         console.error('Error saving NPC:', err);
+        return { success: false };
+    }
+});
+
+ipcMain.handle('delete-npc', (event, regionName, worldName, fileName) => {
+    try {
+        const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+        const npcDir = path.join(baseMap, regionName, 'npcs');
+        const file = path.join(npcDir, fileName);
+        if (fs.existsSync(file)) fs.unlinkSync(file);
+        return { success: true };
+    } catch (err) {
+        console.error('Error deleting NPC:', err);
         return { success: false };
     }
 });
