@@ -1506,6 +1506,7 @@ async function loadWorld() {
     worldNpcs = (npcData.npcs || []).map(n => {
         if (n.tile && !n.home) n.home = { ...n.tile };
         if (!n.state) n.state = 'wander';
+        if (n.dialogue && n.dialogue.random) scheduleRandomSpeech(n);
         return n;
     });
     spawnPoints = npcData.spawns || [];
@@ -1648,6 +1649,7 @@ function updateTileVisual(entry, key) {
         img.className = 'npc-icon';
         img.src = npc.icon;
         entry.el.appendChild(img);
+        if (npc._bubbleEl) entry.el.appendChild(npc._bubbleEl);
     });
     (entry.data.modifiers || []).forEach(m => {
         if (!m.icon) return;
@@ -2166,11 +2168,13 @@ function displayTile(tile, key = currentKey) {
                 delBtn.textContent = `Destroy ${name}`;
                 delBtn.className = 'destroy-btn';
                 delBtn.addEventListener('click', async () => {
-                    await removeNpc(npc);
-                    if (npc.attitude === 'Hostile') {
-                        hostilePursuitShield = Date.now() + 10000;
-                        hostileTimerEnd = hostilePursuitShield;
-                    }
+                    triggerNpcDialog(npc, 'destroyed', async () => {
+                        await removeNpc(npc);
+                        if (npc.attitude === 'Hostile') {
+                            hostilePursuitShield = Date.now() + 10000;
+                            hostileTimerEnd = hostilePursuitShield;
+                        }
+                    });
                 });
                 wrapNpc.appendChild(btn);
                 wrapNpc.appendChild(delBtn);
@@ -2898,6 +2902,7 @@ async function tickSpawners() {
                 } catch (err) {
                         console.error(err);
                 }
+                if (npc.dialogue && npc.dialogue.random) scheduleRandomSpeech(npc);
                 worldNpcs.push(npc);
                 const key = `${spawn.tile.x}-${spawn.tile.y}`;
                 if (tileMap[key]) updateTileVisual(tileMap[key], key);
@@ -2920,6 +2925,57 @@ async function removeNpc(npc) {
         if (key === currentKey && tileMap[currentKey]) displayTile(tileMap[currentKey].data);
     }
     renderZoneBorders();
+}
+
+function showNpcBubble(npc, text, callback) {
+    if (!npc || !npc.tile) { if (callback) callback(); return; }
+    const key = `${npc.tile.x}-${npc.tile.y}`;
+    const entry = tileMap[key];
+    if (!entry) { if (callback) callback(); return; }
+    if (npc._bubbleTimeout) {
+        clearTimeout(npc._bubbleTimeout);
+        npc._bubbleTimeout = null;
+    }
+    if (npc._bubbleEl) npc._bubbleEl.remove();
+    const bubble = document.createElement('div');
+    bubble.className = 'npc-bubble';
+    bubble.textContent = text;
+    npc._bubbleEl = bubble;
+    entry.el.appendChild(bubble);
+    const letters = text.replace(/ /g, '').length;
+    const spaces = (text.match(/ /g) || []).length;
+    const duration = 2000 + letters * 250 + spaces * 500;
+    npc._bubbleTimeout = setTimeout(() => {
+        if (npc._bubbleEl === bubble) {
+            bubble.remove();
+            npc._bubbleEl = null;
+        }
+        if (callback) callback();
+    }, duration);
+}
+
+function triggerNpcDialog(npc, type, callback) {
+    const dlg = npc.dialogue || {};
+    let lines = [];
+    if (type === 'random') {
+        lines = (dlg.random && dlg.random.lines) || [];
+    } else {
+        lines = dlg[type] || [];
+    }
+    if (!Array.isArray(lines) || lines.length === 0) {
+        if (callback) callback();
+        return;
+    }
+    const line = lines[Math.floor(Math.random() * lines.length)];
+    showNpcBubble(npc, line, callback);
+}
+
+function scheduleRandomSpeech(npc) {
+    const rand = npc.dialogue && npc.dialogue.random;
+    if (!rand || !Array.isArray(rand.lines) || rand.lines.length === 0) return;
+    const min = rand.min != null ? rand.min : 0;
+    const max = rand.max != null ? rand.max : min;
+    npc._nextRandomSpeech = Date.now() + (Math.random() * (max - min) + min) * 1000;
 }
 
 function populateNpcModal(npc, prefix) {
@@ -3052,6 +3108,16 @@ function tickNpcMovement() {
         if (!entry) continue;
         const spawn = npc.spawnPoint ? spawnPoints.find(s => s.name === npc.spawnPoint) : null;
 
+        const randDlg = npc.dialogue && npc.dialogue.random;
+        if (randDlg && Array.isArray(randDlg.lines) && randDlg.lines.length) {
+            if (!npc._nextRandomSpeech) {
+                scheduleRandomSpeech(npc);
+            } else if (Date.now() >= npc._nextRandomSpeech) {
+                npc._nextRandomSpeech = null;
+                triggerNpcDialog(npc, 'random', () => scheduleRandomSpeech(npc));
+            }
+        }
+
         if (npc.attitude === 'Hostile') {
             const range = npc.sightRange != null ? npc.sightRange : 0;
             const dist = Math.hypot(npc.tile.x - px, npc.tile.y - py);
@@ -3062,6 +3128,7 @@ function tickNpcMovement() {
                 if (npc.state !== 'chase' && dist <= range) {
                     npc.state = 'chase';
                     npc._pursuitStart = Date.now();
+                    triggerNpcDialog(npc, 'sightline');
                 } else if (npc.state === 'chase' && dist > range) {
                     npc.state = 'return';
                 }
@@ -3075,6 +3142,7 @@ function tickNpcMovement() {
             if (npc.pursuitTime && npc.pursuitTime > 0 && npc._pursuitStart && Date.now() - npc._pursuitStart > npc.pursuitTime * 1000) {
                 npc.state = 'return';
                 npc._cooldownUntil = Date.now() + npc.pursuitTime * 1000;
+                triggerNpcDialog(npc, 'pursuitEnd');
                 continue;
             }
             const path = findPath(npcKey, currentKey, npc.inventory || []);

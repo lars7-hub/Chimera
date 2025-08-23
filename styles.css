@@ -772,6 +772,21 @@ button:hover {
     pointer-events: none;
 }
 
+.npc-bubble {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translate(-50%, -5px);
+    background: rgba(255,255,255,0.9);
+    color: #000;
+    border: 1px solid #000;
+    padding: 2px 4px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 3;
+    pointer-events: none;
+}
+
 .tile-resource-img {
     position: absolute;
     bottom: 0;

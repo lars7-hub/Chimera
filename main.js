@@ -73,7 +73,8 @@ function ensureDefaultLexicon(worldName) {
             abilities: ['sample_strike'],
             inventory: ['sample_item'],
             lootTable: [{ item: 'sample_item', chance: 100, min: 1, max: 1 }],
-            xp: 0
+            xp: 0,
+            dialogue: { sightline: [], pursuitEnd: [], destroyed: [], random: { lines: [], min: 10, max: 30 } }
         }]
     };
     const abilitiesDir = path.join(lexiconDir, 'abilities');

@@ -1346,6 +1346,97 @@ function buildItemsTable() {
                 return section;
             }
 
+function buildDialogueArray(title, key) {
+                const section = document.createElement('div');
+                section.className = 'npc-array-section';
+                const label = document.createElement('div');
+                label.textContent = title;
+                section.appendChild(label);
+                npc.dialogue = npc.dialogue || {};
+                const arr = Array.isArray(npc.dialogue[key]) ? npc.dialogue[key] : [];
+                npc.dialogue[key] = arr;
+                const listDiv = document.createElement('div');
+                (arr || []).forEach((val, idx) => {
+                    const entry = document.createElement('div');
+                    entry.className = 'npc-array-entry';
+                    const input = document.createElement('input');
+                    input.value = val || '';
+                    input.addEventListener('input', e => arr[idx] = e.target.value);
+                    const rem = document.createElement('button');
+                    rem.textContent = 'Delete Statement';
+                    rem.addEventListener('click', () => { arr.splice(idx, 1); buildNPCBlueprintsTable(); });
+                    entry.appendChild(input);
+                    entry.appendChild(rem);
+                    listDiv.appendChild(entry);
+                });
+                const addBtn = document.createElement('button');
+                addBtn.textContent = 'Add Statement';
+                addBtn.addEventListener('click', () => {
+                    arr.push('');
+                    buildNPCBlueprintsTable();
+                });
+                section.appendChild(listDiv);
+                section.appendChild(addBtn);
+                return section;
+            }
+
+            function buildDialogueSection() {
+                const section = document.createElement('div');
+                section.className = 'npc-dialogue';
+                section.appendChild(buildDialogueArray('Sightline Statements', 'sightline'));
+                section.appendChild(buildDialogueArray('Pursuit Timer End Statements', 'pursuitEnd'));
+                section.appendChild(buildDialogueArray('Destroyed Statements', 'destroyed'));
+                const rand = npc.dialogue.random || { lines: [], min: 10, max: 30 };
+                npc.dialogue.random = rand;
+                const randSection = document.createElement('div');
+                randSection.className = 'npc-array-section';
+                const label = document.createElement('div');
+                label.textContent = 'Random Statements';
+                randSection.appendChild(label);
+                const listDiv = document.createElement('div');
+                (rand.lines || []).forEach((val, idx) => {
+                    const entry = document.createElement('div');
+                    entry.className = 'npc-array-entry';
+                    const input = document.createElement('input');
+                    input.value = val || '';
+                    input.addEventListener('input', e => rand.lines[idx] = e.target.value);
+                    const rem = document.createElement('button');
+                    rem.textContent = 'Delete Statement';
+                    rem.addEventListener('click', () => { rand.lines.splice(idx,1); buildNPCBlueprintsTable(); });
+                    entry.appendChild(input);
+                    entry.appendChild(rem);
+                    listDiv.appendChild(entry);
+                });
+                const addBtn = document.createElement('button');
+                addBtn.textContent = 'Add Statement';
+                addBtn.addEventListener('click', () => {
+                    rand.lines = rand.lines || [];
+                    rand.lines.push('');
+                    buildNPCBlueprintsTable();
+                });
+                randSection.appendChild(listDiv);
+                randSection.appendChild(addBtn);
+                const intervalWrap = document.createElement('div');
+                intervalWrap.className = 'npc-random-interval';
+                const minInput = document.createElement('input');
+                minInput.type = 'number';
+                minInput.className = 'small-num';
+                minInput.value = rand.min != null ? rand.min : 10;
+                minInput.addEventListener('input', e => rand.min = parseInt(e.target.value) || 0);
+                const maxInput = document.createElement('input');
+                maxInput.type = 'number';
+                maxInput.className = 'small-num';
+                maxInput.value = rand.max != null ? rand.max : 30;
+                maxInput.addEventListener('input', e => rand.max = parseInt(e.target.value) || 0);
+                intervalWrap.appendChild(document.createTextNode('Min:'));
+                intervalWrap.appendChild(minInput);
+                intervalWrap.appendChild(document.createTextNode('Max:'));
+                intervalWrap.appendChild(maxInput);
+                randSection.appendChild(intervalWrap);
+                section.appendChild(randSection);
+                return section;
+            }
+
             const typesDiv = document.createElement('div');
             typesDiv.className = 'npc-types';
             typesDiv.appendChild(buildTypeGrid());
@@ -1362,6 +1453,8 @@ function buildItemsTable() {
             top.appendChild(taDiv);
 
             chip.appendChild(top);
+
+            chip.appendChild(buildDialogueSection());
 
             const lootDiv = document.createElement('div');
             lootDiv.className = 'npc-loot';
@@ -1468,7 +1561,7 @@ function buildItemsTable() {
 
     addNpcBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.npc_blueprints) ? lexicon.npc_blueprints : [];
-        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], inventory: [], lootTable: [], stats: { strength: 0, dexterity: 0, constitution: 0, endurance: 0, intelligence: 0, charisma: 0, fortitude: 0 }, icon: null });
+        data.push({ species: '', name: '', description: '', level: 1, xp: 0, types: [], traits: [], abilities: [], inventory: [], lootTable: [], stats: { strength: 0, dexterity: 0, constitution: 0, endurance: 0, intelligence: 0, charisma: 0, fortitude: 0 }, icon: null, dialogue: { sightline: [], pursuitEnd: [], destroyed: [], random: { lines: [], min: 10, max: 30 } } });
         lexicon.npc_blueprints = data;
         buildNPCBlueprintsTable();
     });
