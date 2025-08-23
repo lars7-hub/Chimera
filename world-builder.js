@@ -64,6 +64,8 @@ let playerMovementLocked = false;
 let hostileInteractionCooldown = 0;
 let hostilePursuitShield = 0;
 let hostileTimerEnd = 0;
+let saveSpawnBtn = null;
+let cleanupSpawnBtn = null;
 
 function updateNpcCoords() {
     const [x, y] = keyToCoords(currentKey);
@@ -965,12 +967,21 @@ window.onload = async function () {
 
     npcPanel = document.getElementById('npc-manager-panel');
     const spawnToggle = document.getElementById('npc-spawn-toggle');
+    saveSpawnBtn = document.getElementById('npc-save-spawn');
+    cleanupSpawnBtn = document.getElementById('npc-spawn-cleanup');
     if (spawnToggle) {
         spawnToggle.checked = showSpawnPoints;
         spawnToggle.addEventListener('change', () => {
             showSpawnPoints = spawnToggle.checked;
             Object.entries(tileMap).forEach(([k, e]) => updateTileVisual(e, k));
             if (tileMap[currentKey]) displayTile(tileMap[currentKey].data);
+        });
+    }
+    if (cleanupSpawnBtn) {
+        cleanupSpawnBtn.addEventListener('click', async () => {
+            if (!editingSpawn) return;
+            const npcs = worldNpcs.filter(n => n.spawnPoint === editingSpawn.name);
+            for (const n of npcs) await removeNpc(n);
         });
     }
 
@@ -1132,6 +1143,8 @@ window.onload = async function () {
             });
         }
         editingSpawn = spawn;
+        if (saveSpawnBtn) saveSpawnBtn.textContent = 'Save Changes';
+        if (cleanupSpawnBtn) cleanupSpawnBtn.classList.remove('hidden');
     };
 
     document.getElementById('npc-blueprint-select').addEventListener('change', e => {
@@ -1219,6 +1232,8 @@ window.onload = async function () {
                 }
                 editingSpawn = null;
                 document.getElementById('npc-spawn-name').disabled = false;
+                if (saveSpawnBtn) saveSpawnBtn.textContent = 'Create Spawn Point';
+                if (cleanupSpawnBtn) cleanupSpawnBtn.classList.add('hidden');
             }
         } catch (err) {
             alert('Invalid NPC data');
@@ -1301,9 +1316,11 @@ window.onload = async function () {
             populateNpcBlueprints();
             populateSpawnZoneSelect();
             updateNpcCoords();
-			editingSpawn = null;
-			const nameInput = document.getElementById('npc-spawn-name');
-			if (nameInput) nameInput.disabled = false;
+            editingSpawn = null;
+            const nameInput = document.getElementById('npc-spawn-name');
+            if (nameInput) nameInput.disabled = false;
+            if (saveSpawnBtn) saveSpawnBtn.textContent = 'Create Spawn Point';
+            if (cleanupSpawnBtn) cleanupSpawnBtn.classList.add('hidden');
         } else {
             npcPanel.classList.add('hidden');
         }
@@ -1343,6 +1360,14 @@ window.onload = async function () {
             await editTile(x, y);
             lastKey = key;
             return;
+        }
+        if (showSpawnPoints) {
+            const spawn = spawnPoints.find(s => s.tile && s.tile.x === x && s.tile.y === y);
+            if (spawn) {
+                openSpawnerEditor(spawn);
+                lastKey = key;
+                return;
+            }
         }
         if (!tileMap[key]) return;
         const curEntry = tileMap[currentKey];
@@ -3030,11 +3055,10 @@ function tickNpcMovement() {
         if (npc.attitude === 'Hostile') {
             const range = npc.sightRange != null ? npc.sightRange : 0;
             const dist = Math.hypot(npc.tile.x - px, npc.tile.y - py);
-            if (npc.state === 'cooldown') {
-                if (npc._cooldownUntil && Date.now() >= npc._cooldownUntil) {
-                    npc.state = 'wander';
-                }
-            } else if (Date.now() > hostilePursuitShield) {
+            if (npc._cooldownUntil && Date.now() >= npc._cooldownUntil) {
+                npc._cooldownUntil = null;
+            }
+            if (!npc._cooldownUntil && Date.now() > hostilePursuitShield) {
                 if (npc.state !== 'chase' && dist <= range) {
                     npc.state = 'chase';
                     npc._pursuitStart = Date.now();
@@ -3049,7 +3073,7 @@ function tickNpcMovement() {
         if (npc.state === 'chase') {
             const range = npc.sightRange != null ? npc.sightRange : 0;
             if (npc.pursuitTime && npc.pursuitTime > 0 && npc._pursuitStart && Date.now() - npc._pursuitStart > npc.pursuitTime * 1000) {
-                npc.state = 'cooldown';
+                npc.state = 'return';
                 npc._cooldownUntil = Date.now() + npc.pursuitTime * 1000;
                 continue;
             }
