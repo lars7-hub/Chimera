@@ -1908,6 +1908,15 @@ function goToTile(target) {
         alert('You cannot traverse this tile.');
         return;
     }
+    const npcThere = worldNpcs.find(n => n.tile && `${n.tile.x}-${n.tile.y}` === target);
+    if (npcThere) {
+        if (npcThere.attitude === 'Hostile' && Date.now() > hostileInteractionCooldown) {
+            showHostileModal(npcThere);
+        } else {
+            alert('The tile is occupied.');
+        }
+        return;
+    }
     const prevKey = currentKey;
     const prevZoneIds = activeZoneIds.slice();
     currentKey = target;
@@ -2079,9 +2088,7 @@ function displayTile(tile, key = currentKey) {
                     const btn = document.createElement('button');
                     btn.textContent = `Inspect ${name} L${lvl}`;
                     btn.addEventListener('click', () => {
-                        document.getElementById('npc-info-title').textContent = name;
-                        document.getElementById('npc-info-content').textContent = JSON.stringify(npc, null, 2);
-                        document.getElementById('npc-info-modal').classList.remove('hidden');
+                        showNpcInfoModal(npc);
                     });
                     const delBtn = document.createElement('button');
                     delBtn.textContent = `Destroy ${name}`;
@@ -2838,11 +2845,55 @@ function removeNpc(npc) {
     }
 }
 
+function populateNpcModal(npc, prefix) {
+    document.getElementById(`${prefix}-name`).textContent = npc.name || npc.species || 'NPC';
+    const imgEl = document.getElementById(`${prefix}-image`);
+    if (imgEl) imgEl.src = npc.image || npc.icon || '';
+    const descEl = document.getElementById(`${prefix}-description`);
+    if (descEl) descEl.textContent = npc.description || '';
+    const statsEl = document.getElementById(`${prefix}-stats`);
+    if (statsEl) {
+        statsEl.innerHTML = '';
+        Object.entries(npc.stats || {}).forEach(([k, v]) => {
+            const li = document.createElement('li');
+            li.textContent = `${statAbbr[k] || k}: ${v}`;
+            statsEl.appendChild(li);
+        });
+    }
+    const invList = document.getElementById(`${prefix}-inventory-list`);
+    if (invList) {
+        invList.innerHTML = '';
+        (npc.inventory || []).forEach(it => {
+            const name = it.name || it.key || 'Item';
+            const qty = it.quantity != null ? it.quantity : (it.amount != null ? it.amount : 1);
+            const li = document.createElement('li');
+            li.textContent = `${name} x${qty}`;
+            invList.appendChild(li);
+        });
+    }
+    const lootList = document.getElementById(`${prefix}-loot-list`);
+    if (lootList) {
+        lootList.innerHTML = '';
+        const loot = npc.loot || npc.lootTable || [];
+        loot.forEach(l => {
+            const name = l.name || l.key || 'Item';
+            const chance = l.chance != null ? ` (${l.chance}%)` : '';
+            const li = document.createElement('li');
+            li.textContent = `${name}${chance}`;
+            lootList.appendChild(li);
+        });
+    }
+}
+
+function showNpcInfoModal(npc) {
+    populateNpcModal(npc, 'npc-info');
+    document.getElementById('npc-info-modal').classList.remove('hidden');
+}
+
 function showHostileModal(npc) {
     npcMovementPaused = true;
     const modal = document.getElementById('hostile-npc-modal');
-    document.getElementById('hostile-npc-name').textContent = npc.name || npc.species || 'NPC';
-    document.getElementById('hostile-npc-content').textContent = JSON.stringify(npc, null, 2);
+    populateNpcModal(npc, 'hostile-npc');
     modal.classList.remove('hidden');
     document.getElementById('hostile-destroy-btn').onclick = () => {
         removeNpc(npc);
@@ -2871,6 +2922,12 @@ function updateHostileTimer() {
 }
 
 function moveNpcStep(npc, targetKey) {
+    if (targetKey === currentKey) {
+        if (npc.attitude === 'Hostile' && Date.now() > hostileInteractionCooldown) {
+            showHostileModal(npc);
+        }
+        return false;
+    }
     const [tx, ty] = keyToCoords(targetKey);
     const npcKey = `${npc.tile.x}-${npc.tile.y}`;
     npc.tile.x = tx;
@@ -2880,6 +2937,7 @@ function moveNpcStep(npc, targetKey) {
     if ((npcKey === currentKey || targetKey === currentKey) && tileMap[currentKey]) {
         displayTile(tileMap[currentKey].data);
     }
+    return true;
 }
 
 function tickNpcMovement() {
@@ -2924,6 +2982,7 @@ function tickNpcMovement() {
 
         if (Math.random() < 0.5) continue; // stay still
         const options = (entry.data.connections || []).filter(key => {
+            if (key === currentKey) return false;
             const next = tileMap[key];
             if (!next) return false;
             const inv = npc.inventory || [];

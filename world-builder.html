@@ -341,16 +341,44 @@
             </div>
         </div>
         <div id="npc-info-modal" class="modal hidden">
-            <div class="modal-content">
+            <div class="modal-content npc-profile">
                 <span id="npc-info-close" class="close">&times;</span>
-                <h3 id="npc-info-title"></h3>
-                <pre id="npc-info-content"></pre>
+                <div class="npc-profile-top">
+                    <img id="npc-info-image" src="" alt="NPC">
+                    <div class="npc-profile-details">
+                        <h3 id="npc-info-name"></h3>
+                        <ul id="npc-info-stats"></ul>
+                    </div>
+                </div>
+                <p id="npc-info-description"></p>
+                <div class="npc-profile-section">
+                    <h4>Inventory</h4>
+                    <ul id="npc-info-inventory-list"></ul>
+                </div>
+                <div class="npc-profile-section">
+                    <h4>Loot</h4>
+                    <ul id="npc-info-loot-list"></ul>
+                </div>
             </div>
         </div>
         <div id="hostile-npc-modal" class="modal hidden">
             <div class="modal-content npc-profile">
-                <h3 id="hostile-npc-name"></h3>
-                <pre id="hostile-npc-content"></pre>
+                <div class="npc-profile-top">
+                    <img id="hostile-npc-image" src="" alt="NPC">
+                    <div class="npc-profile-details">
+                        <h3 id="hostile-npc-name"></h3>
+                        <ul id="hostile-npc-stats"></ul>
+                    </div>
+                </div>
+                <p id="hostile-npc-description"></p>
+                <div class="npc-profile-section">
+                    <h4>Inventory</h4>
+                    <ul id="hostile-npc-inventory-list"></ul>
+                </div>
+                <div class="npc-profile-section">
+                    <h4>Loot</h4>
+                    <ul id="hostile-npc-loot-list"></ul>
+                </div>
                 <div class="modal-buttons">
                     <button id="hostile-destroy-btn" class="destroy-btn">Destroy npc</button>
                     <button id="hostile-dismiss-btn">Dismiss</button>
