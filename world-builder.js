@@ -55,6 +55,7 @@ let zoneEntryTimeout = null;
 let npcPanel = null;
 let npcMode = 'manual';
 const npcBlueprints = [];
+let currentNpcBlueprint = {};
 let worldNpcs = [];
 let spawnPoints = [];
 let editingSpawn = null;
@@ -1005,7 +1006,9 @@ window.onload = async function () {
     function populateNpcFields(bp) {
         const cont = document.getElementById('npc-data-fields');
         cont.innerHTML = '';
-        const data = bp || {};
+        currentNpcBlueprint = JSON.parse(JSON.stringify(bp || {}));
+        const data = currentNpcBlueprint;
+        const editable = ['description','level','attitude','sightRange','pursuitTime','inventory'];
         function addField(key, val) {
             const wrap = document.createElement('div');
             wrap.className = 'npc-field';
@@ -1048,15 +1051,18 @@ window.onload = async function () {
             wrap.appendChild(label);
             cont.appendChild(wrap);
         }
-        Object.entries(data).forEach(([key, val]) => addField(key, val));
+        editable.forEach(key => { if (key in data) addField(key, data[key]); });
+        if (!('description' in data)) addField('description','');
+        if (!('level' in data)) addField('level',1);
         if (!('attitude' in data)) addField('attitude', 'Passive');
         if (!('sightRange' in data)) addField('sightRange', 5);
         if (!('pursuitTime' in data)) addField('pursuitTime', 0);
+        if (!('inventory' in data)) addField('inventory', []);
     }
 
     function collectNpcData() {
         const cont = document.getElementById('npc-data-fields');
-        const data = {};
+        const data = JSON.parse(JSON.stringify(currentNpcBlueprint || {}));
         cont.querySelectorAll('input, textarea, select').forEach(inp => {
             const key = inp.dataset.key;
             const type = inp.dataset.type;
@@ -1176,6 +1182,7 @@ window.onload = async function () {
             const res = await window.electron.saveNPC('region1', currentWorld, data);
             if (res && res.success) {
                 data._file = res.file;
+                if (data.dialogue && data.dialogue.random) scheduleRandomSpeech(data);
                 worldNpcs.push(data);
                 alert('NPC spawned');
                 const key = `${x}-${y}`;
@@ -1649,7 +1656,10 @@ function updateTileVisual(entry, key) {
         img.className = 'npc-icon';
         img.src = npc.icon;
         entry.el.appendChild(img);
-        if (npc._bubbleEl) entry.el.appendChild(npc._bubbleEl);
+        if (npc._bubbleEl) {
+            scaleNpcBubble(npc._bubbleEl);
+            entry.el.appendChild(npc._bubbleEl);
+        }
     });
     (entry.data.modifiers || []).forEach(m => {
         if (!m.icon) return;
@@ -2927,6 +2937,18 @@ async function removeNpc(npc) {
     renderZoneBorders();
 }
 
+function scaleNpcBubble(bubble) {
+    if (!bubble) return;
+    if (viewMode === 'world') {
+        const scale = tileSize / 100;
+        bubble.style.fontSize = `${Math.max(1, 24 * scale)}px`;
+        bubble.style.transform = `translate(-50%, -${5 * scale}px)`;
+    } else {
+        bubble.style.fontSize = '';
+        bubble.style.transform = 'translate(-50%, -5px)';
+    }
+}
+
 function showNpcBubble(npc, text, callback) {
     if (!npc || !npc.tile) { if (callback) callback(); return; }
     const key = `${npc.tile.x}-${npc.tile.y}`;
@@ -2940,6 +2962,7 @@ function showNpcBubble(npc, text, callback) {
     const bubble = document.createElement('div');
     bubble.className = 'npc-bubble';
     bubble.textContent = text;
+    scaleNpcBubble(bubble);
     npc._bubbleEl = bubble;
     entry.el.appendChild(bubble);
     const letters = text.replace(/ /g, '').length;
