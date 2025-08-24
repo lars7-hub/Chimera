@@ -1710,8 +1710,9 @@ function renderGrid() {
 }
 
 function updateTileVisual(entry, key) {
+    if (!entry || !entry.el) return;
     const types = entry.data.types || (entry.data.type ? [entry.data.type] : []);
-	const [x, y] = keyToCoords(key);
+    const [x, y] = keyToCoords(key);
     entry.el.innerHTML = '';
     if (entry.el.classList.contains('current')) {
         const cur = document.createElement('div');
@@ -3067,7 +3068,9 @@ function showNpcBubble(npc, text, callback) {
     bubble.textContent = text;
     scaleNpcBubble(bubble);
     npc._bubbleEl = bubble;
-    entry.el.appendChild(bubble);
+    if (entry.el) {
+        entry.el.appendChild(bubble);
+    }
     const letters = text.replace(/ /g, '').length;
     const spaces = (text.match(/ /g) || []).length;
     const duration = 2000 + letters * 250 + spaces * 500;
