@@ -1270,3 +1270,27 @@ ipcMain.handle('save-zone', (event, regionName, worldName, zone) => {
         return { success: false };
     }
 });
+
+ipcMain.handle('get-world-position', (event, worldName) => {
+    try {
+        const posPath = path.join(worldRoot, worldName, 'savedata', 'position.json');
+        if (!fs.existsSync(posPath)) return null;
+        return JSON.parse(fs.readFileSync(posPath, 'utf-8'));
+    } catch (err) {
+        console.error('Error reading world position:', err);
+        return null;
+    }
+});
+
+ipcMain.handle('save-world-position', (event, worldName, pos) => {
+    try {
+        const dir = path.join(worldRoot, worldName, 'savedata');
+        fs.mkdirSync(dir, { recursive: true });
+        const posPath = path.join(dir, 'position.json');
+        fs.writeFileSync(posPath, JSON.stringify(pos));
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving world position:', err);
+        return { success: false, message: 'Error saving world position' };
+    }
+});

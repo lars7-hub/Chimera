@@ -1398,7 +1398,7 @@ window.onload = async function () {
             renderZoneNames();
             renderZoneBorders();
         } else {
-            const path = findPath(currentKey, key);
+            const path = findPath(currentKey, key, worldInventory || [], (worldCharacter && worldCharacter.abilities) || []);
             if (path && path.length > 1) {
                 stopAutoMove();
                 startAutoMove(path);
@@ -1440,7 +1440,7 @@ window.onload = async function () {
 			const ty = Math.floor(e.offsetY / tileH) + minY;
 			const key = `${tx}-${ty}`;
 			if (!tileMap[key]) return;
-			const path = findPath(currentKey, key);
+			const path = findPath(currentKey, key, worldInventory || [], (worldCharacter && worldCharacter.abilities) || []);
 			if (path && path.length > 1) {
 				stopAutoMove();
 				startAutoMove(path);
@@ -1501,9 +1501,17 @@ async function loadWorld() {
     zoneEditMode = false;
     if (zoneToggle) zoneToggle.textContent = 'Zone Mode: Off';
     updateZoneInfo();
-    currentKey = originKey;
+    const savedPos = await window.electron.getWorldPosition(currentWorld);
+    let startKey = originKey;
+    if (savedPos) {
+        const key = `${savedPos.x}-${savedPos.y}`;
+        if (tileMap[key]) startKey = key;
+    }
+    currentKey = startKey;
     updateBounds();
     renderGrid();
+    const [sx, sy] = keyToCoords(currentKey);
+    window.electron.saveWorldPosition(currentWorld, { x: sx, y: sy });
 	
     if (biomePanel) biomePanel.classList.add('hidden');
     if (itemPanel) itemPanel.classList.add('hidden');
@@ -1948,8 +1956,9 @@ function renderMinimap() {
 
 function goToTile(target) {
     const inv = worldInventory || [];
+    const abilities = (worldCharacter && worldCharacter.abilities) || [];
     const targetEntry = tileMap[target];
-    if (targetEntry && !TileConditions.isPassable(targetEntry.data, inv)) {
+    if (targetEntry && !TileConditions.isPassable(targetEntry.data, inv, abilities)) {
         alert('You cannot traverse this tile.');
         return;
     }
@@ -1991,10 +2000,12 @@ function goToTile(target) {
     }
     renderZoneNames();
     renderZoneBorders();
+    const [sx, sy] = keyToCoords(currentKey);
+    window.electron.saveWorldPosition(currentWorld, { x: sx, y: sy });
 }
 
 
-function findPath(startKey, targetKey, inv = worldInventory || []) {
+function findPath(startKey, targetKey, inv = worldInventory || [], abilities = (worldCharacter && worldCharacter.abilities) || []) {
     const open = new Set([startKey]);
     const cameFrom = {};
     const gScore = { [startKey]: 0 };
@@ -2016,7 +2027,7 @@ function findPath(startKey, targetKey, inv = worldInventory || []) {
         if (!entry) continue;
         for (const next of entry.data.connections || []) {
             const nextEntry = tileMap[next];
-            if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv)) continue;
+            if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv, abilities)) continue;
             const tentativeG = (gScore[current] ?? Infinity) + moveCost(current, next);
             if (tentativeG < (gScore[next] ?? Infinity)) {
                 cameFrom[next] = current;
@@ -3102,7 +3113,7 @@ function moveNpcStep(npc, targetKey) {
     return true;
 }
 
-function directStep(startKey, targetKey, inv) {
+function directStep(startKey, targetKey, inv, abilities = []) {
     const entry = tileMap[startKey];
     if (!entry) return null;
     const [tx, ty] = keyToCoords(targetKey);
@@ -3110,7 +3121,7 @@ function directStep(startKey, targetKey, inv) {
     let bestDist = Infinity;
     for (const next of entry.data.connections || []) {
         const nextEntry = tileMap[next];
-        if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv)) continue;
+        if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv, abilities)) continue;
         const [nx, ny] = keyToCoords(next);
         const d = Math.hypot(tx - nx, ty - ny);
         if (d < bestDist) {
@@ -3168,16 +3179,16 @@ function tickNpcMovement() {
                 triggerNpcDialog(npc, 'pursuitEnd');
                 continue;
             }
-            const path = findPath(npcKey, currentKey, npc.inventory || []);
+            const path = findPath(npcKey, currentKey, npc.inventory || [], npc.abilities || []);
             if (path && path.length > 1) {
                 if (path.length - 1 <= range + 3) {
                     moveNpcStep(npc, path[1]);
                 } else {
-                    const step = directStep(npcKey, currentKey, npc.inventory || []);
+                    const step = directStep(npcKey, currentKey, npc.inventory || [], npc.abilities || []);
                     if (step) moveNpcStep(npc, step);
                 }
             } else {
-                const step = directStep(npcKey, currentKey, npc.inventory || []);
+                const step = directStep(npcKey, currentKey, npc.inventory || [], npc.abilities || []);
                 if (step) moveNpcStep(npc, step);
             }
             continue;
@@ -3199,7 +3210,7 @@ function tickNpcMovement() {
             const next = tileMap[key];
             if (!next) return false;
             const inv = npc.inventory || [];
-            if (!TileConditions.isPassable(next.data, inv)) return false;
+            if (!TileConditions.isPassable(next.data, inv, npc.abilities || [])) return false;
             if (spawn) {
                 if (spawn.zone && zones[spawn.zone]) {
                     const z = zones[spawn.zone];
