@@ -40,6 +40,7 @@ Object.entries(itemCategories).forEach(([category, data]) => {
       description: i.description || '',
       value: i.value || 0,
       stats: i.stats || [],
+      abilities: i.abilities || [],
       stackable: i.stackable || false,
       maxStack: i.maxStack || 1
     };

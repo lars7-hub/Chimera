@@ -169,6 +169,50 @@ async function loadLexiconItems() {
 
 let worldCharacter = null;
 let worldInventory = [];
+
+function initCharacterAbilities() {
+    if (!worldCharacter) return;
+    worldCharacter.baseAbilities = Array.isArray(worldCharacter.abilities)
+        ? [...worldCharacter.abilities]
+        : [];
+    worldCharacter.tempAbilities = [];
+    worldCharacter.abilities = [...worldCharacter.baseAbilities];
+}
+
+function addTempAbility(ab) {
+    if (!worldCharacter) return;
+    const key = (ab && (ab.key || ab.name)) || ab;
+    if (!key) return;
+    if (!worldCharacter.tempAbilities.includes(key)) {
+        worldCharacter.tempAbilities.push(key);
+        worldCharacter.abilities = [...worldCharacter.baseAbilities, ...worldCharacter.tempAbilities];
+    }
+}
+
+function removeTempAbility(ab) {
+    if (!worldCharacter) return;
+    const key = (ab && (ab.key || ab.name)) || ab;
+    if (!key) return;
+    const idx = worldCharacter.tempAbilities.indexOf(key);
+    if (idx !== -1) {
+        worldCharacter.tempAbilities.splice(idx, 1);
+        worldCharacter.abilities = [...worldCharacter.baseAbilities, ...worldCharacter.tempAbilities];
+    }
+}
+
+function recomputeTempAbilities() {
+    if (!worldCharacter) return;
+    worldCharacter.tempAbilities = [];
+    worldInventory.forEach(item => {
+        if (!item) return;
+        let abs = item.abilities;
+        if (typeof abs === 'string') abs = [abs];
+        if (Array.isArray(abs)) {
+            abs.forEach(addTempAbility);
+        }
+    });
+    worldCharacter.abilities = [...worldCharacter.baseAbilities, ...worldCharacter.tempAbilities];
+}
 const statAbbr = {
     strength: 'STR',
     dexterity: 'DEX',
@@ -224,6 +268,7 @@ function openTileItemsPopup(items) {
                     r.description = def.description;
                     r.value = def.value;
                     r.stats = def.stats;
+                    r.abilities = def.abilities;
                     r.image = r.image || resolveItemIcon(def && def.icon);
                 }
                 r.quantity = r.quantity != null ? r.quantity : (r.amount || 0);
@@ -1529,7 +1574,9 @@ async function loadWorld() {
 	
     worldCharacter = await window.electron.getWorldCharacter(currentWorld);
     if (worldCharacter) {
+        initCharacterAbilities();
         worldInventory = await window.electron.getWorldInventory(currentWorld);
+        recomputeTempAbilities();
         document.getElementById('character-name').textContent = worldCharacter.name || '';
         document.getElementById('inventory-btn').classList.remove('hidden');
         document.getElementById('mini-inventory-grid').classList.remove('hidden');
@@ -2323,6 +2370,7 @@ function pickUpTileItem(idx) {
         if (window.electron.saveWorldInventory) {
                 window.electron.saveWorldInventory(currentWorld, worldInventory);
         }
+        recomputeTempAbilities();
         if (leftover > 0) {
                 alert('Inventory full');
         }
@@ -2350,6 +2398,7 @@ function dropInventoryItem(index) {
         description: item.description,
         value: item.value,
         stats: item.stats,
+        abilities: item.abilities,
         image: item.image,
         renewable: false,
         regenTime: 0,
@@ -2369,6 +2418,7 @@ function dropInventoryItem(index) {
     if (window.electron.saveWorldInventory) {
         window.electron.saveWorldInventory(currentWorld, worldInventory);
     }
+    recomputeTempAbilities();
 }
 
 function destroyInventoryItem(index) {
@@ -2378,6 +2428,7 @@ function destroyInventoryItem(index) {
     if (window.electron.saveWorldInventory) {
         window.electron.saveWorldInventory(currentWorld, worldInventory);
     }
+    recomputeTempAbilities();
 }
 
 function regenerateConnections(x, y) {
@@ -3406,6 +3457,7 @@ function renderWorldInventory() {
     const grid = document.getElementById('inventory-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    recomputeTempAbilities();
     worldInventory.forEach((item, index) => {
         const tile = document.createElement('div');
         tile.className = 'inventory-tile';
@@ -3468,6 +3520,7 @@ function renderMiniInventory() {
     const grid = document.getElementById('mini-inventory-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    recomputeTempAbilities();
     for (let i = 0; i < 12; i++) {
         const slot = document.createElement('div');
         slot.className = 'mini-slot';
