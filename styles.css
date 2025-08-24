@@ -2224,6 +2224,48 @@ button:hover {
     gap: 4px;
 }
 
+#utility-abilities {
+    margin-top: 10px;
+}
+
+#utility-ability-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 80px);
+    gap: 5px;
+}
+
+.ability-tile {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    background-color: #222;
+    border: 1px solid #555;
+}
+
+.ability-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.ability-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000;
+    color: #fff;
+    padding: 2px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.ability-tile:hover .ability-tooltip {
+    display: block;
+}
+
 .inventory-chip {
     display: flex;
     align-items: center;

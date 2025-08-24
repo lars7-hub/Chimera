@@ -631,8 +631,27 @@ function buildItemsTable() {
             itemsEditor.appendChild(catList);
         }
 
+        const abilityListId = 'item-ability-list';
+        let abilityList = document.getElementById(abilityListId);
+        if (!abilityList) {
+            abilityList = document.createElement('datalist');
+            abilityList.id = abilityListId;
+            itemsEditor.appendChild(abilityList);
+        }
+        abilityList.innerHTML = '';
+        (Array.isArray(lexicon.abilities) ? lexicon.abilities : []).forEach(a => {
+            const opt = document.createElement('option');
+            if (a.key) {
+                opt.value = a.key;
+                if (a.name) opt.label = a.name;
+            } else if (a.name) {
+                opt.value = a.name;
+            }
+            abilityList.appendChild(opt);
+        });
+
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Value', 'Icon', 'Stats', ''].forEach(h => {
+        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -807,6 +826,42 @@ function buildItemsTable() {
             iconTd.appendChild(imgBtn);
             tr.appendChild(iconTd);
 
+            item.abilities = Array.isArray(item.abilities) ? item.abilities : [];
+            const abilitiesTd = document.createElement('td');
+            const abilityChips = document.createElement('div');
+            abilityChips.className = 'npc-ability-chips';
+            item.abilities.forEach((name, aIdx) => {
+                const ab = (lexicon.abilities || []).find(a => a.key === name || a.name === name);
+                const chip = document.createElement('div');
+                chip.className = 'ability-chip';
+                const text = document.createElement('span');
+                text.className = 'ability-name';
+                text.textContent = ab ? (ab.name || ab.key) : name;
+                chip.appendChild(text);
+                const rem = document.createElement('button');
+                rem.textContent = '×';
+                rem.addEventListener('click', () => {
+                    item.abilities.splice(aIdx, 1);
+                    buildItemsTable();
+                });
+                chip.appendChild(rem);
+                abilityChips.appendChild(chip);
+            });
+            abilitiesTd.appendChild(abilityChips);
+            const abilityInput = document.createElement('input');
+            abilityInput.setAttribute('list', abilityListId);
+            const abilityAddBtn = document.createElement('button');
+            abilityAddBtn.textContent = 'Add Ability';
+            abilityAddBtn.addEventListener('click', () => {
+                const val = abilityInput.value.trim();
+                if (!val) return;
+                item.abilities.push(val);
+                buildItemsTable();
+            });
+            abilitiesTd.appendChild(abilityInput);
+            abilitiesTd.appendChild(abilityAddBtn);
+            tr.appendChild(abilitiesTd);
+
             const statsTd = document.createElement('td');
             statsTd.appendChild(buildStatsEditor(item));
             tr.appendChild(statsTd);
@@ -828,7 +883,7 @@ function buildItemsTable() {
     addItemBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.items) ? lexicon.items : [];
         const defCat = Object.keys(window.ITEM_CATEGORIES || {})[0] || '';
-        data.push({ key: '', name: '', category: defCat, description: '', rarity: 'common', stackable: false, maxStack: 1, value: 0, icon: null, stats: [] });
+        data.push({ key: '', name: '', category: defCat, description: '', rarity: 'common', stackable: false, maxStack: 1, value: 0, icon: null, abilities: [], stats: [] });
         lexicon.items = data;
         buildItemsTable();
     });

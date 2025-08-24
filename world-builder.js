@@ -111,6 +111,7 @@ const tileModPresets = {
 const itemDefs = window.ITEMS || [];
 const baseItemCategories = JSON.parse(JSON.stringify(window.ITEM_CATEGORIES || {}));
 const baseItemDefs = itemDefs.map(i => ({ ...i }));
+const abilityDefs = window.ABILITIES || [];
 
 const itemByKey = {};
 function rebuildItemIndex() {
@@ -132,6 +133,7 @@ async function loadLexiconItems() {
         const lex = await window.electron.getLexicon(currentWorld);
         const items = Array.isArray(lex.items) ? lex.items : [];
         const npcs = Array.isArray(lex.npc_blueprints) ? lex.npc_blueprints : [];
+        const abilities = Array.isArray(lex.abilities) ? lex.abilities : [];
 
         Object.keys(itemCategories).forEach(k => delete itemCategories[k]);
         Object.assign(itemCategories, JSON.parse(JSON.stringify(baseItemCategories)));
@@ -162,6 +164,10 @@ async function loadLexiconItems() {
 
         npcBlueprints.length = 0;
         npcs.forEach(n => npcBlueprints.push({ ...n }));
+
+        abilityDefs.length = 0;
+        abilities.forEach(a => abilityDefs.push({ ...a }));
+        window.ABILITIES = abilityDefs;
     } catch (err) {
         console.error('Failed to load lexicon items:', err);
     }
@@ -212,6 +218,7 @@ function recomputeTempAbilities() {
         }
     });
     worldCharacter.abilities = [...worldCharacter.baseAbilities, ...worldCharacter.tempAbilities];
+    renderUtilityAbilities();
 }
 const statAbbr = {
     strength: 'STR',
@@ -222,6 +229,40 @@ const statAbbr = {
     charisma: 'CHA',
     fortitude: 'FOR'
 };
+
+function renderUtilityAbilities() {
+    const container = document.getElementById('utility-abilities');
+    const grid = document.getElementById('utility-ability-grid');
+    if (!container || !grid) return;
+    grid.innerHTML = '';
+    if (!worldCharacter || !Array.isArray(worldCharacter.abilities)) {
+        container.classList.add('hidden');
+        return;
+    }
+    const utilities = worldCharacter.abilities
+        .map(key => abilityDefs.find(a => a.key === key || a.name === key))
+        .filter(ab => ab && Array.isArray(ab.categories) && ab.categories.includes('utility'));
+    if (utilities.length === 0) {
+        container.classList.add('hidden');
+        return;
+    }
+    utilities.forEach(ab => {
+        const tile = document.createElement('div');
+        tile.className = 'ability-tile';
+        if (ab.icon) {
+            const img = document.createElement('img');
+            img.src = ab.icon;
+            img.alt = ab.name || ab.key;
+            tile.appendChild(img);
+        }
+        const tooltip = document.createElement('span');
+        tooltip.className = 'ability-tooltip';
+        tooltip.textContent = ab.name || ab.key;
+        tile.appendChild(tooltip);
+        grid.appendChild(tile);
+    });
+    container.classList.remove('hidden');
+}
 
 function getRenewableColor(item) {
     if (!item || !item.renewable) return 'transparent';
@@ -3592,11 +3633,12 @@ function renderStats() {
         }
 
         tr.appendChild(nameTd);
-        tr.appendChild(baseTd);
+		tr.appendChild(baseTd);
         tr.appendChild(modTd);
         tr.appendChild(finalTd);
         tableBody.appendChild(tr);
     });
+    renderUtilityAbilities();
 }
 
 function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
