@@ -152,7 +152,8 @@ async function loadLexiconItems() {
                 stackable: !!it.stackable,
                 maxStack: it.maxStack != null ? it.maxStack : 1,
                 value: it.value != null ? it.value : 0,
-                stats: Array.isArray(it.stats) ? it.stats : []
+                stats: Array.isArray(it.stats) ? it.stats : [],
+                abilities: Array.isArray(it.abilities) ? it.abilities : []
             };
             itemCategories[cat].items = itemCategories[cat].items || [];
             itemCategories[cat].items.push(entry);
@@ -355,9 +356,10 @@ function openTileItemsPopup(items) {
                         r.name = first.name;
                         r.category = catSel.value;
                         r.rarity = first.rarity;
-                        r.description = first.description;
+                         r.description = first.description;
                         r.value = first.value;
                         r.stats = first.stats;
+                        r.abilities = first.abilities;
                         r.image = resolveItemIcon(first && first.icon);
                         img.src = r.image;
                     }
@@ -372,6 +374,7 @@ function openTileItemsPopup(items) {
                         r.description = d.description;
                         r.value = d.value;
                         r.stats = d.stats;
+                        r.abilities = d.abilities;
                         r.image = resolveItemIcon(d && d.icon);
                         img.src = r.image;
                     }
@@ -424,6 +427,7 @@ function openTileItemsPopup(items) {
                     description: firstItem.description,
                     value: firstItem.value,
                     stats: firstItem.stats,
+                    abilities: firstItem.abilities,
                     image: resolveItemIcon(firstItem && firstItem.icon),
                     _lastRegen: Date.now()
                 });
@@ -2678,6 +2682,7 @@ async function paintItem(x, y) {
                 existing.description = def.description;
                 existing.value = def.value;
                 existing.stats = def.stats;
+                existing.abilities = def.abilities;
                 existing.image = resolveItemIcon(def.icon);
             } else {
                 entry.data.items.push({
@@ -2693,6 +2698,7 @@ async function paintItem(x, y) {
                     description: def.description,
                     value: def.value,
                     stats: def.stats,
+                    abilities: def.abilities,
                     image: resolveItemIcon(def.icon),
                     _lastRegen: Date.now()
                 });
