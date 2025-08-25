@@ -154,6 +154,8 @@ async function loadLexiconItems() {
                 value: it.value != null ? it.value : 0,
                 weight: it.weight != null ? it.weight : 0,
                 slots: it.slots != null ? it.slots : 0,
+                width: it.width != null ? it.width : 1,
+                height: it.height != null ? it.height : 1,
                 stats: Array.isArray(it.stats) ? it.stats : [],
                 abilities: Array.isArray(it.abilities) ? it.abilities : []
             };
@@ -381,6 +383,8 @@ function openTileItemsPopup(items) {
                     r.value = def.value;
                     r.weight = def.weight;
                     r.slots = def.slots;
+                    r.width = def.width;
+                    r.height = def.height;
                     r.stats = def.stats;
                     r.abilities = def.abilities;
                     r.image = r.image || resolveItemIcon(def && def.icon);
@@ -429,9 +433,11 @@ function openTileItemsPopup(items) {
                         r.category = catSel.value;
                         r.rarity = first.rarity;
                         r.description = first.description;
-                        r.value = first.value;
+                         r.value = first.value;
                         r.weight = first.weight;
                         r.slots = first.slots;
+                        r.width = first.width;
+                        r.height = first.height;
                         r.stats = first.stats;
                         r.abilities = first.abilities;
                         r.image = resolveItemIcon(first && first.icon);
@@ -449,6 +455,8 @@ function openTileItemsPopup(items) {
                         r.value = d.value;
                         r.weight = d.weight;
                         r.slots = d.slots;
+                        r.width = d.width;
+                        r.height = d.height;
                         r.stats = d.stats;
                         r.abilities = d.abilities;
                         r.image = resolveItemIcon(d && d.icon);
@@ -504,6 +512,8 @@ function openTileItemsPopup(items) {
                     value: firstItem.value,
                     weight: firstItem.weight,
                     slots: firstItem.slots,
+                    width: firstItem.width,
+                    height: firstItem.height,
                     stats: firstItem.stats,
                     abilities: firstItem.abilities,
                     image: resolveItemIcon(firstItem && firstItem.icon),
