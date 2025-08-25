@@ -53,7 +53,8 @@ function updateStatsDisplay() {
             const tr = document.createElement('tr');
             const nameTd = document.createElement('td');
             nameTd.className = 'stat-name';
-            nameTd.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+            const label = key.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+            nameTd.textContent = label;
 
             const base = (currentProfileData.stats && currentProfileData.stats[key]) || 0;
             const baseTd = document.createElement('td');
@@ -308,15 +309,17 @@ function openItemModal(index = null) {
     document.getElementById('item-quantity-multiplier').checked = false;
     document.getElementById('item-maxstack').value = 1;
     document.getElementById('item-quantity').value = 1;
+    document.getElementById('item-weight').value = 0;
     document.getElementById('item-modal-title').innerText = index === null ? 'Create Item' : 'Edit Item';
     const statsContainer = document.getElementById('item-stats');
     statsContainer.innerHTML = '';
-    const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude'];
+    const statsList = ['strength','dexterity','constitution','endurance','intelligence','charisma','fortitude','carry_capacity'];
     statsList.forEach(stat => {
         const row = document.createElement('div');
         row.className = 'item-stat-row';
         row.dataset.stat = stat;
-        row.innerHTML = `<label>${stat.charAt(0).toUpperCase()+stat.slice(1)}</label>`+
+        const label = stat.split('_').map(s=>s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
+        row.innerHTML = `<label>${label}</label>`+
             `<input type="number" class="stat-value" value="0" step="any">`+
             `<div class="type-toggle"><button type="button" class="type-btn active" data-type="boost">Boost</button><button type="button" class="type-btn" data-type="mult">x</button></div>`;
         statsContainer.appendChild(row);
@@ -338,6 +341,7 @@ function openItemModal(index = null) {
         document.getElementById('item-quantity').value = item.quantity || 0;
         document.getElementById('item-quantity-multiplier').checked = item.quantityMultiplier || false;
         document.getElementById('item-value').value = item.value || 0;
+        document.getElementById('item-weight').value = item.weight || 0;
         (item.stats || []).forEach(sm => {
             const row = statsContainer.querySelector(`[data-stat="${sm.stat}"]`);
             if (row) {
@@ -425,11 +429,15 @@ function openItemInfo(index) {
     });
     document.getElementById('item-info-description').innerText = item.description || '';
     const valueText = document.getElementById('item-info-value-text');
+    const weightText = document.getElementById('item-info-weight-text');
     if (item.stackable) {
         const total = item.value * item.quantity;
         valueText.innerText = `Base: ${formatCurrency(item.value)} | Total: ${formatCurrency(total)}`;
+        const totalW = (item.weight || 0) * (item.quantity || 0);
+        weightText.innerText = `Base: ${item.weight || 0} | Total: ${totalW}`;
     } else {
         valueText.innerText = formatCurrency(item.value);
+        weightText.innerText = item.weight != null ? item.weight : '';
     }
     document.getElementById('item-edit-btn').onclick = () => { closeItemInfo(); openItemModal(index); };
     document.getElementById('item-destroy-btn').onclick = async () => {
@@ -486,6 +494,7 @@ async function handleItemFormSubmit(e) {
         quantity: parseInt(document.getElementById('item-quantity').value) || 0,
         quantityMultiplier: document.getElementById('item-quantity-multiplier').checked,
         value: parseFloat(document.getElementById('item-value').value) || 0,
+        weight: parseFloat(document.getElementById('item-weight').value) || 0,
         stats: []
     };
     document.querySelectorAll('#item-stats .item-stat-row').forEach(row => {

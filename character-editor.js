@@ -67,7 +67,8 @@ function createStatRow(data = {}) {
         <option value="endurance">Endurance</option>
         <option value="intelligence">Intelligence</option>
         <option value="charisma">Charisma</option>
-        <option value="fortitude">Fortitude</option>`;
+        <option value="fortitude">Fortitude</option>
+        <option value="carry_capacity">Carry Capacity</option>`;
     statSelect.value = data.stat || '';
     row.appendChild(statSelect);
 
@@ -342,8 +343,9 @@ async function loadCharacter() {
     document.getElementById('stat-intelligence').value = data.stats?.intelligence || 0;
     document.getElementById('stat-charisma').value = data.stats?.charisma || 0;
     document.getElementById('stat-fortitude').value = data.stats?.fortitude || 0;
-	traitsData = data.traits || [];
-	renderTraits();
+	document.getElementById('stat-carry').value = data.stats?.carry_capacity || 0;
+        traitsData = data.traits || [];
+        renderTraits();
     const previewImg = document.getElementById('image-preview-img');
     const imgPath = await window.electron.getCharacterImage(originalCharacterName);
     if (imgPath) {
@@ -375,8 +377,9 @@ async function loadLoadout() {
     document.getElementById('stat-intelligence').value = data.stats?.intelligence || 0;
     document.getElementById('stat-charisma').value = data.stats?.charisma || 0;
     document.getElementById('stat-fortitude').value = data.stats?.fortitude || 0;
-	traitsData = data.traits || [];
-	renderTraits();
+	document.getElementById('stat-carry').value = data.stats?.carry_capacity || 0;
+        traitsData = data.traits || [];
+        renderTraits();
     const previewImg = document.getElementById('image-preview-img');
     const imgPath = await window.electron.getLoadoutImage(originalCharacterName, originalLoadoutName);
     if (imgPath) {
@@ -410,6 +413,7 @@ saveBtn.addEventListener('click', async () => {
             intelligence: parseInt(document.getElementById('stat-intelligence').value) || 0,
             charisma: parseInt(document.getElementById('stat-charisma').value) || 0,
             fortitude: parseInt(document.getElementById('stat-fortitude').value) || 0,
+			carry_capacity: parseFloat(document.getElementById('stat-carry').value) || 0,
         },
         traits: traitsData,
         showStats: showStatsCheckbox.checked,

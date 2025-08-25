@@ -57,8 +57,13 @@
             <div id="right-column">
                 <div id="info-panel" class="info-box">
                     <h3 id="character-name"></h3>
-                    <button id="inventory-btn" class="hidden">Inventory</button>
+                     <button id="inventory-btn" class="hidden">Inventory</button>
                     <div id="mini-inventory-grid" class="hidden"></div>
+                    <div id="inventory-weight">
+                        <img src="resources/ui/weight.png" alt="weight">
+						<span id="inventory-weight-text"></span>
+                    </div>
+                    <div id="carry-weight-bar"><div class="fill"></div></div>
                     <div id="profile-stats" class="hidden">
                         <h3 id="stats-title">Stats</h3>
                         <table id="stats-table">
@@ -336,9 +341,11 @@
                 <img id="item-info-image" alt="">
                 <div id="item-info-stats"></div>
                 <p id="item-info-description"></p>
-                <div id="item-info-value" class="item-value">
+                 <div id="item-info-value" class="item-value">
                     <img src="resources/ui/coin.png" alt="coin">
                     <span id="item-info-value-text"></span>
+                    <img src="resources/ui/weight.png" alt="weight">
+                    <span id="item-info-weight-text"></span>
                 </div>
                 <div id="item-info-actions" class="modal-buttons">
                     <button id="item-drop-btn">Drop</button>

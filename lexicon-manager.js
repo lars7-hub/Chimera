@@ -83,7 +83,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         { key: 'endurance', label: 'Endurance', desc: 'Stamina reserves and Lifespan/longevity.' },
         { key: 'intelligence', label: 'Intelligence', desc: 'Determines Intellect and reasoning. Also governs magical and mental abilities.' },
         { key: 'charisma', label: 'Charisma', desc: 'Influences persuasion and charm. Represents physical attractiveness and verbal influence.' },
-        { key: 'fortitude', label: 'Fortitude', desc: 'Enhances resistance to damage. Affects resistance to the elements, toxins, crippling conditions, etc. Governs physical defense rating.' }
+        { key: 'fortitude', label: 'Fortitude', desc: 'Enhances resistance to damage. Affects resistance to the elements, toxins, crippling conditions, etc. Governs physical defense rating.' },
+        { key: 'carry_capacity', label: 'Carry Capacity', desc: 'Maximum weight the character can carry.' }
     ];
 
     const worlds = await window.electron.listWorlds();
@@ -179,7 +180,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             <option value="endurance">Endurance</option>
             <option value="intelligence">Intelligence</option>
             <option value="charisma">Charisma</option>
-            <option value="fortitude">Fortitude</option>`;
+            <option value="fortitude">Fortitude</option>
+            <option value="carry_capacity">Carry Capacity</option>`;
         statSelect.value = data.stat || '';
         row.appendChild(statSelect);
 
@@ -651,7 +653,7 @@ function buildItemsTable() {
         });
 
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
+        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Weight', 'Slots', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -707,7 +709,8 @@ function buildItemsTable() {
                     <option value="endurance">Endurance</option>
                     <option value="intelligence">Intelligence</option>
                     <option value="charisma">Charisma</option>
-                    <option value="fortitude">Fortitude</option>`;
+                    <option value="fortitude">Fortitude</option>
+                    <option value="carry_capacity">Carry Capacity</option>`;
                 statSelect.value = data.stat || '';
                 row.appendChild(statSelect);
 
@@ -800,6 +803,23 @@ function buildItemsTable() {
             maxTd.appendChild(maxInput);
             tr.appendChild(maxTd);
 
+            const weightInput = document.createElement('input');
+            weightInput.type = 'number';
+            weightInput.step = 'any';
+            weightInput.value = item.weight != null ? item.weight : 0;
+            weightInput.addEventListener('input', e => item.weight = parseFloat(e.target.value) || 0);
+            const weightTd = document.createElement('td');
+            weightTd.appendChild(weightInput);
+            tr.appendChild(weightTd);
+
+            const slotsInput = document.createElement('input');
+            slotsInput.type = 'number';
+            slotsInput.value = item.slots != null ? item.slots : 0;
+            slotsInput.addEventListener('input', e => item.slots = parseInt(e.target.value) || 0);
+            const slotsTd = document.createElement('td');
+            slotsTd.appendChild(slotsInput);
+            tr.appendChild(slotsTd);
+
             const valInput = document.createElement('input');
             valInput.type = 'number';
             valInput.value = item.value != null ? item.value : 0;
@@ -883,7 +903,7 @@ function buildItemsTable() {
     addItemBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.items) ? lexicon.items : [];
         const defCat = Object.keys(window.ITEM_CATEGORIES || {})[0] || '';
-        data.push({ key: '', name: '', category: defCat, description: '', rarity: 'common', stackable: false, maxStack: 1, value: 0, icon: null, abilities: [], stats: [] });
+        data.push({ key: '', name: '', category: defCat, description: '', rarity: 'common', stackable: false, maxStack: 1, weight: 0, slots: 0, value: 0, icon: null, abilities: [], stats: [] });
         lexicon.items = data;
         buildItemsTable();
     });

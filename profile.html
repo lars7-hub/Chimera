@@ -83,8 +83,9 @@
                 <label><input type="checkbox" id="item-stackable"> Stackable</label>
                 <label>Maximum stackable quantity<input type="number" id="item-maxstack"></label>
                 <label>Quantity of item<input type="number" id="item-quantity"></label>
-                <label><input type="checkbox" id="item-quantity-multiplier"> Quantity multiplies stats</label>
+                 <label><input type="checkbox" id="item-quantity-multiplier"> Quantity multiplies stats</label>
                 <label>Item Value<input type="number" id="item-value"></label>
+                <label>Item Weight<input type="number" id="item-weight" step="any"></label>
                 <h4>Stats Affected</h4>
                 <div id="item-stats"></div>
                 <label>Item Icon<input type="file" id="item-image" accept="image/*"></label>
@@ -104,6 +105,8 @@
             <div id="item-info-value" class="item-value">
                 <img src="resources/ui/coin.png" alt="coin">
                 <span id="item-info-value-text"></span>
+                <img src="resources/ui/weight.png" alt="weight">
+                <span id="item-info-weight-text"></span>
             </div>
             <div id="item-info-actions" class="modal-buttons">
                 <button id="item-edit-btn">Edit</button>

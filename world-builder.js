@@ -152,6 +152,8 @@ async function loadLexiconItems() {
                 stackable: !!it.stackable,
                 maxStack: it.maxStack != null ? it.maxStack : 1,
                 value: it.value != null ? it.value : 0,
+                weight: it.weight != null ? it.weight : 0,
+                slots: it.slots != null ? it.slots : 0,
                 stats: Array.isArray(it.stats) ? it.stats : [],
                 abilities: Array.isArray(it.abilities) ? it.abilities : []
             };
@@ -176,6 +178,52 @@ async function loadLexiconItems() {
 
 let worldCharacter = null;
 let worldInventory = [];
+
+const BASE_INVENTORY_SLOTS = 40;
+
+function getInventoryCapacity() {
+    let bonus = 0;
+    (worldInventory || []).forEach(item => {
+        if (item && item.slots) {
+            const qty = item.stackable ? (item.quantity || 0) : 1;
+            bonus += item.slots * qty;
+        }
+    });
+    return BASE_INVENTORY_SLOTS + bonus;
+}
+
+function getInventoryWeight() {
+    let total = 0;
+    (worldInventory || []).forEach(item => {
+        if (!item) return;
+        const qty = item.stackable ? (item.quantity || 0) : 1;
+        total += (item.weight || 0) * qty;
+    });
+    return total;
+}
+
+function updateCarryInfo(finalStats = {}) {
+    const capacity = finalStats.carry_capacity != null
+        ? finalStats.carry_capacity
+        : ((worldCharacter && worldCharacter.stats && worldCharacter.stats.carry_capacity) || 0);
+    const weight = getInventoryWeight();
+    const textEl = document.getElementById('inventory-weight-text');
+    if (textEl) {
+        textEl.textContent = `${weight.toFixed(2)} / ${capacity}`;
+    }
+    const bar = document.getElementById('carry-weight-bar');
+    if (bar) {
+        const fill = bar.querySelector('.fill');
+        const ratio = capacity > 0 ? weight / capacity : 0;
+        const pct = Math.min(ratio, 1) * 100;
+        if (fill) {
+            fill.style.width = `${pct}%`;
+            if (weight > capacity) fill.style.backgroundColor = 'red';
+            else if (ratio >= 0.7) fill.style.backgroundColor = 'yellow';
+            else fill.style.backgroundColor = 'gray';
+        }
+    }
+}
 
 function initCharacterAbilities() {
     if (!worldCharacter) return;
@@ -228,7 +276,8 @@ const statAbbr = {
     endurance: 'END',
     intelligence: 'INT',
     charisma: 'CHA',
-    fortitude: 'FOR'
+    fortitude: 'FOR',
+    carry_capacity: 'CARRY'
 };
 
 function renderUtilityAbilities() {
@@ -309,6 +358,8 @@ function openTileItemsPopup(items) {
                     r.rarity = def.rarity;
                     r.description = def.description;
                     r.value = def.value;
+                    r.weight = def.weight;
+                    r.slots = def.slots;
                     r.stats = def.stats;
                     r.abilities = def.abilities;
                     r.image = r.image || resolveItemIcon(def && def.icon);
@@ -356,8 +407,10 @@ function openTileItemsPopup(items) {
                         r.name = first.name;
                         r.category = catSel.value;
                         r.rarity = first.rarity;
-                         r.description = first.description;
+                        r.description = first.description;
                         r.value = first.value;
+                        r.weight = first.weight;
+                        r.slots = first.slots;
                         r.stats = first.stats;
                         r.abilities = first.abilities;
                         r.image = resolveItemIcon(first && first.icon);
@@ -373,6 +426,8 @@ function openTileItemsPopup(items) {
                         r.rarity = d.rarity;
                         r.description = d.description;
                         r.value = d.value;
+                        r.weight = d.weight;
+                        r.slots = d.slots;
                         r.stats = d.stats;
                         r.abilities = d.abilities;
                         r.image = resolveItemIcon(d && d.icon);
@@ -426,6 +481,8 @@ function openTileItemsPopup(items) {
                     rarity: firstItem.rarity,
                     description: firstItem.description,
                     value: firstItem.value,
+                    weight: firstItem.weight,
+                    slots: firstItem.slots,
                     stats: firstItem.stats,
                     abilities: firstItem.abilities,
                     image: resolveItemIcon(firstItem && firstItem.icon),
@@ -2336,7 +2393,7 @@ function pickUpTileItem(idx) {
         const stackable = base.stackable !== false;
         const maxStack = base.maxStack || 1;
         let remaining = base.quantity != null ? base.quantity : (base.amount || 1);
-        const maxSlots = 12;
+        const maxSlots = getInventoryCapacity();
 
         if (stackable) {
                 // Fill existing stacks
@@ -3508,27 +3565,33 @@ function renderWorldInventory() {
     if (!grid) return;
     grid.innerHTML = '';
     recomputeTempAbilities();
-    worldInventory.forEach((item, index) => {
+    const capacity = Math.max(getInventoryCapacity(), worldInventory.length);
+    for (let i = 0; i < capacity; i++) {
+        const item = worldInventory[i];
         const tile = document.createElement('div');
         tile.className = 'inventory-tile';
-        if (item.image) {
-            const img = document.createElement('img');
-            img.src = `${item.image}?cb=${Date.now()}`;
-            tile.appendChild(img);
+        if (item) {
+            if (item.image) {
+                const img = document.createElement('img');
+                img.src = `${item.image}?cb=${Date.now()}`;
+                tile.appendChild(img);
+            } else {
+                const span = document.createElement('span');
+                span.textContent = item.name;
+                tile.appendChild(span);
+            }
+            if (item.stackable && item.quantity > 1) {
+                const qty = document.createElement('div');
+                qty.className = 'qty';
+                qty.textContent = item.quantity;
+                tile.appendChild(qty);
+            }
+            tile.addEventListener('click', () => openItemInfo(i));
         } else {
-            const span = document.createElement('span');
-            span.textContent = item.name;
-            tile.appendChild(span);
+            tile.classList.add('blank');
         }
-        if (item.stackable && item.quantity > 1) {
-            const qty = document.createElement('div');
-            qty.className = 'qty';
-            qty.textContent = item.quantity;
-            tile.appendChild(qty);
-        }
-        tile.addEventListener('click', () => openItemInfo(index));
         grid.appendChild(tile);
-    });
+    }
     renderMiniInventory();
     renderStats();
 }
@@ -3589,14 +3652,7 @@ function renderMiniInventory() {
 }
 
 function renderStats() {
-    if (!worldCharacter || worldCharacter.showStats === false) {
-        document.getElementById('profile-stats').classList.add('hidden');
-        return;
-    }
-    const container = document.getElementById('profile-stats');
-    const tableBody = document.querySelector('#stats-table tbody');
-    container.classList.remove('hidden');
-    tableBody.innerHTML = '';
+    if (!worldCharacter) return;
     const inventoryMods = [];
     worldInventory.forEach(item => {
         (item.stats || []).forEach(mod => {
@@ -3608,11 +3664,22 @@ function renderStats() {
         });
     });
     const { finalStats, modifiers } = calculateFinalStats(worldCharacter.stats || {}, worldCharacter.traits || [], inventoryMods);
+    updateCarryInfo(finalStats);
+    if (worldCharacter.showStats === false) {
+        document.getElementById('profile-stats').classList.add('hidden');
+        renderUtilityAbilities();
+        return { finalStats, modifiers };
+    }
+    const container = document.getElementById('profile-stats');
+    const tableBody = document.querySelector('#stats-table tbody');
+    container.classList.remove('hidden');
+    tableBody.innerHTML = '';
     Object.keys(finalStats).forEach(key => {
         const tr = document.createElement('tr');
         const nameTd = document.createElement('td');
         nameTd.className = 'stat-name';
-        nameTd.textContent = statAbbr[key] || key.slice(0,3).toUpperCase();
+        const label = key.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+        nameTd.textContent = statAbbr[key] || label;
 
         const base = (worldCharacter.stats && worldCharacter.stats[key]) || 0;
         const baseTd = document.createElement('td');
@@ -3642,12 +3709,13 @@ function renderStats() {
         }
 
         tr.appendChild(nameTd);
-		tr.appendChild(baseTd);
+        tr.appendChild(baseTd);
         tr.appendChild(modTd);
         tr.appendChild(finalTd);
         tableBody.appendChild(tr);
     });
     renderUtilityAbilities();
+    return { finalStats, modifiers };
 }
 
 function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
@@ -3709,11 +3777,15 @@ function openItemInfo(index) {
     });
     document.getElementById('item-info-description').textContent = item.description || '';
     const valueEl = document.getElementById('item-info-value-text');
+    const weightEl = document.getElementById('item-info-weight-text');
     if (item.stackable) {
         const total = (item.value || 0) * (item.quantity || 0);
         valueEl.textContent = `Base: ${item.value || 0} | Total: ${total}`;
+        const totalW = (item.weight || 0) * (item.quantity || 0);
+        weightEl.textContent = `Base: ${item.weight || 0} | Total: ${totalW}`;
     } else {
         valueEl.textContent = (item.value != null ? item.value : '');
+        weightEl.textContent = (item.weight != null ? item.weight : '');
     }
     document.getElementById('item-drop-btn').onclick = () => {
         dropInventoryItem(index);

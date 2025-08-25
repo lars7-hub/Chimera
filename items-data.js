@@ -39,6 +39,8 @@ Object.entries(itemCategories).forEach(([category, data]) => {
       quantity: i.quantity || 0,
       description: i.description || '',
       value: i.value || 0,
+      weight: i.weight || 0,
+      slots: i.slots || 0,
       stats: i.stats || [],
       abilities: i.abilities || [],
       stackable: i.stackable || false,
