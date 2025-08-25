@@ -256,13 +256,14 @@ function renderInventory() {
 
     const map = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 
-    function canPlace(item, x, y) {
+    function canPlace(item, x, y, ignoreIdx = null) {
         const w = item.width || 1;
         const h = item.height || 1;
         if (x + w > COLS || y + h > ROWS) return false;
         for (let yy = y; yy < y + h; yy++) {
             for (let xx = x; xx < x + w; xx++) {
-                if (map[yy][xx] !== null) return false;
+                const cell = map[yy][xx];
+                if (cell !== null && cell !== ignoreIdx) return false;
             }
         }
         return true;
@@ -295,6 +296,22 @@ function renderInventory() {
         placeItemOnMap(idx, item);
     });
 
+    function clearHighlights() {
+        grid.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+    }
+
+    function highlightCells(item, x, y) {
+        clearHighlights();
+        const w = item.width || 1;
+        const h = item.height || 1;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                const cellEl = grid.querySelector(`[data-x="${xx}"][data-y="${yy}"]`);
+                if (cellEl) cellEl.classList.add('highlight');
+            }
+        }
+    }
+
     // create blank cells
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
@@ -304,16 +321,23 @@ function renderInventory() {
             blank.dataset.x = x;
             blank.dataset.y = y;
             blank.addEventListener('click', () => openItemModal());
-            blank.addEventListener('dragover', e => e.preventDefault());
+            blank.addEventListener('dragover', e => {
+                e.preventDefault();
+                const idx = parseInt(e.dataTransfer.getData('text/plain'));
+                const item = inventory[idx];
+                highlightCells(item, x, y);
+            });
+            blank.addEventListener('dragleave', clearHighlights);
             blank.addEventListener('drop', async e => {
                 e.preventDefault();
                 const idx = parseInt(e.dataTransfer.getData('text/plain'));
                 const item = inventory[idx];
-                if (canPlace(item, x, y)) {
+                if (canPlace(item, x, y, idx)) {
                     item.x = x; item.y = y;
                     renderInventory();
                     await saveInventory();
                 }
+                clearHighlights();
             });
             grid.appendChild(blank);
         }
@@ -326,12 +350,17 @@ function renderInventory() {
         tile.style.gridColumn = `${item.x + 1} / span ${item.width || 1}`;
         tile.style.gridRow = `${item.y + 1} / span ${item.height || 1}`;
         tile.draggable = true;
+        tile.dataset.x = item.x;
+        tile.dataset.y = item.y;
         tile.addEventListener('dragstart', e => {
             e.dataTransfer.setData('text/plain', index);
+            e.dataTransfer.setDragImage(tile, tile.offsetWidth / 2, tile.offsetHeight / 2);
         });
+        tile.addEventListener('dragend', clearHighlights);
         if (item.image) {
             const img = document.createElement('img');
             img.src = `${item.image}?cb=${Date.now()}`;
+            img.draggable = false;
             tile.appendChild(img);
         } else {
             const span = document.createElement('span');

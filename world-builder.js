@@ -3603,13 +3603,14 @@ function renderWorldInventory() {
     const ROWS = 8;
     const map = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 
-    function canPlace(item, x, y) {
+    function canPlace(item, x, y, ignoreIdx = null) {
         const w = item.width || 1;
         const h = item.height || 1;
         if (x + w > COLS || y + h > ROWS) return false;
         for (let yy = y; yy < y + h; yy++) {
             for (let xx = x; xx < x + w; xx++) {
-                if (map[yy][xx] !== null) return false;
+                const cell = map[yy][xx];
+                if (cell !== null && cell !== ignoreIdx) return false;
             }
         }
         return true;
@@ -3641,6 +3642,22 @@ function renderWorldInventory() {
         placeItemOnMap(idx, item);
     });
 
+    function clearHighlights() {
+        grid.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+    }
+
+    function highlightCells(item, x, y) {
+        clearHighlights();
+        const w = item.width || 1;
+        const h = item.height || 1;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                const cellEl = grid.querySelector(`[data-x="${xx}"][data-y="${yy}"]`);
+                if (cellEl) cellEl.classList.add('highlight');
+            }
+        }
+    }
+
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
             if (map[y][x] !== null) continue;
@@ -3648,16 +3665,23 @@ function renderWorldInventory() {
             blank.className = 'inventory-tile blank';
             blank.dataset.x = x;
             blank.dataset.y = y;
-            blank.addEventListener('dragover', e => e.preventDefault());
+            blank.addEventListener('dragover', e => {
+                e.preventDefault();
+                const idx = parseInt(e.dataTransfer.getData('text/plain'));
+                const item = worldInventory[idx];
+                highlightCells(item, x, y);
+            });
+            blank.addEventListener('dragleave', clearHighlights);
             blank.addEventListener('drop', async e => {
                 e.preventDefault();
                 const idx = parseInt(e.dataTransfer.getData('text/plain'));
                 const item = worldInventory[idx];
-                if (canPlace(item, x, y)) {
+                if (canPlace(item, x, y, idx)) {
                     item.x = x; item.y = y;
                     renderWorldInventory();
                     await window.electron.saveWorldInventory(currentWorld, worldInventory);
                 }
+                clearHighlights();
             });
             grid.appendChild(blank);
         }
@@ -3669,12 +3693,17 @@ function renderWorldInventory() {
         tile.style.gridColumn = `${item.x + 1} / span ${item.width || 1}`;
         tile.style.gridRow = `${item.y + 1} / span ${item.height || 1}`;
         tile.draggable = true;
+        tile.dataset.x = item.x;
+        tile.dataset.y = item.y;
         tile.addEventListener('dragstart', e => {
             e.dataTransfer.setData('text/plain', index);
+            e.dataTransfer.setDragImage(tile, tile.offsetWidth / 2, tile.offsetHeight / 2);
         });
+        tile.addEventListener('dragend', clearHighlights);
         if (item.image) {
             const img = document.createElement('img');
             img.src = `${item.image}?cb=${Date.now()}`;
+            img.draggable = false;
             tile.appendChild(img);
         } else {
             const span = document.createElement('span');
@@ -3738,13 +3767,14 @@ function renderMiniInventory() {
     const ROWS = 8;
     const map = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 
-    function canPlace(item, x, y) {
+    function canPlace(item, x, y, ignoreIdx = null) {
         const w = item.width || 1;
         const h = item.height || 1;
         if (x + w > COLS || y + h > ROWS) return false;
         for (let yy = y; yy < y + h; yy++) {
             for (let xx = x; xx < x + w; xx++) {
-                if (map[yy][xx] !== null) return false;
+                const cell = map[yy][xx];
+                if (cell !== null && cell !== ignoreIdx) return false;
             }
         }
         return true;
@@ -3776,23 +3806,68 @@ function renderMiniInventory() {
         placeItemOnMap(idx, item);
     });
 
+    function clearHighlights() {
+        grid.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+    }
+
+    function highlightCells(item, x, y) {
+        clearHighlights();
+        const w = item.width || 1;
+        const h = item.height || 1;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                const cellEl = grid.querySelector(`[data-x="${xx}"][data-y="${yy}"]`);
+                if (cellEl) cellEl.classList.add('highlight');
+            }
+        }
+    }
+
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
             if (map[y][x] !== null) continue;
             const blank = document.createElement('div');
-            blank.className = 'mini-slot';
+            blank.className = 'mini-slot blank';
+            blank.dataset.x = x;
+            blank.dataset.y = y;
+            blank.addEventListener('dragover', e => {
+                e.preventDefault();
+                const idx = parseInt(e.dataTransfer.getData('text/plain'));
+                const item = worldInventory[idx];
+                highlightCells(item, x, y);
+            });
+            blank.addEventListener('dragleave', clearHighlights);
+            blank.addEventListener('drop', async e => {
+                e.preventDefault();
+                const idx = parseInt(e.dataTransfer.getData('text/plain'));
+                const item = worldInventory[idx];
+                if (canPlace(item, x, y, idx)) {
+                    item.x = x; item.y = y;
+                    renderWorldInventory();
+                    await window.electron.saveWorldInventory(currentWorld, worldInventory);
+                }
+                clearHighlights();
+            });
             grid.appendChild(blank);
         }
     }
 
-    worldInventory.forEach(item => {
+    worldInventory.forEach((item, index) => {
         const slot = document.createElement('div');
         slot.className = 'mini-slot';
         slot.style.gridColumn = `${(item.x ?? 0) + 1} / span ${item.width || 1}`;
         slot.style.gridRow = `${(item.y ?? 0) + 1} / span ${item.height || 1}`;
+        slot.draggable = true;
+        slot.dataset.x = item.x ?? 0;
+        slot.dataset.y = item.y ?? 0;
+        slot.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', index);
+            e.dataTransfer.setDragImage(slot, slot.offsetWidth / 2, slot.offsetHeight / 2);
+        });
+        slot.addEventListener('dragend', clearHighlights);
         if (item.image) {
             const img = document.createElement('img');
             img.src = `${item.image}?cb=${Date.now()}`;
+            img.draggable = false;
             slot.appendChild(img);
         }
         slot.addEventListener('mouseenter', (e) => showMiniItemInfo(item, e.currentTarget));
