@@ -3673,8 +3673,7 @@ function renderWorldInventory() {
         }
     }
 
-    grid.ondragover = e => {
-        e.preventDefault();
+    function handleMove(e) {
         if (!dragInfo) return;
         const rect = grid.getBoundingClientRect();
         const cellW = rect.width / COLS;
@@ -3691,10 +3690,11 @@ function renderWorldInventory() {
         } else {
             clearPreview();
         }
-    };
+    }
 
-    grid.ondrop = async e => {
-        e.preventDefault();
+    async function handleUp(e) {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleUp);
         if (!dragInfo) return;
         const rect = grid.getBoundingClientRect();
         const cellW = rect.width / COLS;
@@ -3706,10 +3706,11 @@ function renderWorldInventory() {
             item.x = x; item.y = y;
             renderWorldInventory();
             await window.electron.saveWorldInventory(currentWorld, worldInventory);
-        }
+        }	
+        dragInfo.el.style.visibility = '';
         clearPreview();
         dragInfo = null;
-    };
+    }
 
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
@@ -3730,19 +3731,15 @@ function renderWorldInventory() {
         tile.draggable = true;
         tile.dataset.x = item.x;
         tile.dataset.y = item.y;
-        tile.addEventListener('dragstart', e => {
+        tile.addEventListener('mousedown', e => {
+			e.preventDefault();
             const rect = tile.getBoundingClientRect();
             const offsetX = e.clientX - rect.left;
             const offsetY = e.clientY - rect.top;
-            dragInfo = { index, offsetX, offsetY };
-            e.dataTransfer.setData('text/plain', index);
-            e.dataTransfer.setDragImage(tile, offsetX, offsetY);
+            dragInfo = { index, offsetX, offsetY, el: tile };
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleUp);
             tile.style.visibility = 'hidden';
-        });
-        tile.addEventListener('dragend', () => {
-            tile.style.visibility = '';
-            clearPreview();
-            dragInfo = null;
         });
         if (item.image) {
             const img = document.createElement('img');
@@ -3877,8 +3874,7 @@ function renderMiniInventory() {
         }
     }
 
-    grid.ondragover = e => {
-        e.preventDefault();
+    function handleMove(e) {
         if (!dragInfo) return;
         const rect = grid.getBoundingClientRect();
         const cellW = rect.width / COLS;
@@ -3895,10 +3891,11 @@ function renderMiniInventory() {
         } else {
             clearPreview();
         }
-    };
+    }
 
-    grid.ondrop = async e => {
-        e.preventDefault();
+    async function handleUp(e) {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleUp);
         if (!dragInfo) return;
         const rect = grid.getBoundingClientRect();
         const cellW = rect.width / COLS;
@@ -3911,9 +3908,10 @@ function renderMiniInventory() {
             renderWorldInventory();
             await window.electron.saveWorldInventory(currentWorld, worldInventory);
         }
+        dragInfo.el.style.visibility = '';
         clearPreview();
         dragInfo = null;
-    };
+    }
 
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
@@ -3931,22 +3929,17 @@ function renderMiniInventory() {
         slot.className = 'mini-slot';
         slot.style.gridColumn = `${(item.x ?? 0) + 1} / span ${item.width || 1}`;
         slot.style.gridRow = `${(item.y ?? 0) + 1} / span ${item.height || 1}`;
-        slot.draggable = true;
         slot.dataset.x = item.x ?? 0;
         slot.dataset.y = item.y ?? 0;
-        slot.addEventListener('dragstart', e => {
+        slot.addEventListener('mousedown', e => {
+			e.preventDefault();
             const rect = slot.getBoundingClientRect();
             const offsetX = e.clientX - rect.left;
             const offsetY = e.clientY - rect.top;
-            dragInfo = { index, offsetX, offsetY };
-            e.dataTransfer.setData('text/plain', index);
-            e.dataTransfer.setDragImage(slot, offsetX, offsetY);
+            dragInfo = { index, offsetX, offsetY, el: slot };
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleUp);
             slot.style.visibility = 'hidden';
-        });
-        slot.addEventListener('dragend', () => {
-            slot.style.visibility = '';
-            clearPreview();
-            dragInfo = null;
         });
         if (item.image) {
             const img = document.createElement('img');
