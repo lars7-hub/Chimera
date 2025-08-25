@@ -236,6 +236,14 @@ function initCharacterAbilities() {
 
 function addTempAbility(ab) {
     if (!worldCharacter) return;
+    if (!Array.isArray(worldCharacter.baseAbilities)) {
+        worldCharacter.baseAbilities = Array.isArray(worldCharacter.abilities)
+            ? [...worldCharacter.abilities]
+            : [];
+    }
+    if (!Array.isArray(worldCharacter.tempAbilities)) {
+        worldCharacter.tempAbilities = [];
+    }
     const key = (ab && (ab.key || ab.name)) || ab;
     if (!key) return;
     if (!worldCharacter.tempAbilities.includes(key)) {
@@ -246,6 +254,14 @@ function addTempAbility(ab) {
 
 function removeTempAbility(ab) {
     if (!worldCharacter) return;
+    if (!Array.isArray(worldCharacter.baseAbilities)) {
+        worldCharacter.baseAbilities = Array.isArray(worldCharacter.abilities)
+            ? [...worldCharacter.abilities]
+            : [];
+    }
+    if (!Array.isArray(worldCharacter.tempAbilities)) {
+        worldCharacter.tempAbilities = [];
+    }
     const key = (ab && (ab.key || ab.name)) || ab;
     if (!key) return;
     const idx = worldCharacter.tempAbilities.indexOf(key);
@@ -257,6 +273,11 @@ function removeTempAbility(ab) {
 
 function recomputeTempAbilities() {
     if (!worldCharacter) return;
+    if (!Array.isArray(worldCharacter.baseAbilities)) {
+        worldCharacter.baseAbilities = Array.isArray(worldCharacter.abilities)
+            ? [...worldCharacter.abilities]
+            : [];
+    }
     worldCharacter.tempAbilities = [];
     worldInventory.forEach(item => {
         if (!item) return;
@@ -3552,7 +3573,9 @@ async function importWorldCharacter() {
     }
     await window.electron.prepareWorldCharacter(currentWorld, name, loadout);
     worldCharacter = await window.electron.getWorldCharacter(currentWorld);
+    initCharacterAbilities();
     worldInventory = await window.electron.getWorldInventory(currentWorld);
+    recomputeTempAbilities();
     document.getElementById('character-name').textContent = worldCharacter.name || '';
     document.getElementById('inventory-btn').classList.remove('hidden');
     document.getElementById('mini-inventory-grid').classList.remove('hidden');
@@ -3700,21 +3723,72 @@ function renderMiniInventory() {
     if (!grid) return;
     grid.innerHTML = '';
     recomputeTempAbilities();
-    for (let i = 0; i < 12; i++) {
+
+    const COLS = 5;
+    const ROWS = 8;
+    const map = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+    function canPlace(item, x, y) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+        if (x + w > COLS || y + h > ROWS) return false;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                if (map[yy][xx] !== null) return false;
+            }
+        }
+        return true;
+    }
+
+    function placeItemOnMap(idx, item) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+        const x = item.x ?? 0;
+        const y = item.y ?? 0;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                map[yy][xx] = idx;
+            }
+        }
+    }
+
+    worldInventory.forEach((item, idx) => {
+        if (item.x == null || item.y == null || !canPlace(item, item.x, item.y)) {
+            outer: for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (canPlace(item, x, y)) {
+                        item.x = x; item.y = y;
+                        break outer;
+                    }
+                }
+            }
+        }
+        placeItemOnMap(idx, item);
+    });
+
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            if (map[y][x] !== null) continue;
+            const blank = document.createElement('div');
+            blank.className = 'mini-slot';
+            grid.appendChild(blank);
+        }
+    }
+
+    worldInventory.forEach(item => {
         const slot = document.createElement('div');
         slot.className = 'mini-slot';
-        const item = worldInventory[i];
-        if (item) {
-            if (item.image) {
-                const img = document.createElement('img');
-                img.src = `${item.image}?cb=${Date.now()}`;
-                slot.appendChild(img);
-            }
-            slot.addEventListener('mouseenter', (e) => showMiniItemInfo(item, e.currentTarget));
-            slot.addEventListener('mouseleave', hideMiniItemInfo);
+        slot.style.gridColumn = `${(item.x ?? 0) + 1} / span ${item.width || 1}`;
+        slot.style.gridRow = `${(item.y ?? 0) + 1} / span ${item.height || 1}`;
+        if (item.image) {
+            const img = document.createElement('img');
+            img.src = `${item.image}?cb=${Date.now()}`;
+            slot.appendChild(img);
         }
+        slot.addEventListener('mouseenter', (e) => showMiniItemInfo(item, e.currentTarget));
+        slot.addEventListener('mouseleave', hideMiniItemInfo);
         grid.appendChild(slot);
-    }
+    });
 }
 
 function renderStats() {

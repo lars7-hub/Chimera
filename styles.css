@@ -1304,7 +1304,8 @@ button:hover {
 
 #mini-inventory-grid {
     display: grid;
-    grid-template-columns: repeat(4, 40px);
+    grid-template-columns: repeat(5, 40px);
+    grid-template-rows: repeat(8, 40px);
     grid-auto-rows: 40px;
     gap: 2px;
     margin: 5px 0;
