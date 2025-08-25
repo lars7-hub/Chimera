@@ -388,9 +388,12 @@ function renderInventory() {
         tile.dataset.x = item.x;
         tile.dataset.y = item.y;
         tile.addEventListener('dragstart', e => {
-            dragInfo = { index, offsetX: e.offsetX, offsetY: e.offsetY };
+            const rect = tile.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+            dragInfo = { index, offsetX, offsetY };
             e.dataTransfer.setData('text/plain', index);
-            e.dataTransfer.setDragImage(tile, e.offsetX, e.offsetY);
+            e.dataTransfer.setDragImage(tile, offsetX, offsetY);
             tile.style.visibility = 'hidden';
         });
         tile.addEventListener('dragend', () => {
