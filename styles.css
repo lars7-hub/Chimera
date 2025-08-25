@@ -1331,6 +1331,17 @@ button:hover {
     object-fit: cover;
 }
 
+#mini-inventory-grid .mini-slot.preview {
+    opacity: 0.5;
+    filter: grayscale(100%);
+    pointer-events: none;
+    border: 1px dashed #aaa;
+}
+
+#mini-inventory-grid .mini-slot.preview img {
+    pointer-events: none;
+}
+
 #mini-inventory-grid .mini-slot.highlight,
 .inventory-tile.highlight {
     background-color: #666;

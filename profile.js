@@ -391,10 +391,10 @@ function renderInventory() {
             dragInfo = { index, offsetX: e.offsetX, offsetY: e.offsetY };
             e.dataTransfer.setData('text/plain', index);
             e.dataTransfer.setDragImage(tile, e.offsetX, e.offsetY);
-            setTimeout(() => tile.classList.add('hidden'), 0);
+            tile.style.visibility = 'hidden';
         });
         tile.addEventListener('dragend', () => {
-            tile.classList.remove('hidden');
+            tile.style.visibility = '';
             clearPreview();
             dragInfo = null;
         });
