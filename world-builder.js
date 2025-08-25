@@ -3673,21 +3673,20 @@ function renderWorldInventory() {
         if (!previewEl) {
             previewEl = document.createElement('div');
             previewEl.className = 'inventory-tile preview';
+            if (item.image) {
+                const img = document.createElement('img');
+                img.src = `${item.image}?cb=${Date.now()}`;
+                img.draggable = false;
+                previewEl.appendChild(img);
+            } else {
+                const span = document.createElement('span');
+                span.textContent = item.name || '';
+                previewEl.appendChild(span);
+            }
             grid.appendChild(previewEl);
         }
         previewEl.style.gridColumn = `${x + 1} / span ${item.width || 1}`;
         previewEl.style.gridRow = `${y + 1} / span ${item.height || 1}`;
-        previewEl.innerHTML = '';
-        if (item.image) {
-            const img = document.createElement('img');
-            img.src = `${item.image}?cb=${Date.now()}`;
-            img.draggable = false;
-            previewEl.appendChild(img);
-        } else {
-            const span = document.createElement('span');
-            span.textContent = item.name || '';
-            previewEl.appendChild(span);
-        }
     }
 
     function handleMove(e) {
@@ -3912,17 +3911,16 @@ function renderMiniInventory() {
         if (!previewEl) {
             previewEl = document.createElement('div');
             previewEl.className = 'mini-slot preview';
+            if (item.image) {
+                const img = document.createElement('img');
+                img.src = `${item.image}?cb=${Date.now()}`;
+                img.draggable = false;
+                previewEl.appendChild(img);
+            }
             grid.appendChild(previewEl);
         }
         previewEl.style.gridColumn = `${x + 1} / span ${item.width || 1}`;
         previewEl.style.gridRow = `${y + 1} / span ${item.height || 1}`;
-        previewEl.innerHTML = '';
-        if (item.image) {
-            const img = document.createElement('img');
-            img.src = `${item.image}?cb=${Date.now()}`;
-            img.draggable = false;
-            previewEl.appendChild(img);
-        }
     }
 
     function handleMove(e) {
