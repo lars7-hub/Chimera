@@ -296,21 +296,74 @@ function renderInventory() {
         placeItemOnMap(idx, item);
     });
 
-    function clearHighlights() {
-        grid.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+    let dragInfo = null;
+    let previewEl = null;
+
+    function clearPreview() {
+        if (previewEl && previewEl.parentNode) {
+            previewEl.parentNode.removeChild(previewEl);
+        }
+        previewEl = null;
     }
 
-    function highlightCells(item, x, y) {
-        clearHighlights();
-        const w = item.width || 1;
-        const h = item.height || 1;
-        for (let yy = y; yy < y + h; yy++) {
-            for (let xx = x; xx < x + w; xx++) {
-                const cellEl = grid.querySelector(`[data-x="${xx}"][data-y="${yy}"]`);
-                if (cellEl) cellEl.classList.add('highlight');
-            }
+    function showPreview(item, x, y) {
+        if (!previewEl) {
+            previewEl = document.createElement('div');
+            previewEl.className = 'inventory-tile preview';
+            grid.appendChild(previewEl);
+        }
+        previewEl.style.gridColumn = `${x + 1} / span ${item.width || 1}`;
+        previewEl.style.gridRow = `${y + 1} / span ${item.height || 1}`;
+        previewEl.innerHTML = '';
+        if (item.image) {
+            const img = document.createElement('img');
+            img.src = `${item.image}?cb=${Date.now()}`;
+            img.draggable = false;
+            previewEl.appendChild(img);
+        } else {
+            const span = document.createElement('span');
+            span.textContent = item.name || '';
+            previewEl.appendChild(span);
         }
     }
+
+    grid.ondragover = e => {
+        e.preventDefault();
+        if (!dragInfo) return;
+        const rect = grid.getBoundingClientRect();
+        const cellW = rect.width / COLS;
+        const cellH = rect.height / ROWS;
+        const x = Math.floor((e.clientX - rect.left - dragInfo.offsetX) / cellW);
+        const y = Math.floor((e.clientY - rect.top - dragInfo.offsetY) / cellH);
+        const item = inventory[dragInfo.index];
+        if (x < 0 || y < 0 || x + (item.width || 1) > COLS || y + (item.height || 1) > ROWS) {
+            clearPreview();
+            return;
+        }
+        if (canPlace(item, x, y, dragInfo.index)) {
+            showPreview(item, x, y);
+        } else {
+            clearPreview();
+        }
+    };
+
+    grid.ondrop = async e => {
+        e.preventDefault();
+        if (!dragInfo) return;
+        const rect = grid.getBoundingClientRect();
+        const cellW = rect.width / COLS;
+        const cellH = rect.height / ROWS;
+        const x = Math.floor((e.clientX - rect.left - dragInfo.offsetX) / cellW);
+        const y = Math.floor((e.clientY - rect.top - dragInfo.offsetY) / cellH);
+        const item = inventory[dragInfo.index];
+        if (canPlace(item, x, y, dragInfo.index)) {
+            item.x = x; item.y = y;
+            renderInventory();
+            await saveInventory();
+        }
+        clearPreview();
+        dragInfo = null;
+    };
 
     // create blank cells
     for (let y = 0; y < ROWS; y++) {
@@ -321,24 +374,6 @@ function renderInventory() {
             blank.dataset.x = x;
             blank.dataset.y = y;
             blank.addEventListener('click', () => openItemModal());
-            blank.addEventListener('dragover', e => {
-                e.preventDefault();
-                const idx = parseInt(e.dataTransfer.getData('text/plain'));
-                const item = inventory[idx];
-                highlightCells(item, x, y);
-            });
-            blank.addEventListener('dragleave', clearHighlights);
-            blank.addEventListener('drop', async e => {
-                e.preventDefault();
-                const idx = parseInt(e.dataTransfer.getData('text/plain'));
-                const item = inventory[idx];
-                if (canPlace(item, x, y, idx)) {
-                    item.x = x; item.y = y;
-                    renderInventory();
-                    await saveInventory();
-                }
-                clearHighlights();
-            });
             grid.appendChild(blank);
         }
     }
@@ -353,10 +388,16 @@ function renderInventory() {
         tile.dataset.x = item.x;
         tile.dataset.y = item.y;
         tile.addEventListener('dragstart', e => {
+            dragInfo = { index, offsetX: e.offsetX, offsetY: e.offsetY };
             e.dataTransfer.setData('text/plain', index);
-            e.dataTransfer.setDragImage(tile, tile.offsetWidth / 2, tile.offsetHeight / 2);
+            e.dataTransfer.setDragImage(tile, e.offsetX, e.offsetY);
+            setTimeout(() => tile.classList.add('hidden'), 0);
         });
-        tile.addEventListener('dragend', clearHighlights);
+        tile.addEventListener('dragend', () => {
+            tile.classList.remove('hidden');
+            clearPreview();
+            dragInfo = null;
+        });
         if (item.image) {
             const img = document.createElement('img');
             img.src = `${item.image}?cb=${Date.now()}`;

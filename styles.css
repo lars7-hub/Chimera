@@ -1354,6 +1354,17 @@ button:hover {
     object-fit: fill;
 }
 
+.inventory-tile.preview {
+    opacity: 0.5;
+    filter: grayscale(100%);
+    pointer-events: none;
+    border: 1px dashed #aaa;
+}
+
+.inventory-tile.preview img {
+    pointer-events: none;
+}
+
 .inventory-tile .qty {
     position: absolute;
     bottom: 2px;
