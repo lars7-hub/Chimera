@@ -41,6 +41,8 @@ Object.entries(itemCategories).forEach(([category, data]) => {
       value: i.value || 0,
       weight: i.weight || 0,
       slots: i.slots || 0,
+      width: i.width || 1,
+      height: i.height || 1,
       stats: i.stats || [],
       abilities: i.abilities || [],
       stackable: i.stackable || false,

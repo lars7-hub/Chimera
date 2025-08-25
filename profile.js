@@ -250,9 +250,85 @@ function renderInventory() {
     const grid = document.getElementById('inventory-grid');
     if (!grid) return;
     grid.innerHTML = '';
+
+    const COLS = 5;
+    const ROWS = 8;
+
+    const map = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+    function canPlace(item, x, y) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+        if (x + w > COLS || y + h > ROWS) return false;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                if (map[yy][xx] !== null) return false;
+            }
+        }
+        return true;
+    }
+
+    function placeItemOnMap(idx, item) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+        const x = item.x ?? 0;
+        const y = item.y ?? 0;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                map[yy][xx] = idx;
+            }
+        }
+    }
+
+    // ensure all items have positions
+    inventory.forEach((item, idx) => {
+        if (item.x == null || item.y == null || !canPlace(item, item.x, item.y)) {
+            outer: for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (canPlace(item, x, y)) {
+                        item.x = x; item.y = y;
+                        break outer;
+                    }
+                }
+            }
+        }
+        placeItemOnMap(idx, item);
+    });
+
+    // create blank cells
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            if (map[y][x] !== null) continue;
+            const blank = document.createElement('div');
+            blank.className = 'inventory-tile blank';
+            blank.dataset.x = x;
+            blank.dataset.y = y;
+            blank.addEventListener('click', () => openItemModal());
+            blank.addEventListener('dragover', e => e.preventDefault());
+            blank.addEventListener('drop', async e => {
+                e.preventDefault();
+                const idx = parseInt(e.dataTransfer.getData('text/plain'));
+                const item = inventory[idx];
+                if (canPlace(item, x, y)) {
+                    item.x = x; item.y = y;
+                    renderInventory();
+                    await saveInventory();
+                }
+            });
+            grid.appendChild(blank);
+        }
+    }
+
+    // create item tiles
     inventory.forEach((item, index) => {
         const tile = document.createElement('div');
         tile.className = 'inventory-tile';
+        tile.style.gridColumn = `${item.x + 1} / span ${item.width || 1}`;
+        tile.style.gridRow = `${item.y + 1} / span ${item.height || 1}`;
+        tile.draggable = true;
+        tile.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', index);
+        });
         if (item.image) {
             const img = document.createElement('img');
             img.src = `${item.image}?cb=${Date.now()}`;
@@ -268,38 +344,9 @@ function renderInventory() {
             qty.textContent = item.quantity;
             tile.appendChild(qty);
         }
-        const left = document.createElement('button');
-        left.className = 'move-left';
-        left.textContent = '<';
-        left.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (index > 0) {
-                [inventory[index - 1], inventory[index]] = [inventory[index], inventory[index - 1]];
-				renderInventory();
-                await saveInventory();
-            }
-        });
-        tile.appendChild(left);
-        const right = document.createElement('button');
-        right.className = 'move-right';
-        right.textContent = '>';
-        right.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (index < inventory.length - 1) {
-                [inventory[index + 1], inventory[index]] = [inventory[index], inventory[index + 1]];
-				renderInventory();
-                await saveInventory();
-            }
-        });
-        tile.appendChild(right);
         tile.addEventListener('click', () => openItemInfo(index));
         grid.appendChild(tile);
     });
-    const blank = document.createElement('div');
-    blank.className = 'inventory-tile blank';
-    blank.textContent = '+';
-    blank.addEventListener('click', () => openItemModal());
-    grid.appendChild(blank);
 }
 
 function openItemModal(index = null) {
@@ -310,6 +357,8 @@ function openItemModal(index = null) {
     document.getElementById('item-maxstack').value = 1;
     document.getElementById('item-quantity').value = 1;
     document.getElementById('item-weight').value = 0;
+    document.getElementById('item-width').value = 1;
+    document.getElementById('item-height').value = 1;
     document.getElementById('item-modal-title').innerText = index === null ? 'Create Item' : 'Edit Item';
     const statsContainer = document.getElementById('item-stats');
     statsContainer.innerHTML = '';
@@ -342,6 +391,8 @@ function openItemModal(index = null) {
         document.getElementById('item-quantity-multiplier').checked = item.quantityMultiplier || false;
         document.getElementById('item-value').value = item.value || 0;
         document.getElementById('item-weight').value = item.weight || 0;
+        document.getElementById('item-width').value = item.width || 1;
+        document.getElementById('item-height').value = item.height || 1;
         (item.stats || []).forEach(sm => {
             const row = statsContainer.querySelector(`[data-stat="${sm.stat}"]`);
             if (row) {
@@ -495,6 +546,8 @@ async function handleItemFormSubmit(e) {
         quantityMultiplier: document.getElementById('item-quantity-multiplier').checked,
         value: parseFloat(document.getElementById('item-value').value) || 0,
         weight: parseFloat(document.getElementById('item-weight').value) || 0,
+        width: parseInt(document.getElementById('item-width').value) || 1,
+        height: parseInt(document.getElementById('item-height').value) || 1,
         stats: []
     };
     document.querySelectorAll('#item-stats .item-stat-row').forEach(row => {
@@ -519,6 +572,8 @@ async function handleItemFormSubmit(e) {
         item.quantity = 1;
     }
     if (index !== null) {
+        item.x = inventory[index].x;
+        item.y = inventory[index].y;
         inventory[index] = item;
     } else {
         inventory.push(item);

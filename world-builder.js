@@ -3565,33 +3565,99 @@ function renderWorldInventory() {
     if (!grid) return;
     grid.innerHTML = '';
     recomputeTempAbilities();
-    const capacity = Math.max(getInventoryCapacity(), worldInventory.length);
-    for (let i = 0; i < capacity; i++) {
-        const item = worldInventory[i];
+
+    const COLS = 5;
+    const ROWS = 8;
+    const map = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+    function canPlace(item, x, y) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+        if (x + w > COLS || y + h > ROWS) return false;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                if (map[yy][xx] !== null) return false;
+            }
+        }
+        return true;
+    }
+
+    function placeItemOnMap(idx, item) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+        const x = item.x ?? 0;
+        const y = item.y ?? 0;
+        for (let yy = y; yy < y + h; yy++) {
+            for (let xx = x; xx < x + w; xx++) {
+                map[yy][xx] = idx;
+            }
+        }
+    }
+
+    worldInventory.forEach((item, idx) => {
+        if (item.x == null || item.y == null || !canPlace(item, item.x, item.y)) {
+            outer: for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (canPlace(item, x, y)) {
+                        item.x = x; item.y = y;
+                        break outer;
+                    }
+                }
+            }
+        }
+        placeItemOnMap(idx, item);
+    });
+
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            if (map[y][x] !== null) continue;
+            const blank = document.createElement('div');
+            blank.className = 'inventory-tile blank';
+            blank.dataset.x = x;
+            blank.dataset.y = y;
+            blank.addEventListener('dragover', e => e.preventDefault());
+            blank.addEventListener('drop', async e => {
+                e.preventDefault();
+                const idx = parseInt(e.dataTransfer.getData('text/plain'));
+                const item = worldInventory[idx];
+                if (canPlace(item, x, y)) {
+                    item.x = x; item.y = y;
+                    renderWorldInventory();
+                    await window.electron.saveWorldInventory(currentWorld, worldInventory);
+                }
+            });
+            grid.appendChild(blank);
+        }
+    }
+
+    worldInventory.forEach((item, index) => {
         const tile = document.createElement('div');
         tile.className = 'inventory-tile';
-        if (item) {
-            if (item.image) {
-                const img = document.createElement('img');
-                img.src = `${item.image}?cb=${Date.now()}`;
-                tile.appendChild(img);
-            } else {
-                const span = document.createElement('span');
-                span.textContent = item.name;
-                tile.appendChild(span);
-            }
-            if (item.stackable && item.quantity > 1) {
-                const qty = document.createElement('div');
-                qty.className = 'qty';
-                qty.textContent = item.quantity;
-                tile.appendChild(qty);
-            }
-            tile.addEventListener('click', () => openItemInfo(i));
+        tile.style.gridColumn = `${item.x + 1} / span ${item.width || 1}`;
+        tile.style.gridRow = `${item.y + 1} / span ${item.height || 1}`;
+        tile.draggable = true;
+        tile.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', index);
+        });
+        if (item.image) {
+            const img = document.createElement('img');
+            img.src = `${item.image}?cb=${Date.now()}`;
+            tile.appendChild(img);
         } else {
-            tile.classList.add('blank');
+            const span = document.createElement('span');
+            span.textContent = item.name;
+            tile.appendChild(span);
         }
+        if (item.stackable && item.quantity > 1) {
+            const qty = document.createElement('div');
+            qty.className = 'qty';
+            qty.textContent = item.quantity;
+            tile.appendChild(qty);
+        }
+        tile.addEventListener('click', () => openItemInfo(index));
         grid.appendChild(tile);
-    }
+    });
+
     renderMiniInventory();
     renderStats();
 }

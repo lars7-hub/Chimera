@@ -653,7 +653,7 @@ function buildItemsTable() {
         });
 
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Weight', 'Slots', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
+        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Weight', 'Slots', 'Width', 'Height', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -820,6 +820,22 @@ function buildItemsTable() {
             slotsTd.appendChild(slotsInput);
             tr.appendChild(slotsTd);
 
+            const widthInput = document.createElement('input');
+            widthInput.type = 'number';
+            widthInput.value = item.width != null ? item.width : 1;
+            widthInput.addEventListener('input', e => item.width = parseInt(e.target.value) || 1);
+            const widthTd = document.createElement('td');
+            widthTd.appendChild(widthInput);
+            tr.appendChild(widthTd);
+
+            const heightInput = document.createElement('input');
+            heightInput.type = 'number';
+            heightInput.value = item.height != null ? item.height : 1;
+            heightInput.addEventListener('input', e => item.height = parseInt(e.target.value) || 1);
+            const heightTd = document.createElement('td');
+            heightTd.appendChild(heightInput);
+            tr.appendChild(heightTd);
+
             const valInput = document.createElement('input');
             valInput.type = 'number';
             valInput.value = item.value != null ? item.value : 0;
@@ -903,7 +919,7 @@ function buildItemsTable() {
     addItemBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.items) ? lexicon.items : [];
         const defCat = Object.keys(window.ITEM_CATEGORIES || {})[0] || '';
-        data.push({ key: '', name: '', category: defCat, description: '', rarity: 'common', stackable: false, maxStack: 1, weight: 0, slots: 0, value: 0, icon: null, abilities: [], stats: [] });
+        data.push({ key: '', name: '', category: defCat, description: '', rarity: 'common', stackable: false, maxStack: 1, weight: 0, slots: 0, width: 1, height: 1, value: 0, icon: null, abilities: [], stats: [] });
         lexicon.items = data;
         buildItemsTable();
     });

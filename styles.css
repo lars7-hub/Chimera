@@ -1297,6 +1297,7 @@ button:hover {
 #inventory-grid {
     display: grid;
     grid-template-columns: repeat(5, 120px);
+    grid-template-rows: repeat(8, 120px);
     grid-auto-rows: 120px;
     gap: 5px;
 }
@@ -1327,8 +1328,8 @@ button:hover {
 }
 
 .inventory-tile {
-    width: 120px;
-    height: 120px;
+    width: 100%;
+    height: 100%;
     background-color: #444;
     border: 1px solid #666;
     position: relative;
@@ -1339,8 +1340,8 @@ button:hover {
 }
 
 .inventory-tile img {
-    width: 100px;
-    height: 100px;
+    width: 100%;
+    height: 100%;
     object-fit: fill;
 }
 
@@ -1404,6 +1405,11 @@ button:hover {
 
 #inventory-overlay {
     z-index: 4000;
+}
+
+#inventory-overlay .modal-content {
+    width: fit-content;
+    height: fit-content;
 }
 
 #item-info-modal {
