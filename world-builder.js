@@ -3751,6 +3751,8 @@ function renderWorldInventory() {
             blank.className = 'inventory-tile blank';
             blank.dataset.x = x;
             blank.dataset.y = y;
+            blank.style.gridColumn = `${x + 1} / span 1`;
+            blank.style.gridRow = `${y + 1} / span 1`;
             grid.appendChild(blank);
         }
     }
@@ -3779,6 +3781,8 @@ function renderWorldInventory() {
                     blank.className = 'inventory-tile blank';
                     blank.dataset.x = xx;
                     blank.dataset.y = yy;
+					blank.style.gridColumn = `${xx + 1} / span 1`;
+                    blank.style.gridRow = `${yy + 1} / span 1`;
                     grid.appendChild(blank);
                     placeholders.push(blank);
                 }
@@ -3952,12 +3956,20 @@ function renderMiniInventory() {
         const item = worldInventory[dragInfo.index];
         if (canPlace(item, x, y, dragInfo.index)) {
             item.x = x; item.y = y;
-            renderWorldInventory();
             await window.electron.saveWorldInventory(currentWorld, worldInventory);
         }
-        dragInfo.el.style.visibility = '';
-        clearPreview();
+        finalizeDrag();
+    }
+
+    function finalizeDrag() {
+        if (!dragInfo) return;
+        (dragInfo.placeholders || []).forEach(el => {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        });
+        if (dragInfo.el) dragInfo.el.style.visibility = '';
         dragInfo = null;
+        clearPreview();
+        renderWorldInventory();
     }
 
     for (let y = 0; y < ROWS; y++) {
@@ -3967,6 +3979,8 @@ function renderMiniInventory() {
             blank.className = 'mini-slot blank';
             blank.dataset.x = x;
             blank.dataset.y = y;
+            blank.style.gridColumn = `${x + 1} / span 1`;
+            blank.style.gridRow = `${y + 1} / span 1`;
             grid.appendChild(blank);
         }
     }
@@ -3979,11 +3993,28 @@ function renderMiniInventory() {
         slot.dataset.x = item.x ?? 0;
         slot.dataset.y = item.y ?? 0;
         slot.addEventListener('mousedown', e => {
-			e.preventDefault();
+            e.preventDefault();
             const rect = slot.getBoundingClientRect();
             const offsetX = e.clientX - rect.left;
             const offsetY = e.clientY - rect.top;
-            dragInfo = { index, offsetX, offsetY, el: slot };
+            const item = worldInventory[index];
+            const placeholders = [];
+            const w = item.width || 1;
+            const h = item.height || 1;
+            for (let yy = item.y; yy < item.y + h; yy++) {
+                for (let xx = item.x; xx < item.x + w; xx++) {
+                    map[yy][xx] = null;
+                    const blank = document.createElement('div');
+                    blank.className = 'mini-slot blank';
+                    blank.dataset.x = xx;
+                    blank.dataset.y = yy;
+                    blank.style.gridColumn = `${xx + 1} / span 1`;
+                    blank.style.gridRow = `${yy + 1} / span 1`;
+                    grid.appendChild(blank);
+                    placeholders.push(blank);
+                }
+            }
+            dragInfo = { index, offsetX, offsetY, el: slot, placeholders };
             document.addEventListener('mousemove', handleMove);
             document.addEventListener('mouseup', handleUp);
             slot.style.visibility = 'hidden';

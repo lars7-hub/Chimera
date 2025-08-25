@@ -406,6 +406,8 @@ function renderInventory() {
             blank.className = 'inventory-tile blank';
             blank.dataset.x = x;
             blank.dataset.y = y;
+            blank.style.gridColumn = `${x + 1} / span 1`;
+            blank.style.gridRow = `${y + 1} / span 1`;
             blank.addEventListener('click', () => openItemModal());
             grid.appendChild(blank);
         }
@@ -435,6 +437,8 @@ function renderInventory() {
                     blank.className = 'inventory-tile blank';
                     blank.dataset.x = xx;
                     blank.dataset.y = yy;
+					blank.style.gridColumn = `${xx + 1} / span 1`;
+                    blank.style.gridRow = `${yy + 1} / span 1`;
                     blank.addEventListener('click', () => openItemModal());
                     grid.appendChild(blank);
                     placeholders.push(blank);
