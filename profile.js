@@ -299,6 +299,23 @@ function renderInventory() {
     let dragInfo = null;
     let previewEl = null;
 
+    function tryItemInteraction(source, target) {
+        // Placeholder for future item interaction logic
+        // Return true if an interaction was handled
+        return false;
+    }
+
+    function finalizeDrag() {
+        if (!dragInfo) return;
+        (dragInfo.placeholders || []).forEach(el => {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        });
+        if (dragInfo.tile) dragInfo.tile.style.visibility = '';
+        dragInfo = null;
+        clearPreview();
+        renderInventory();
+    }
+
     function clearPreview() {
         if (previewEl && previewEl.parentNode) {
             previewEl.parentNode.removeChild(previewEl);
@@ -340,7 +357,7 @@ function renderInventory() {
             clearPreview();
             return;
         }
-        if (canPlace(item, x, y, dragInfo.index)) {
+         if (canPlace(item, x, y)) {
             showPreview(item, x, y);
         } else {
             clearPreview();
@@ -356,13 +373,29 @@ function renderInventory() {
         const x = Math.floor((e.clientX - rect.left - dragInfo.offsetX) / cellW);
         const y = Math.floor((e.clientY - rect.top - dragInfo.offsetY) / cellH);
         const item = inventory[dragInfo.index];
-        if (canPlace(item, x, y, dragInfo.index)) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+
+        if (canPlace(item, x, y)) {
             item.x = x; item.y = y;
-            renderInventory();
+            await saveInventory();
+            finalizeDrag();
+            return;
+        }
+
+        let targetIdx = null;
+        for (let yy = y; yy < y + h && targetIdx === null; yy++) {
+            for (let xx = x; xx < x + w && targetIdx === null; xx++) {
+                if (yy >= 0 && yy < ROWS && xx >= 0 && xx < COLS && map[yy][xx] !== null) {
+                    targetIdx = map[yy][xx];
+                }
+            }
+        }
+
+        if (targetIdx !== null && tryItemInteraction(item, inventory[targetIdx])) {
             await saveInventory();
         }
-        clearPreview();
-        dragInfo = null;
+        finalizeDrag();
     };
 
     // create blank cells
@@ -391,15 +424,29 @@ function renderInventory() {
             const rect = tile.getBoundingClientRect();
             const offsetX = e.clientX - rect.left;
             const offsetY = e.clientY - rect.top;
-            dragInfo = { index, offsetX, offsetY };
+            const item = inventory[index];
+            const placeholders = [];
+            const w = item.width || 1;
+            const h = item.height || 1;
+            for (let yy = item.y; yy < item.y + h; yy++) {
+                for (let xx = item.x; xx < item.x + w; xx++) {
+                    map[yy][xx] = null;
+                    const blank = document.createElement('div');
+                    blank.className = 'inventory-tile blank';
+                    blank.dataset.x = xx;
+                    blank.dataset.y = yy;
+                    blank.addEventListener('click', () => openItemModal());
+                    grid.appendChild(blank);
+                    placeholders.push(blank);
+                }
+            }
+            dragInfo = { index, offsetX, offsetY, originalX: item.x, originalY: item.y, placeholders, tile };
             e.dataTransfer.setData('text/plain', index);
             e.dataTransfer.setDragImage(tile, offsetX, offsetY);
             tile.style.visibility = 'hidden';
         });
         tile.addEventListener('dragend', () => {
-            tile.style.visibility = '';
-            clearPreview();
-            dragInfo = null;
+            finalizeDrag();
         });
         if (item.image) {
             const img = document.createElement('img');

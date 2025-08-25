@@ -3645,6 +3645,23 @@ function renderWorldInventory() {
     let dragInfo = null;
     let previewEl = null;
 
+    function tryItemInteraction(source, target) {
+        // Placeholder for future item interaction logic
+        // Return true if an interaction was handled
+        return false;
+    }
+
+    function finalizeDrag() {
+        if (!dragInfo) return;
+        (dragInfo.placeholders || []).forEach(el => {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        });
+        if (dragInfo.el) dragInfo.el.style.visibility = '';
+        dragInfo = null;
+        clearPreview();
+        renderWorldInventory();
+    }
+
     function clearPreview() {
         if (previewEl && previewEl.parentNode) {
             previewEl.parentNode.removeChild(previewEl);
@@ -3685,7 +3702,7 @@ function renderWorldInventory() {
             clearPreview();
             return;
         }
-        if (canPlace(item, x, y, dragInfo.index)) {
+        if (canPlace(item, x, y)) {
             showPreview(item, x, y);
         } else {
             clearPreview();
@@ -3702,14 +3719,29 @@ function renderWorldInventory() {
         const x = Math.floor((e.clientX - rect.left - dragInfo.offsetX) / cellW);
         const y = Math.floor((e.clientY - rect.top - dragInfo.offsetY) / cellH);
         const item = worldInventory[dragInfo.index];
-        if (canPlace(item, x, y, dragInfo.index)) {
+        const w = item.width || 1;
+        const h = item.height || 1;
+
+        if (canPlace(item, x, y)) {
             item.x = x; item.y = y;
-            renderWorldInventory();
             await window.electron.saveWorldInventory(currentWorld, worldInventory);
-        }	
-        dragInfo.el.style.visibility = '';
-        clearPreview();
-        dragInfo = null;
+            finalizeDrag();
+            return;
+        }
+
+        let targetIdx = null;
+        for (let yy = y; yy < y + h && targetIdx === null; yy++) {
+            for (let xx = x; xx < x + w && targetIdx === null; xx++) {
+                if (yy >= 0 && yy < ROWS && xx >= 0 && xx < COLS && map[yy][xx] !== null) {
+                    targetIdx = map[yy][xx];
+                }
+            }
+        }
+
+        if (targetIdx !== null && tryItemInteraction(item, worldInventory[targetIdx])) {
+            await window.electron.saveWorldInventory(currentWorld, worldInventory);
+        }
+        finalizeDrag();
     }
 
     for (let y = 0; y < ROWS; y++) {
@@ -3732,11 +3764,26 @@ function renderWorldInventory() {
         tile.dataset.x = item.x;
         tile.dataset.y = item.y;
         tile.addEventListener('mousedown', e => {
-			e.preventDefault();
+            e.preventDefault();
             const rect = tile.getBoundingClientRect();
             const offsetX = e.clientX - rect.left;
             const offsetY = e.clientY - rect.top;
-            dragInfo = { index, offsetX, offsetY, el: tile };
+            const item = worldInventory[index];
+            const placeholders = [];
+            const w = item.width || 1;
+            const h = item.height || 1;
+            for (let yy = item.y; yy < item.y + h; yy++) {
+                for (let xx = item.x; xx < item.x + w; xx++) {
+                    map[yy][xx] = null;
+                    const blank = document.createElement('div');
+                    blank.className = 'inventory-tile blank';
+                    blank.dataset.x = xx;
+                    blank.dataset.y = yy;
+                    grid.appendChild(blank);
+                    placeholders.push(blank);
+                }
+            }
+            dragInfo = { index, offsetX, offsetY, el: tile, originalX: item.x, originalY: item.y, placeholders };
             document.addEventListener('mousemove', handleMove);
             document.addEventListener('mouseup', handleUp);
             tile.style.visibility = 'hidden';
