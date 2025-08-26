@@ -329,13 +329,17 @@
             <h3>Warp Shortcut</h3>
             <label>Name:<input id="warp-name" /></label>
             <label>Start Region:<input id="warp-start-region" /></label>
-            <label>Start X:<input id="warp-start-x" type="number" /></label>
-            <label>Start Y:<input id="warp-start-y" type="number" /></label>
-            <button id="warp-set-start">Set Start to Current</button>
+            <div class="coord-row">
+                <label>Start X:<input id="warp-start-x" type="number" /></label>
+                <label>Start Y:<input id="warp-start-y" type="number" /></label>
+                <button id="warp-set-start">Set Start to Current</button>
+            </div>
             <label>Target Region:<input id="warp-target-region" /></label>
-            <label>Target X:<input id="warp-target-x" type="number" /></label>
-            <label>Target Y:<input id="warp-target-y" type="number" /></label>
-            <button id="warp-set-target">Set Target to Current</button>
+            <div class="coord-row">
+                <label>Target X:<input id="warp-target-x" type="number" /></label>
+                <label>Target Y:<input id="warp-target-y" type="number" /></label>
+                <button id="warp-set-target">Set Target to Current</button>
+            </div>
             <label><input type="checkbox" id="warp-two-way">Two-Way</label>
             <button id="warp-edit">Edit Warp</button>
             <button id="warp-save">Save Warp</button>
@@ -344,12 +348,16 @@
         <div id="path-panel" class="painter-popup hidden">
             <h3>Path Shortcut</h3>
             <label>Name:<input id="path-name" /></label>
-            <label>Start X:<input id="path-start-x" type="number" /></label>
-            <label>Start Y:<input id="path-start-y" type="number" /></label>
-            <button id="path-set-start">Set Start to Current</button>
-            <label>Target X:<input id="path-target-x" type="number" /></label>
-            <label>Target Y:<input id="path-target-y" type="number" /></label>
-            <button id="path-set-target">Set Target to Current</button>
+            <div class="coord-row">
+                <label>Start X:<input id="path-start-x" type="number" /></label>
+                <label>Start Y:<input id="path-start-y" type="number" /></label>
+                <button id="path-set-start">Set Start to Current</button>
+            </div>
+            <div class="coord-row">
+                <label>Target X:<input id="path-target-x" type="number" /></label>
+                <label>Target Y:<input id="path-target-y" type="number" /></label>
+                <button id="path-set-target">Set Target to Current</button>
+            </div>
             <label><input type="checkbox" id="path-two-way">Two-Way</label>
             <div>
                 <h4>Biomes</h4>

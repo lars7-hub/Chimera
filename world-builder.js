@@ -1997,7 +1997,6 @@ function renderGrid() {
     renderZoneNames();
     drawShortcutPaths();
 }
-}
 
 function updateTileVisual(entry, key) {
     if (!entry || !entry.el) return;

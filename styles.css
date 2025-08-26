@@ -2404,3 +2404,15 @@ button:hover {
     padding: 0;
     margin: 0;
 }
+
+.coord-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.coord-row label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
