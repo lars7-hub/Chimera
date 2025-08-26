@@ -655,6 +655,18 @@ button:hover {
     background-color: #444;
 }
 
+.path-chip {
+    border: 1px solid #555;
+    padding: 2px 4px;
+    cursor: pointer;
+    display: inline-block;
+    margin: 2px;
+}
+
+.path-chip.selected {
+    background-color: #444;
+}
+
 #prompt-overlay {
     position: fixed;
     top: 0;

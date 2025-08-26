@@ -51,6 +51,8 @@
                     <button id="item-painter-btn">Item Painter</button>
                     <button id="zone-tool-btn">Zone Tool</button>
                     <button id="npc-manager-btn">NPC Manager</button>
+                    <button id="warp-tool-btn">Warps</button>
+                    <button id="path-tool-btn">Paths</button>
                     <button id="import-character-btn">Import Character</button>
                 </div>
             </div>
@@ -321,6 +323,42 @@
                     </div>
                 </div>
             </div>
+         </div>
+
+        <div id="warp-panel" class="painter-popup hidden">
+            <h3>Warp Shortcut</h3>
+            <label>Name:<input id="warp-name" /></label>
+            <label>Start Region:<input id="warp-start-region" /></label>
+            <label>Start X:<input id="warp-start-x" type="number" /></label>
+            <label>Start Y:<input id="warp-start-y" type="number" /></label>
+            <label>Target Region:<input id="warp-target-region" /></label>
+            <label>Target X:<input id="warp-target-x" type="number" /></label>
+            <label>Target Y:<input id="warp-target-y" type="number" /></label>
+            <label><input type="checkbox" id="warp-two-way">Two-Way</label>
+            <button id="warp-save">Save Warp</button>
+        </div>
+
+        <div id="path-panel" class="painter-popup hidden">
+            <h3>Path Shortcut</h3>
+            <label>Name:<input id="path-name" /></label>
+            <label>Start X:<input id="path-start-x" type="number" /></label>
+            <label>Start Y:<input id="path-start-y" type="number" /></label>
+            <label>Target X:<input id="path-target-x" type="number" /></label>
+            <label>Target Y:<input id="path-target-y" type="number" /></label>
+            <label><input type="checkbox" id="path-two-way">Two-Way</label>
+            <div>
+                <h4>Biomes</h4>
+                <div id="path-biome-chips"></div>
+            </div>
+            <div>
+                <h4>Conditions</h4>
+                <div id="path-condition-chips"></div>
+            </div>
+            <div>
+                <h4>Zones</h4>
+                <div id="path-zone-chips"></div>
+            </div>
+            <button id="path-save">Save Path</button>
         </div>
 
         <div id="inventory-overlay" class="modal hidden">
