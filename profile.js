@@ -421,7 +421,10 @@ function renderInventory() {
         tile.draggable = true;
         tile.dataset.x = item.x;
         tile.dataset.y = item.y;
+        let wasDrag = false;
+        tile.addEventListener('mousedown', () => { wasDrag = false; });
         tile.addEventListener('dragstart', e => {
+            wasDrag = true;
             const rect = tile.getBoundingClientRect();
             const offsetX = e.clientX - rect.left;
             const offsetY = e.clientY - rect.top;
@@ -436,7 +439,7 @@ function renderInventory() {
                     blank.className = 'inventory-tile blank';
                     blank.dataset.x = xx;
                     blank.dataset.y = yy;
-					blank.style.gridColumn = `${xx + 1} / span 1`;
+                    blank.style.gridColumn = `${xx + 1} / span 1`;
                     blank.style.gridRow = `${yy + 1} / span 1`;
                     blank.addEventListener('click', () => openItemModal());
                     grid.appendChild(blank);
@@ -467,7 +470,7 @@ function renderInventory() {
             qty.textContent = item.quantity;
             tile.appendChild(qty);
         }
-        tile.addEventListener('click', () => openItemInfo(index));
+        tile.addEventListener('click', () => { if (!wasDrag) openItemInfo(index); });
         grid.appendChild(tile);
     });
 }

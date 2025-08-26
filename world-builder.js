@@ -3691,12 +3691,33 @@ function renderWorldInventory() {
 
     function handleMove(e) {
         if (!dragInfo) return;
+        const item = worldInventory[dragInfo.index];
+        if (!dragInfo.moved) {
+            dragInfo.moved = true;
+            const placeholders = [];
+            const w = item.width || 1;
+            const h = item.height || 1;
+            for (let yy = dragInfo.originalY; yy < dragInfo.originalY + h; yy++) {
+                for (let xx = dragInfo.originalX; xx < dragInfo.originalX + w; xx++) {
+                    map[yy][xx] = null;
+                    const blank = document.createElement('div');
+                    blank.className = 'inventory-tile blank';
+                    blank.dataset.x = xx;
+                    blank.dataset.y = yy;
+                    blank.style.gridColumn = `${xx + 1} / span 1`;
+                    blank.style.gridRow = `${yy + 1} / span 1`;
+                    grid.appendChild(blank);
+                    placeholders.push(blank);
+                }
+            }
+            dragInfo.placeholders = placeholders;
+            dragInfo.el.style.visibility = 'hidden';
+        }
         const rect = grid.getBoundingClientRect();
         const cellW = rect.width / COLS;
         const cellH = rect.height / ROWS;
         const x = Math.floor((e.clientX - rect.left - dragInfo.offsetX) / cellW);
         const y = Math.floor((e.clientY - rect.top - dragInfo.offsetY) / cellH);
-        const item = worldInventory[dragInfo.index];
         if (x < 0 || y < 0 || x + (item.width || 1) > COLS || y + (item.height || 1) > ROWS) {
             clearPreview();
             return;
@@ -3712,35 +3733,40 @@ function renderWorldInventory() {
         document.removeEventListener('mousemove', handleMove);
         document.removeEventListener('mouseup', handleUp);
         if (!dragInfo) return;
+        const idx = dragInfo.index;
+        const moved = dragInfo.moved;
         const rect = grid.getBoundingClientRect();
         const cellW = rect.width / COLS;
         const cellH = rect.height / ROWS;
         const x = Math.floor((e.clientX - rect.left - dragInfo.offsetX) / cellW);
         const y = Math.floor((e.clientY - rect.top - dragInfo.offsetY) / cellH);
-        const item = worldInventory[dragInfo.index];
+        const item = worldInventory[idx];
         const w = item.width || 1;
         const h = item.height || 1;
 
-        if (canPlace(item, x, y)) {
+        if (moved && canPlace(item, x, y)) {
             item.x = x; item.y = y;
             await window.electron.saveWorldInventory(currentWorld, worldInventory);
             finalizeDrag();
             return;
         }
 
-        let targetIdx = null;
-        for (let yy = y; yy < y + h && targetIdx === null; yy++) {
-            for (let xx = x; xx < x + w && targetIdx === null; xx++) {
-                if (yy >= 0 && yy < ROWS && xx >= 0 && xx < COLS && map[yy][xx] !== null) {
-                    targetIdx = map[yy][xx];
+        if (moved) {
+            let targetIdx = null;
+            for (let yy = y; yy < y + h && targetIdx === null; yy++) {
+                for (let xx = x; xx < x + w && targetIdx === null; xx++) {
+                    if (yy >= 0 && yy < ROWS && xx >= 0 && xx < COLS && map[yy][xx] !== null) {
+                        targetIdx = map[yy][xx];
+                    }
                 }
             }
-        }
 
-        if (targetIdx !== null && tryItemInteraction(item, worldInventory[targetIdx])) {
-            await window.electron.saveWorldInventory(currentWorld, worldInventory);
+            if (targetIdx !== null && tryItemInteraction(item, worldInventory[targetIdx])) {
+                await window.electron.saveWorldInventory(currentWorld, worldInventory);
+            }
         }
         finalizeDrag();
+        if (!moved) openItemInfo(idx);
     }
 
     for (let y = 0; y < ROWS; y++) {
@@ -3769,27 +3795,18 @@ function renderWorldInventory() {
             const rect = tile.getBoundingClientRect();
             const offsetX = e.clientX - rect.left;
             const offsetY = e.clientY - rect.top;
-            const item = worldInventory[index];
-            const placeholders = [];
-            const w = item.width || 1;
-            const h = item.height || 1;
-            for (let yy = item.y; yy < item.y + h; yy++) {
-                for (let xx = item.x; xx < item.x + w; xx++) {
-                    map[yy][xx] = null;
-                    const blank = document.createElement('div');
-                    blank.className = 'inventory-tile blank';
-                    blank.dataset.x = xx;
-                    blank.dataset.y = yy;
-					blank.style.gridColumn = `${xx + 1} / span 1`;
-                    blank.style.gridRow = `${yy + 1} / span 1`;
-                    grid.appendChild(blank);
-                    placeholders.push(blank);
-                }
-            }
-            dragInfo = { index, offsetX, offsetY, el: tile, originalX: item.x, originalY: item.y, placeholders };
+            dragInfo = {
+                index,
+                offsetX,
+                offsetY,
+                el: tile,
+                originalX: item.x,
+                originalY: item.y,
+                placeholders: [],
+                moved: false
+            };
             document.addEventListener('mousemove', handleMove);
             document.addEventListener('mouseup', handleUp);
-            tile.style.visibility = 'hidden';
         });
         if (item.image) {
             const img = document.createElement('img');
@@ -3807,7 +3824,6 @@ function renderWorldInventory() {
             qty.textContent = item.quantity;
             tile.appendChild(qty);
         }
-        tile.addEventListener('click', () => openItemInfo(index));
         grid.appendChild(tile);
     });
 
