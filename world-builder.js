@@ -2406,9 +2406,12 @@ function goToTile(target, opts = {}) {
     const abilities = (worldCharacter && worldCharacter.abilities) || [];
     const targetEntry = tileMap[target];
     if (!ignorePrompts) {
-        if (targetEntry && !TileConditions.isPassable(targetEntry.data, inv, abilities)) {
-            alert('You cannot traverse this tile.');
-            return;
+        if (targetEntry) {
+            const passRes = TileConditions.isPassable(targetEntry.data, inv, abilities);
+            if (!passRes.passable) {
+                alert(passRes.message || 'You cannot traverse this tile.');
+                return;
+            }
         }
         const npcThere = worldNpcs.find(n => n.tile && `${n.tile.x}-${n.tile.y}` === target);
         if (npcThere) {
@@ -2484,7 +2487,8 @@ function findPath(startKey, targetKey, inv = worldInventory || [], abilities = (
             const nextEntry = tileMap[next];
             if (!nextEntry) continue;
 			if (avoidOccupied && isTileOccupied(next, ignoreNpc) && next !== targetKey) continue;
-            if (!ignoreConditions && !TileConditions.isPassable(nextEntry.data, inv, abilities)) continue;
+            const passRes = TileConditions.isPassable(nextEntry.data, inv, abilities);
+            if (!ignoreConditions && !passRes.passable) continue;
             if (allowedBiomes && allowedBiomes.length) {
                 const types = nextEntry.data.types || [];
                 if (!types.some(t => allowedBiomes.includes(t))) continue;
@@ -3816,7 +3820,9 @@ function directStep(startKey, targetKey, inv, abilities = [], ignoreNpc = null) 
     let bestDist = Infinity;
     for (const next of entry.data.connections || []) {
         const nextEntry = tileMap[next];
-        if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv, abilities) || isTileOccupied(next, ignoreNpc)) continue;
+        if (!nextEntry) continue;
+        const passRes = TileConditions.isPassable(nextEntry.data, inv, abilities);
+        if (!passRes.passable || isTileOccupied(next, ignoreNpc)) continue;
         const [nx, ny] = keyToCoords(next);
         const d = Math.hypot(tx - nx, ty - ny);
         if (d < bestDist) {
@@ -3906,7 +3912,7 @@ function tickNpcMovement() {
             const next = tileMap[key];
             if (!next) return false;
             const inv = npc.inventory || [];
-            if (!TileConditions.isPassable(next.data, inv, npc.abilities || [])) return false;
+            if (!TileConditions.isPassable(next.data, inv, npc.abilities || []).passable) return false;
             if (spawn) {
                 if (spawn.zone && zones[spawn.zone]) {
                     const z = zones[spawn.zone];

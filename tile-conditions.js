@@ -1,10 +1,10 @@
 (function(){
   const defaultConditions = {
     mountain: {
-      passable: [{ type: 'ability', key: 'mountain_climb' }]
+      passable: [{ type: 'ability', key: 'mountain_climb', message: 'You need to be able to climb mountains.' }]
     },
     water: {
-      passable: [{ type: 'ability', key: 'water_swim' }]
+      passable: [{ type: 'ability', key: 'water_swim', message: 'You need to be able to swim.' }]
     }
   };
 
@@ -34,11 +34,16 @@ function hasItem(inventory, key){
   function isPassable(tile, inventory, abilities){
     const conds = mergeConditions(tile);
     const pass = conds.passable || [];
-    return pass.every(c => {
-      if(c.type === 'item'){ return hasItem(inventory, c.key); }
-      if(c.type === 'ability'){ return hasAbility(abilities, c.key); }
-      return true;
-    });
+    for (const c of pass) {
+      if (c.type === 'item' && !hasItem(inventory, c.key)) {
+        return { passable: false, message: c.message };
+      }
+      if (c.type === 'ability' && !hasAbility(abilities, c.key)) {
+        return { passable: false, message: c.message };
+      }
+    }
+    return { passable: true };
   }
 
-  window.TileConditions = { isPassable };})();
+  window.TileConditions = { isPassable };
+})();
