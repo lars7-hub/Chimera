@@ -530,6 +530,20 @@ ipcMain.handle('get-zones', (event, regionName, worldName) => {
     return zones;
 });
 
+ipcMain.handle('get-shortcuts', (event, regionName, worldName) => {
+    const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+    const file = path.join(baseMap, regionName, 'shortcuts.json');
+    let shortcuts = { warps: [], paths: [] };
+    try {
+        if (fs.existsSync(file)) {
+            shortcuts = JSON.parse(fs.readFileSync(file, 'utf-8'));
+        }
+    } catch (err) {
+        console.error('Error loading shortcuts:', err);
+    }
+    return shortcuts;
+});
+
 ipcMain.handle('get-npcs', (event, regionName, worldName) => {
     const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
     const regionDir = path.join(baseMap, regionName);
@@ -1225,7 +1239,7 @@ ipcMain.handle('save-map-region', (event, regionName, worldName, tiles, start) =
         const regionDir = path.join(baseMap, regionName);
         fs.mkdirSync(regionDir, { recursive: true });
         fs.readdirSync(regionDir).forEach(name => {
-            if (name !== 'zones') {
+            if (name !== 'zones' && name !== 'shortcuts.json') {
                 fs.rmSync(path.join(regionDir, name), { recursive: true, force: true });
             }
         });
@@ -1267,6 +1281,20 @@ ipcMain.handle('save-zone', (event, regionName, worldName, zone) => {
         return { success: true };
     } catch (err) {
         console.error('Error saving zone:', err);
+        return { success: false };
+    }
+});
+
+ipcMain.handle('save-shortcuts', (event, regionName, worldName, shortcuts) => {
+    try {
+        const baseMap = worldName ? path.join(worldRoot, worldName, 'map') : mapPath;
+        const regionDir = path.join(baseMap, regionName);
+        fs.mkdirSync(regionDir, { recursive: true });
+        const file = path.join(regionDir, 'shortcuts.json');
+        fs.writeFileSync(file, JSON.stringify(shortcuts, null, 2));
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving shortcuts:', err);
         return { success: false };
     }
 });

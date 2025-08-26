@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld('electron', {
     getMapRegion: (regionName, worldName) => ipcRenderer.invoke('get-map-region', regionName, worldName),
     getZones: (regionName, worldName) => ipcRenderer.invoke('get-zones', regionName, worldName),
     saveZone: (regionName, worldName, zone) => ipcRenderer.invoke('save-zone', regionName, worldName, zone),
+    getShortcuts: (regionName, worldName) => ipcRenderer.invoke('get-shortcuts', regionName, worldName),
+    saveShortcuts: (regionName, worldName, shortcuts) => ipcRenderer.invoke('save-shortcuts', regionName, worldName, shortcuts),
     getAdventures: () => ipcRenderer.invoke('get-adventures'),
     prepareAdventureCharacter: (saveName, characterName, loadout) => ipcRenderer.invoke('prepare-adventure-character', saveName, characterName, loadout),
     exportCharacter: (name) => ipcRenderer.invoke('export-character', name),

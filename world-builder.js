@@ -1875,6 +1875,13 @@ async function loadWorld() {
     zoneEditMode = false;
     if (zoneToggle) zoneToggle.textContent = 'Zone Mode: Off';
     updateZoneInfo();
+    const shortcutData = await window.electron.getShortcuts('region1', currentWorld);
+    (shortcutData.warps || []).forEach(w => {
+        addWarp(w.name, w.startX, w.startY, w.targetX, w.targetY, w.twoWay);
+    });
+    (shortcutData.paths || []).forEach(p => {
+        addPath(p.name, p.startX, p.startY, p.targetX, p.targetY, p.biomes || [], p.conditions || [], p.zones || [], p.twoWay);
+    });
     const savedPos = await window.electron.getWorldPosition(currentWorld);
     let startKey = originKey;
     if (savedPos) {
@@ -3553,10 +3560,14 @@ async function saveRegion() {
             });
         }
         if (data.type) delete data.type;
+        delete data.warps;
+        delete data.paths;
         return { x, y, ...data, start: key === originKey };
     });
     const [ox, oy] = keyToCoords(originKey);
     await window.electron.saveMapRegion('region1', currentWorld, tiles, { x: ox, y: oy });
+    const shortcuts = { warps: getAllWarps(), paths: getAllPaths() };
+    await window.electron.saveShortcuts('region1', currentWorld, shortcuts);
 }
 
 async function tickSpawners() {
