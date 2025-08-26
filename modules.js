@@ -7,6 +7,8 @@ window.onload = function() {
     if (worldBtn) worldBtn.addEventListener('click', () => { window.location.href = 'world-builder.html'; });
     const adventureBtn = document.getElementById('adventure-btn');
     if (adventureBtn) adventureBtn.addEventListener('click', () => { window.location.href = 'adventure.html'; });
+    const battleBtn = document.getElementById('battle-btn');
+    if (battleBtn) battleBtn.addEventListener('click', () => { window.location.href = 'battle-complex.html'; });
     const lexiconBtn = document.getElementById('lexicon-btn');
     if (lexiconBtn) lexiconBtn.addEventListener('click', () => { window.location.href = 'lexicon-manager.html'; });
     const randomBtn = document.getElementById('random-btn');
@@ -22,6 +24,8 @@ window.onload = function() {
     if (modWorld) modWorld.addEventListener('click', () => { window.location.href = 'world-builder.html'; });
     const modAdv = document.getElementById('module-adventure');
     if (modAdv) modAdv.addEventListener('click', () => { window.location.href = 'adventure.html'; });
+    const modBattle = document.getElementById('module-battle');
+    if (modBattle) modBattle.addEventListener('click', () => { window.location.href = 'battle-complex.html'; });
     const modLex = document.getElementById('module-lexicon');
     if (modLex) modLex.addEventListener('click', () => { window.location.href = 'lexicon-manager.html'; });
 };

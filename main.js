@@ -35,7 +35,7 @@ function ensureSampleMap(targetMapPath) {
             if (x === 2 && y === 2) {
                 const sampleItem = path.join(inventoryFolder, 'item0.json');
                 if (!fs.existsSync(sampleItem)) {
-                    fs.writeFileSync(sampleItem, JSON.stringify({ name: 'Welcome Sword', description: 'A basic sword.' }));
+                    fs.writeFileSync(sampleItem, JSON.stringify({ name: 'magic stick?', description: 'A slightly above-average stick!' }));
                 }
             }
         }
@@ -46,15 +46,15 @@ function ensureDefaultLexicon(worldName) {
     const lexiconDir = path.join(worldRoot, worldName, 'Lexicon');
     fs.mkdirSync(lexiconDir, { recursive: true });
     const samples = {
-        traits: [{ name: 'Brave', description: 'Unafraid of danger.' }],
+        traits: [{ name: 'example', description: 'put a description here' }],
         typing: [{ name: 'Normal', relations: {} }],
-        abilities: [{ key: 'sample_strike', name: 'Sample Strike', description: 'A basic attack.', categories: ['combat'], type: 'Normal', accuracy: 100, power: 0, stats: [{ stat: 'dexterity', value: 10, type:'boost' }] }],
+        abilities: [{ key: 'example_attack', name: 'Attack Name', description: 'Attack.', categories: ['combat'], type: 'Normal', accuracy: 100, power: 0, stats: [{ stat: 'dexterity', value: 10, type:'boost' }] }],
         items: [{
-            key: 'sample_item',
-            name: 'Sample Item',
+            key: 'example_item',
+            name: 'Exmple Item',
             category: 'miscellaneous',
-            icon: 'sample_item.png',
-            description: 'Placeholder item.',
+            icon: 'example_item.png',
+            description: 'item description',
             rarity: 'common',
             stackable: false,
             maxStack: 1,
@@ -62,17 +62,17 @@ function ensureDefaultLexicon(worldName) {
             stats: []
         }],
         npc_blueprints: [{
-            species: 'Sample Species',
-            name: 'Sample Species',
-            description: 'Placeholder NPC.',
+            species: 'example_species',
+            name: 'Species Name',
+            description: 'species description',
             level: 1,
             attitude: 'Passive',
             sightRange: 5,
             types: ['Normal'],
-            traits: ['Brave'],
-            abilities: ['sample_strike'],
-            inventory: ['sample_item'],
-            lootTable: [{ item: 'sample_item', chance: 100, min: 1, max: 1 }],
+            traits: ['example'],
+            abilities: ['example_strike'],
+            inventory: ['example_item'],
+            lootTable: [{ item: 'example_item', chance: 100, min: 1, max: 1 }],
             xp: 0,
             dialogue: { sightline: [], pursuitEnd: [], destroyed: [], random: { lines: [], min: 10, max: 30 } }
         }]
@@ -80,13 +80,13 @@ function ensureDefaultLexicon(worldName) {
     const abilitiesDir = path.join(lexiconDir, 'abilities');
     fs.mkdirSync(abilitiesDir, { recursive: true });
     if (fs.readdirSync(abilitiesDir).filter(f => f.endsWith('.json')).length === 0) {
-        fs.writeFileSync(path.join(abilitiesDir, 'sample_strike.json'), JSON.stringify(samples.abilities[0], null, 2));
+        fs.writeFileSync(path.join(abilitiesDir, 'example_strike.json'), JSON.stringify(samples.abilities[0], null, 2));
     }
 
     const traitsDir = path.join(lexiconDir, 'traits');
     fs.mkdirSync(traitsDir, { recursive: true });
     if (fs.readdirSync(traitsDir).filter(f => f.endsWith('.json')).length === 0) {
-        fs.writeFileSync(path.join(traitsDir, 'brave.json'), JSON.stringify(samples.traits[0], null, 2));
+        fs.writeFileSync(path.join(traitsDir, 'example.json'), JSON.stringify(samples.traits[0], null, 2));
     }
 
     const typingDir = path.join(lexiconDir, 'typing');
@@ -99,14 +99,14 @@ function ensureDefaultLexicon(worldName) {
     fs.mkdirSync(itemsDir, { recursive: true });
     const itemFiles = fs.readdirSync(itemsDir).filter(f => f.endsWith('.json'));
     if (itemFiles.length === 0) {
-        const sampleItemPath = path.join(itemsDir, 'sample_item.json');
+        const sampleItemPath = path.join(itemsDir, 'example_item.json');
         fs.writeFileSync(sampleItemPath, JSON.stringify(samples.items[0], null, 2));
     }
 
     const npcDir = path.join(lexiconDir, 'npc_blueprints');
     fs.mkdirSync(npcDir, { recursive: true });
     if (fs.readdirSync(npcDir).filter(f => f.endsWith('.json')).length === 0) {
-        fs.writeFileSync(path.join(npcDir, 'sample_npc.json'), JSON.stringify(samples.npc_blueprints[0], null, 2));
+        fs.writeFileSync(path.join(npcDir, 'example_npc.json'), JSON.stringify(samples.npc_blueprints[0], null, 2));
     }
 }
 

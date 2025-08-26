@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Complex</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="nav-bar">
+        <img id="home-btn" src="resources/ui/character_select.png" alt="Home">
+        <img id="random-btn" src="resources/ui/random.png" alt="Random">
+        <img id="info-btn" src="resources/ui/info.png" alt="Info">
+        <img id="world-builder-btn" src="resources/ui/world_builder.png" alt="World Builder">
+        <img id="adventure-btn" src="resources/ui/adventure.png" alt="Adventure">
+        <img id="battle-btn" src="resources/ui/battle.png" alt="Battle Complex">
+        <img id="lexicon-btn" src="resources/ui/lexicon.png" alt="Lexicon Manager">
+    </div>
+
+    <div id="selection-screen">
+        <div class="selection-row">
+            <label>World:
+                <select id="world-select"></select>
+            </label>
+        </div>
+        <div class="selection-row split">
+            <div class="select-side">
+                <h3>Player Character</h3>
+                <select id="player-select"></select>
+            </div>
+            <div class="select-side">
+                <h3>Enemy Character</h3>
+                <select id="enemy-select"></select>
+            </div>
+        </div>
+        <div class="selection-row">
+            <label>Battleground Type:
+                <select id="type-select"></select>
+            </label>
+        </div>
+        <button id="start-battle-btn">Start Battle</button>
+    </div>
+
+    <div id="battle-screen" class="hidden">
+        <div id="battle-top">
+            <div id="player-info" class="info-panel"></div>
+            <div id="visualizer"></div>
+            <div id="enemy-info" class="info-panel"></div>
+        </div>
+        <div id="battle-bottom">
+            <div id="battle-buttons"></div>
+            <div id="inventory"></div>
+            <div id="special-menu"></div>
+        </div>
+    </div>
+
+    <script src="modules.js"></script>
+    <script src="battle-complex.js"></script>
+</body>
+</html>
