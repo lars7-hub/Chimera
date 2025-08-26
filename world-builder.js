@@ -68,6 +68,8 @@ let saveSpawnBtn = null;
 let cleanupSpawnBtn = null;
 let warpPanel = null;
 let pathPanel = null;
+let editingWarp = null;
+let editingPath = null;
 
 function updateNpcCoords() {
     const [x, y] = keyToCoords(currentKey);
@@ -1537,8 +1539,12 @@ warpBtn.addEventListener('click', () => {
             document.getElementById('warp-start-region').value = 'region1';
             document.getElementById('warp-start-x').value = cx;
             document.getElementById('warp-start-y').value = cy;
+            document.getElementById('warp-save').textContent = 'Save Warp';
+            editingWarp = null;
         } else {
             warpPanel.classList.add('hidden');
+            editingWarp = null;
+            document.getElementById('warp-save').textContent = 'Save Warp';
         }
     });
 
@@ -1559,10 +1565,102 @@ warpBtn.addEventListener('click', () => {
             document.getElementById('path-start-x').value = cx;
             document.getElementById('path-start-y').value = cy;
             populatePathChips();
+            document.getElementById('path-save').textContent = 'Save Path';
+            editingPath = null;
         } else {
             pathPanel.classList.add('hidden');
+            editingPath = null;
+            document.getElementById('path-save').textContent = 'Save Path';
         }
     });
+
+    const warpSetStart = document.getElementById('warp-set-start');
+    if (warpSetStart) {
+        warpSetStart.addEventListener('click', () => {
+            const [cx, cy] = keyToCoords(currentKey);
+            document.getElementById('warp-start-region').value = 'region1';
+            document.getElementById('warp-start-x').value = cx;
+            document.getElementById('warp-start-y').value = cy;
+        });
+    }
+    const warpSetTarget = document.getElementById('warp-set-target');
+    if (warpSetTarget) {
+        warpSetTarget.addEventListener('click', () => {
+            const [cx, cy] = keyToCoords(currentKey);
+            document.getElementById('warp-target-region').value = 'region1';
+            document.getElementById('warp-target-x').value = cx;
+            document.getElementById('warp-target-y').value = cy;
+        });
+    }
+    const pathSetStart = document.getElementById('path-set-start');
+    if (pathSetStart) {
+        pathSetStart.addEventListener('click', () => {
+            const [cx, cy] = keyToCoords(currentKey);
+            document.getElementById('path-start-x').value = cx;
+            document.getElementById('path-start-y').value = cy;
+        });
+    }
+    const pathSetTarget = document.getElementById('path-set-target');
+    if (pathSetTarget) {
+        pathSetTarget.addEventListener('click', () => {
+            const [cx, cy] = keyToCoords(currentKey);
+            document.getElementById('path-target-x').value = cx;
+            document.getElementById('path-target-y').value = cy;
+        });
+    }
+
+    const warpEdit = document.getElementById('warp-edit');
+    if (warpEdit) {
+        warpEdit.addEventListener('click', async () => {
+            const warps = getAllWarps();
+            if (!warps.length) return;
+            const choice = await chooseFromList('Select Warp', warps.map((w, i) => ({ label: `${w.name} (${w.startX},${w.startY})→(${w.targetX},${w.targetY})`, value: i })));
+            if (choice == null) return;
+            const w = warps[choice];
+            document.getElementById('warp-name').value = w.name;
+            document.getElementById('warp-start-region').value = 'region1';
+            document.getElementById('warp-start-x').value = w.startX;
+            document.getElementById('warp-start-y').value = w.startY;
+            document.getElementById('warp-target-region').value = 'region1';
+            document.getElementById('warp-target-x').value = w.targetX;
+            document.getElementById('warp-target-y').value = w.targetY;
+            document.getElementById('warp-two-way').checked = w.twoWay;
+            document.getElementById('warp-save').textContent = 'Update Warp';
+            editingWarp = w;
+        });
+    }
+
+    const pathEdit = document.getElementById('path-edit');
+    if (pathEdit) {
+        pathEdit.addEventListener('click', async () => {
+            const paths = getAllPaths();
+            if (!paths.length) return;
+            const choice = await chooseFromList('Select Path', paths.map((p, i) => ({ label: `${p.name} (${p.startX},${p.startY})→(${p.targetX},${p.targetY})`, value: i })));
+            if (choice == null) return;
+            const p = paths[choice];
+            document.getElementById('path-name').value = p.name;
+            document.getElementById('path-start-x').value = p.startX;
+            document.getElementById('path-start-y').value = p.startY;
+            document.getElementById('path-target-x').value = p.targetX;
+            document.getElementById('path-target-y').value = p.targetY;
+            document.getElementById('path-two-way').checked = p.twoWay;
+            populatePathChips();
+            const bSet = new Set(p.biomes || []);
+            document.querySelectorAll('#path-biome-chips .path-chip').forEach(chip => {
+                chip.classList.toggle('selected', bSet.has(chip.dataset.value));
+            });
+            const cSet = new Set(p.conditions || []);
+            document.querySelectorAll('#path-condition-chips .path-chip').forEach(chip => {
+                chip.classList.toggle('selected', cSet.has(chip.dataset.value));
+            });
+            const zSet = new Set(p.zones || []);
+            document.querySelectorAll('#path-zone-chips .path-chip').forEach(chip => {
+                chip.classList.toggle('selected', zSet.has(parseInt(chip.dataset.value)));
+            });
+            document.getElementById('path-save').textContent = 'Update Path';
+            editingPath = p;
+        });
+    }
 
     const warpSave = document.getElementById('warp-save');
     if (warpSave) {
@@ -1575,7 +1673,14 @@ warpBtn.addEventListener('click', () => {
             const tx = parseInt(document.getElementById('warp-target-x').value);
             const ty = parseInt(document.getElementById('warp-target-y').value);
             const twoWay = document.getElementById('warp-two-way').checked;
+            if (editingWarp) {
+                removeWarp(editingWarp.name, editingWarp.startX, editingWarp.startY, editingWarp.targetX, editingWarp.targetY);
+                editingWarp = null;
+            }
             addWarp(name, sx, sy, tx, ty, twoWay, sRegion, tRegion);
+            document.getElementById('warp-save').textContent = 'Save Warp';
+            renderGrid();
+            saveRegion();
         });
     }
 
@@ -1591,7 +1696,14 @@ warpBtn.addEventListener('click', () => {
             const biomes = Array.from(document.querySelectorAll('#path-biome-chips .path-chip.selected')).map(c => c.dataset.value);
             const conds = Array.from(document.querySelectorAll('#path-condition-chips .path-chip.selected')).map(c => c.dataset.value);
             const zs = Array.from(document.querySelectorAll('#path-zone-chips .path-chip.selected')).map(c => parseInt(c.dataset.value));
+            if (editingPath) {
+                removePath(editingPath.name, editingPath.startX, editingPath.startY, editingPath.targetX, editingPath.targetY);
+                editingPath = null;
+            }
             addPath(name, sx, sy, tx, ty, biomes, conds, zs, twoWay);
+            document.getElementById('path-save').textContent = 'Save Path';
+            renderGrid();
+            saveRegion();
         });
     }
 
@@ -1883,6 +1995,8 @@ function renderGrid() {
     renderMinimap();
     renderZoneBorders();
     renderZoneNames();
+    drawShortcutPaths();
+}
 }
 
 function updateTileVisual(entry, key) {
@@ -2069,6 +2183,67 @@ function drawConnections() {
             mapGrid.appendChild(line);
         });
     }
+}
+
+function drawShortcutPaths() {
+    const existing = document.getElementById('shortcut-canvas');
+    if (existing) existing.remove();
+    if (viewMode !== 'world') return;
+    const warps = getAllWarps();
+    const paths = getAllPaths();
+    if (!warps.length && !paths.length) return;
+    const mapGrid = document.getElementById('map-module');
+    const canvas = document.createElement('canvas');
+    canvas.id = 'shortcut-canvas';
+    canvas.width = mapGrid.clientWidth;
+    canvas.height = mapGrid.clientHeight;
+    canvas.style.position = 'absolute';
+    canvas.style.left = '0';
+    canvas.style.top = '0';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = 10;
+    canvas.style.opacity = '0.25';
+    mapGrid.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(2, tileSize * 0.2);
+    const offsetX = -viewMinX;
+    const offsetY = -viewMinY;
+
+    ctx.strokeStyle = '#0ff';
+    warps.forEach(w => {
+        const x1 = (w.startX + offsetX + 0.5) * tileSize;
+        const y1 = (w.startY + offsetY + 0.5) * tileSize;
+        const x2 = (w.targetX + offsetX + 0.5) * tileSize;
+        const y2 = (w.targetY + offsetY + 0.5) * tileSize;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+    });
+
+    ctx.strokeStyle = '#ff0';
+    paths.forEach(p => {
+        const route = findPath(`${p.startX}-${p.startY}`, `${p.targetX}-${p.targetY}`, worldInventory || [], (worldCharacter && worldCharacter.abilities) || [], { allowedBiomes: p.biomes || [], allowedConditions: p.conditions || [], allowedZones: p.zones || [] });
+        if (!route || route.length < 2) return;
+        const pts = route.map(k => {
+            const [x, y] = keyToCoords(k);
+            return [(x + offsetX + 0.5) * tileSize, (y + offsetY + 0.5) * tileSize];
+        });
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 0; i < pts.length - 1; i++) {
+            const [x1, y1] = pts[i];
+            const [x2, y2] = pts[i + 1];
+            const mx = (x1 + x2) / 2;
+            const my = (y1 + y2) / 2;
+            ctx.quadraticCurveTo(x1, y1, mx, my);
+        }
+        const last = pts[pts.length - 1];
+        ctx.lineTo(last[0], last[1]);
+        ctx.stroke();
+    });
 }
 
 function drawDirectionArrows() {
@@ -2427,6 +2602,70 @@ function addPath(name, sx, sy, tx, ty, biomes, conditions, zones, twoWay) {
         tTile.paths.push(p2);
         if (currentKey === tKey) displayTile(tTile);
     }
+}
+
+function removeWarp(name, sx, sy, tx, ty) {
+    const sKey = `${sx}-${sy}`;
+    const tKey = `${tx}-${ty}`;
+    const sTile = tileMap[sKey]?.data;
+    const tTile = tileMap[tKey]?.data;
+    if (sTile && sTile.warps) {
+        sTile.warps = sTile.warps.filter(w => !(w.name === name && w.targetX === tx && w.targetY === ty));
+        if (currentKey === sKey) displayTile(sTile);
+    }
+    if (tTile && tTile.warps) {
+        tTile.warps = tTile.warps.filter(w => !(w.name === name && w.targetX === sx && w.targetY === sy));
+        if (currentKey === tKey) displayTile(tTile);
+    }
+}
+
+function removePath(name, sx, sy, tx, ty) {
+    const sKey = `${sx}-${sy}`;
+    const tKey = `${tx}-${ty}`;
+    const sTile = tileMap[sKey]?.data;
+    const tTile = tileMap[tKey]?.data;
+    if (sTile && sTile.paths) {
+        sTile.paths = sTile.paths.filter(p => !(p.name === name && p.targetX === tx && p.targetY === ty));
+        if (currentKey === sKey) displayTile(sTile);
+    }
+    if (tTile && tTile.paths) {
+        tTile.paths = tTile.paths.filter(p => !(p.name === name && p.targetX === sx && p.targetY === sy));
+        if (currentKey === tKey) displayTile(tTile);
+    }
+}
+
+function getAllWarps() {
+    const result = [];
+    const seen = new Set();
+    for (const [key, entry] of Object.entries(tileMap)) {
+        (entry.data.warps || []).forEach(w => {
+            const pair = [key, `${w.targetX}-${w.targetY}`, w.name].sort().join('|');
+            if (seen.has(pair)) return;
+            seen.add(pair);
+            const [sx, sy] = keyToCoords(key);
+            const tKey = `${w.targetX}-${w.targetY}`;
+            const twoWay = !!(tileMap[tKey] && (tileMap[tKey].data.warps || []).some(sw => sw.name === w.name && sw.targetX === sx && sw.targetY === sy));
+            result.push({ name: w.name, startX: sx, startY: sy, targetX: w.targetX, targetY: w.targetY, twoWay });
+        });
+    }
+    return result;
+}
+
+function getAllPaths() {
+    const result = [];
+    const seen = new Set();
+    for (const [key, entry] of Object.entries(tileMap)) {
+        (entry.data.paths || []).forEach(p => {
+            const pair = [key, `${p.targetX}-${p.targetY}`, p.name].sort().join('|');
+            if (seen.has(pair)) return;
+            seen.add(pair);
+            const [sx, sy] = keyToCoords(key);
+            const tKey = `${p.targetX}-${p.targetY}`;
+            const twoWay = !!(tileMap[tKey] && (tileMap[tKey].data.paths || []).some(sp => sp.name === p.name && sp.targetX === sx && sp.targetY === sy));
+            result.push({ name: p.name, startX: sx, startY: sy, targetX: p.targetX, targetY: p.targetY, biomes: p.biomes || [], conditions: p.conditions || [], zones: p.zones || [], twoWay });
+        });
+    }
+    return result;
 }
 
 function populatePathChips() {
@@ -4448,6 +4687,41 @@ function openItemInfo(index) {
         document.getElementById('item-info-modal').classList.add('hidden');
     };
     document.getElementById('item-info-modal').classList.remove('hidden');
+}
+
+async function chooseFromList(title, options) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('selection-overlay');
+        const list = document.getElementById('selection-list');
+        const cancel = document.getElementById('selection-cancel');
+        const header = document.getElementById('selection-title');
+        header.textContent = title;
+        list.innerHTML = '';
+
+        function cleanup() {
+            overlay.classList.add('hidden');
+            cancel.removeEventListener('click', onCancel);
+        }
+
+        function onCancel() {
+            cleanup();
+            resolve(null);
+        }
+
+        cancel.addEventListener('click', onCancel);
+
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.textContent = opt.label;
+            btn.addEventListener('click', () => {
+                cleanup();
+                resolve(opt.value);
+            });
+            list.appendChild(btn);
+        });
+
+        overlay.classList.remove('hidden');
+    });
 }
 
 async function showSelection(title, items) {
