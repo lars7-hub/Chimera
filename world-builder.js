@@ -2273,10 +2273,13 @@ function goToTile(target, opts = {}) {
     const [sx, sy] = keyToCoords(currentKey);
     window.electron.saveWorldPosition(currentWorld, { x: sx, y: sy });
 }
-
+function isTileOccupied(key, ignoreNpc = null) {
+    if (key === currentKey) return true;
+    return worldNpcs.some(n => n !== ignoreNpc && n.tile && `${n.tile.x}-${n.tile.y}` === key);
+}
 
 function findPath(startKey, targetKey, inv = worldInventory || [], abilities = (worldCharacter && worldCharacter.abilities) || [], opts = {}) {
-    const { ignoreConditions = false, allowedBiomes = null, allowedConditions = null, allowedZones = null } = opts;
+    const { ignoreConditions = false, allowedBiomes = null, allowedConditions = null, allowedZones = null, ignoreNpc = null, avoidOccupied = false } = opts;
     const open = new Set([startKey]);
     const cameFrom = {};
     const gScore = { [startKey]: 0 };
@@ -2299,6 +2302,7 @@ function findPath(startKey, targetKey, inv = worldInventory || [], abilities = (
         for (const next of entry.data.connections || []) {
             const nextEntry = tileMap[next];
             if (!nextEntry) continue;
+			if (avoidOccupied && isTileOccupied(next, ignoreNpc) && next !== targetKey) continue;
             if (!ignoreConditions && !TileConditions.isPassable(nextEntry.data, inv, abilities)) continue;
             if (allowedBiomes && allowedBiomes.length) {
                 const types = nextEntry.data.types || [];
@@ -3319,37 +3323,58 @@ async function saveRegion() {
 
 async function tickSpawners() {
 	const now = Date.now();
-		for (const spawn of spawnPoints) {
-			const period =(spawn.period || 60) * 1000;
-			spawn._last = spawn._last || 0;
-			if (now - spawn._last < period) continue;
-			spawn._last = now;
-			const count = worldNpcs.filter(n => n.spawnPoint === spawn.name).length;
-			if (count >= (spawn.maxPopulation || 1)) continue;
-			const npc = JSON.parse(JSON.stringify(spawn.blueprint || {}));
-			npc.tile = { ...spawn.tile };
-                        npc.home = { ...spawn.tile };
-                        npc.state = 'wander';
-                        npc.spawnPoint = spawn.name;
-		if (spawn.levelRange && spawn.levelRange.length === 2) {
-                        const [minL, maxL] = spawn.levelRange;
-                        npc.level = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
-                }
-                try {
-                        const res = await window.electron.saveNPC('region1', currentWorld, npc);
-                        npc._file = res && res.file;
-                } catch (err) {
-                        console.error(err);
-                }
-                if (npc.dialogue && npc.dialogue.random) scheduleRandomSpeech(npc);
-                worldNpcs.push(npc);
-                const key = `${spawn.tile.x}-${spawn.tile.y}`;
-                if (tileMap[key]) updateTileVisual(tileMap[key], key);
-                if (currentKey === key && tileMap[currentKey]) {
-                        displayTile(tileMap[currentKey].data);
-                }
-                renderZoneBorders();
+    for (const spawn of spawnPoints) {
+        const period = (spawn.period || 60) * 1000;
+        spawn._last = spawn._last || 0;
+        if (now - spawn._last < period) continue;
+        const count = worldNpcs.filter(n => n.spawnPoint === spawn.name).length;
+        if (count >= (spawn.maxPopulation || 1)) {
+            spawn._last = now;
+            continue;
         }
+        let key, sx, sy;
+        if (spawn.zone && zones[spawn.zone]) {
+            const z = zones[spawn.zone];
+            if (!z.tiles || !z.tiles.length) {
+                spawn._last = now;
+                continue;
+            }
+            const randKey = z.tiles[Math.floor(Math.random() * z.tiles.length)];
+            key = randKey;
+            [sx, sy] = keyToCoords(randKey);
+        } else {
+            key = `${spawn.tile.x}-${spawn.tile.y}`;
+            sx = spawn.tile.x;
+            sy = spawn.tile.y;
+        }
+        if (isTileOccupied(key)) {
+            spawn._last = now - period * 0.9;
+            continue;
+        }
+		const npc = JSON.parse(JSON.stringify(spawn.blueprint || {}));
+        npc.tile = { x: sx, y: sy };
+        npc.home = { x: sx, y: sy };
+        npc.state = 'wander';
+        npc.spawnPoint = spawn.name;
+        if (spawn.levelRange && spawn.levelRange.length === 2) {
+            const [minL, maxL] = spawn.levelRange;
+            npc.level = Math.floor(Math.random() * (maxL - minL + 1)) + minL;
+        }
+        try {
+            const res = await window.electron.saveNPC('region1', currentWorld, npc);
+            npc._file = res && res.file;
+        } catch (err) {
+            console.error(err);
+        }
+        if (npc.dialogue && npc.dialogue.random) scheduleRandomSpeech(npc);
+        worldNpcs.push(npc);
+        if (tileMap[key]) updateTileVisual(tileMap[key], key);
+        if (currentKey === key && tileMap[currentKey]) {
+            displayTile(tileMap[currentKey].data);
+        }
+        renderZoneBorders();
+        spawn._last = now;
+    }
 }
 
 async function removeNpc(npc) {
@@ -3521,6 +3546,7 @@ function moveNpcStep(npc, targetKey) {
         }
         return false;
     }
+	if (isTileOccupied(targetKey, npc)) return false;
     const [tx, ty] = keyToCoords(targetKey);
     const npcKey = `${npc.tile.x}-${npc.tile.y}`;
     npc.tile.x = tx;
@@ -3533,7 +3559,7 @@ function moveNpcStep(npc, targetKey) {
     return true;
 }
 
-function directStep(startKey, targetKey, inv, abilities = []) {
+function directStep(startKey, targetKey, inv, abilities = [], ignoreNpc = null) {
     const entry = tileMap[startKey];
     if (!entry) return null;
     const [tx, ty] = keyToCoords(targetKey);
@@ -3541,7 +3567,7 @@ function directStep(startKey, targetKey, inv, abilities = []) {
     let bestDist = Infinity;
     for (const next of entry.data.connections || []) {
         const nextEntry = tileMap[next];
-        if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv, abilities)) continue;
+        if (!nextEntry || !TileConditions.isPassable(nextEntry.data, inv, abilities) || isTileOccupied(next, ignoreNpc)) continue;
         const [nx, ny] = keyToCoords(next);
         const d = Math.hypot(tx - nx, ty - ny);
         if (d < bestDist) {
@@ -3599,16 +3625,16 @@ function tickNpcMovement() {
                 triggerNpcDialog(npc, 'pursuitEnd');
                 continue;
             }
-            const path = findPath(npcKey, currentKey, npc.inventory || [], npc.abilities || []);
+            const path = findPath(npcKey, currentKey, npc.inventory || [], npc.abilities || [], { ignoreNpc: npc, avoidOccupied: true });
             if (path && path.length > 1) {
                 if (path.length - 1 <= range + 3) {
                     moveNpcStep(npc, path[1]);
                 } else {
-                    const step = directStep(npcKey, currentKey, npc.inventory || [], npc.abilities || []);
+                    const step = directStep(npcKey, currentKey, npc.inventory || [], npc.abilities || [], npc);
                     if (step) moveNpcStep(npc, step);
                 }
             } else {
-                const step = directStep(npcKey, currentKey, npc.inventory || [], npc.abilities || []);
+                const step = directStep(npcKey, currentKey, npc.inventory || [], npc.abilities || [], npc);
                 if (step) moveNpcStep(npc, step);
             }
             continue;
@@ -3618,7 +3644,7 @@ function tickNpcMovement() {
             if (npcKey === homeKey) {
                 npc.state = 'wander';
             } else {
-                const path = findPath(npcKey, homeKey, npc.inventory || []);
+                const path = findPath(npcKey, homeKey, npc.inventory || [], [], { ignoreNpc: npc, avoidOccupied: true });
                 if (path && path.length > 1) moveNpcStep(npc, path[1]);
             }
             continue;
@@ -3627,6 +3653,7 @@ function tickNpcMovement() {
         if (Math.random() < 0.5) continue; // stay still
         const options = (entry.data.connections || []).filter(key => {
             if (key === currentKey) return false;
+            if (isTileOccupied(key, npc)) return false;
             const next = tileMap[key];
             if (!next) return false;
             const inv = npc.inventory || [];
