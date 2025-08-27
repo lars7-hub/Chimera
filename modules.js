@@ -1,4 +1,4 @@
-window.onload = function() {
+window.addEventListener('load', function() {
     const homeBtn = document.getElementById('home-btn');
     if (homeBtn) homeBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
     const infoBtn = document.getElementById('info-btn');
@@ -28,7 +28,7 @@ window.onload = function() {
     if (modBattle) modBattle.addEventListener('click', () => { window.location.href = 'battle-complex.html'; });
     const modLex = document.getElementById('module-lexicon');
     if (modLex) modLex.addEventListener('click', () => { window.location.href = 'lexicon-manager.html'; });
-};
+});
 
 async function goRandom() {
     try {

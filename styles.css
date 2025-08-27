@@ -2432,23 +2432,127 @@ button:hover {
     margin-right: 7.4%;
     height: 100vh;
 }
-#battle-top, #battle-bottom { width: 100%; display: flex; }
-#battle-top { height: 70%; }
-#battle-bottom { height: 30%; }
-#player-info, #enemy-info { width: 15%; padding: 5px; overflow: hidden; }
-#visualizer { width: 70%; position: relative; background-size: cover; background-position: center; display: flex; justify-content: space-between; align-items: flex-end; }
-#visualizer img { max-height: 100%; }
-#battle-buttons { width: 30%; padding: 5px; display: flex; flex-direction: column; }
-#inventory { width: 50%; padding: 5px; display: flex; flex-direction: column; }
-#special-menu { width: 20%; padding: 5px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+#battle-top, #battle-bottom { 
+	width: 100%; 
+	display: flex; 
+	gap: 5px; 
+	}
+	
+#battle-top { 
+	height: 70%; 
+	}
+	
+#battle-bottom { 
+	height: 30%; 
+	}
+	
+#player-info, #enemy-info { 
+	width: 15%; 
+	padding: 5px; 
+	overflow: hidden; 
+	}
+	
+#visualizer { 
+	width: 70%; 
+	position: relative; 
+	background-size: cover; 
+	background-position: center; 
+	display: flex; 
+	justify-content: space-between; 
+	align-items: flex-end; 
+	}
+	
+#visualizer img { 
+	width: 30%; 
+	height: auto; 
+	max-height: 100%; 
+	object-fit: contain; 
+	}
+	
+#battle-buttons { 
+	width: 30%; 
+	padding: 5px; 
+	display: flex; 
+	flex-direction: column; 
+	}
+	
+#inventory { 
+	width: 50%; 
+	padding: 5px; 
+	display: flex; 
+	flex-direction: column; 
+	}
+	
+#special-menu { 
+	width: 20%; 
+	padding: 5px; 
+	display: flex; 
+	flex-direction: column; 
+	justify-content: center; 
+	align-items: center; 
+	}
+	
+.ability-grid { 
+	flex: 1; 
+	display: grid; 
+	grid-template-columns: repeat(3,1fr); 
+	grid-template-rows: repeat(4,1fr); 
+	gap: 5px; 
+	}
 
-.ability-grid { flex: 1; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(4,1fr); gap: 5px; }
-.ability-grid button { width: 100%; height: 100%; }
-.inventory-grid { flex: 1; display: grid; grid-template-columns: repeat(12,1fr); grid-template-rows: repeat(2,1fr); gap: 5px; }
-.page-controls { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
-.hp-bar { position: relative; width: 100%; height: 20px; background: #222; margin-top: 5px; }
-.hp-fill { height: 100%; }
-.hp-text { position: absolute; top: 0; left: 0; width: 100%; text-align: center; line-height: 20px; font-size: 12px; }
+.ability-grid button {
+	width: 100%; 
+	height: 100%; 
+	}
+	
+.inventory-grid { 
+	flex: 1; 
+	display: grid; 
+	grid-template-columns: repeat(12,1fr); 
+	grid-template-rows: repeat(2,1fr); 
+	gap: 5px; 
+	}
+	
+.inventory-grid button { 
+	aspect-ratio: 1 / 1; 
+	padding: 0; 
+	}
+	
+.inventory-grid button img { 
+	width: 100%; 
+	height: 100%; 
+	object-fit: fill; 
+	}
+	
+.page-controls { 
+	display: flex; 
+	justify-content: center; 
+	gap: 10px; 
+	margin-top: 5px; 
+	}
+	
+.hp-bar { 
+	position: relative; 
+	width: 100%; 
+	height: 20px; 
+	background: #222; 
+	margin-top: 5px; 
+	}
+	
+.hp-fill { 
+	height: 100%; 
+	}
+	
+.hp-text { 
+	position: absolute; 
+	top: 0; 
+	left: 0; 
+	width: 100%; 
+	text-align: center; 
+	line-height: 20px; 
+	font-size: 12px; 
+	}
+	
 
 
 .chip-container {
@@ -2458,8 +2562,8 @@ button:hover {
 }
 
 .chip {
-    width: 400px;
-    height: 400px;
+    width: 120px;
+    height: 120px;
     overflow: hidden;
     border: 3px solid transparent;
     border-radius: 10px;
@@ -2469,7 +2573,7 @@ button:hover {
 
 .chip img {
     width: 100%;
-    height: auto;
+    height: 100%;
     object-fit: cover;
     object-position: top;
 }
@@ -2484,8 +2588,7 @@ button:hover {
     padding: 10px;
 }
 
-.ability-grid button img,
-.inventory-grid button img {
+.ability-grid button img {
     width: 100%;
     height: 100%;
     object-fit: cover;

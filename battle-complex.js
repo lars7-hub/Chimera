@@ -10,7 +10,7 @@ let currentWorld = "";
 let allChars = [];
 let tooltipEl = null;
 
-window.onload = async function () {
+window.addEventListener('load', async function () {
     await loadWorlds();
     await loadCharacters();
     document.getElementById('world-select').addEventListener('change', loadLexicon);
@@ -48,8 +48,10 @@ async function renderCharacterChips() {
     }
     if (lexicon) {
         (lexicon.npc_blueprints || []).forEach(n => {
-            const chip = createChip(n.icon || '', n.name, `npc:${n.name}`, enemySel, v => { selectedEnemy = v; });
-            enemySel.appendChild(chip);
+            const chipEnemy = createChip(n.icon || '', n.name, `npc:${n.name}`, enemySel, v => { selectedEnemy = v; });
+            enemySel.appendChild(chipEnemy);
+            const chipPlayer = createChip(n.icon || '', n.name, `npc:${n.name}`, playerSel, v => { selectedPlayer = v; });
+            playerSel.appendChild(chipPlayer);
         });
     }
 }
@@ -75,13 +77,22 @@ async function loadLexicon() {
 
 
 async function startBattle() {
-    const playerName = selectedPlayer;
+    const playerVal = selectedPlayer;
     const enemyVal = selectedEnemy;
     const type = selectedType;
-    if (!playerName || !enemyVal) return;
-    const player = await window.electron.getCharacter(playerName);
-    player.image = await window.electron.getCharacterImage(playerName);
-    player.inventory = await window.electron.getInventory(playerName, 'default');
+    if (!playerVal || !enemyVal) return;
+    let player;
+    if (playerVal.startsWith('npc:')) {
+        const bpName = playerVal.slice(4);
+        const bp = (lexicon.npc_blueprints || []).find(n => n.name === bpName) || {};
+        player = { ...bp };
+        player.image = bp.icon || '';
+        player.inventory = bp.inventory || [];
+    } else {
+        player = await window.electron.getCharacter(playerVal);
+        player.image = await window.electron.getCharacterImage(playerVal);
+        player.inventory = await window.electron.getInventory(playerVal, 'default');
+    }
     let enemy;
     if (enemyVal.startsWith('pc:')) {
         const enemyName = enemyVal.slice(3);
