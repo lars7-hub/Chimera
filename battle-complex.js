@@ -15,7 +15,7 @@ window.addEventListener('load', async function () {
     await loadCharacters();
     document.getElementById('world-select').addEventListener('change', loadLexicon);
     document.getElementById('start-battle-btn').addEventListener('click', startBattle);
-};
+});
 
 async function loadWorlds() {
     const worlds = await window.electron.listWorlds();

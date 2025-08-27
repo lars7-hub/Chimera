@@ -2439,11 +2439,11 @@ button:hover {
 	}
 	
 #battle-top { 
-	height: 70%; 
+	height: 80%; 
 	}
 	
 #battle-bottom { 
-	height: 30%; 
+	height: 20%; 
 	}
 	
 #player-info, #enemy-info { 
