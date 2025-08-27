@@ -2445,8 +2445,68 @@ button:hover {
 .ability-grid { flex: 1; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(4,1fr); gap: 5px; }
 .ability-grid button { width: 100%; height: 100%; }
 .inventory-grid { flex: 1; display: grid; grid-template-columns: repeat(12,1fr); grid-template-rows: repeat(2,1fr); gap: 5px; }
-.inventory-item { background: #444; padding: 4px; text-align: center; }
 .page-controls { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
 .hp-bar { position: relative; width: 100%; height: 20px; background: #222; margin-top: 5px; }
 .hp-fill { height: 100%; }
 .hp-text { position: absolute; top: 0; left: 0; width: 100%; text-align: center; line-height: 20px; font-size: 12px; }
+
+
+.chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chip {
+    width: 400px;
+    height: 400px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #222;
+}
+
+.chip img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    object-position: top;
+}
+
+.chip.selected {
+    border-color: #0f0;
+}
+
+.module-zone {
+    background: #555;
+    border-radius: 15px;
+    padding: 10px;
+}
+
+.ability-grid button img,
+.inventory-grid button img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.inventory-grid button {
+    background: #444;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tooltip-bubble {
+    position: absolute;
+    background: #000;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1000;
+    font-size: 14px;
+}

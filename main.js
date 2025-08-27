@@ -800,7 +800,7 @@ ipcMain.handle('get-random-tile-image', (event, type) => {
         console.error('Error getting random tile image:', err);
         return null;
     }
-}
+});
 
 ipcMain.handle('get-battle-type-image', (event, worldName, type) => {
     try {
