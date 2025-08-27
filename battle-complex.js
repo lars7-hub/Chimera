@@ -3,6 +3,12 @@ let abilities = [];
 let inventory = [];
 let abilityPage = 0;
 let inventoryPage = 0;
+let selectedPlayer = "";
+let selectedEnemy = "";
+let selectedType = "";
+let currentWorld = "";
+let allChars = [];
+let tooltipEl = null;
 
 window.onload = async function () {
     await loadWorlds();
@@ -24,55 +30,54 @@ async function loadWorlds() {
 }
 
 async function loadCharacters() {
-    const chars = await window.electron.getCharacters();
+    allChars = await window.electron.getCharacters();
+    await renderCharacterChips();
+}
+
+async function renderCharacterChips() {
     const playerSel = document.getElementById('player-select');
     const enemySel = document.getElementById('enemy-select');
-    playerSel.innerHTML = '<option value="">Select...</option>';
-    enemySel.innerHTML = '<option value="">Select...</option>';
-    chars.forEach(c => {
-        const opt1 = document.createElement('option');
-        opt1.value = c.name;
-        opt1.textContent = c.name;
-        playerSel.appendChild(opt1);
-        const opt2 = document.createElement('option');
-        opt2.value = `pc:${c.name}`;
-        opt2.textContent = c.name;
-        enemySel.appendChild(opt2);
-    });
+    playerSel.innerHTML = '';
+    enemySel.innerHTML = '';
+    for (const c of allChars) {
+        const img = await window.electron.getCharacterImage(c.name);
+        const chipP = createChip(img, c.name, c.name, playerSel, v => { selectedPlayer = v; });
+        playerSel.appendChild(chipP);
+        const chipE = createChip(img, c.name, `pc:${c.name}`, enemySel, v => { selectedEnemy = v; });
+        enemySel.appendChild(chipE);
+    }
+    if (lexicon) {
+        (lexicon.npc_blueprints || []).forEach(n => {
+            const chip = createChip(n.icon || '', n.name, `npc:${n.name}`, enemySel, v => { selectedEnemy = v; });
+            enemySel.appendChild(chip);
+        });
+    }
 }
+
 
 async function loadLexicon() {
     const world = document.getElementById('world-select').value;
     if (!world) return;
+    currentWorld = world;
     await window.electron.ensureLexicon(world);
     lexicon = await window.electron.getLexicon(world);
-    const enemySel = document.getElementById('enemy-select');
-    [...enemySel.querySelectorAll('option[data-type="npc"]')].forEach(o => o.remove());
-    (lexicon.npc_blueprints || []).forEach(n => {
-        const opt = document.createElement('option');
-        opt.value = `npc:${n.name}`;
-        opt.textContent = n.name;
-        opt.dataset.type = 'npc';
-        enemySel.appendChild(opt);
-    });
+    await renderCharacterChips();
     const typeSel = document.getElementById('type-select');
     typeSel.innerHTML = '';
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = 'None';
-    typeSel.appendChild(none);
-    (lexicon.typing || []).forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.name || t;
-        opt.textContent = t.name || t;
-        typeSel.appendChild(opt);
-    });
+    selectedType = '';
+    const types = (lexicon.typing && lexicon.typing.types) || [];
+    for (const t of types) {
+        const img = await window.electron.getBattleTypeImage(world, t) || '';
+        const chip = createChip(img, t, t, typeSel, v => { selectedType = v; });
+        typeSel.appendChild(chip);
+    }
 }
 
+
 async function startBattle() {
-    const playerName = document.getElementById('player-select').value;
-    const enemyVal = document.getElementById('enemy-select').value;
-    const type = document.getElementById('type-select').value;
+    const playerName = selectedPlayer;
+    const enemyVal = selectedEnemy;
+    const type = selectedType;
     if (!playerName || !enemyVal) return;
     const player = await window.electron.getCharacter(playerName);
     player.image = await window.electron.getCharacterImage(playerName);
@@ -92,6 +97,7 @@ async function startBattle() {
     }
     await renderBattle(player, enemy, type);
 }
+
 
 async function renderBattle(player, enemy, type) {
     document.getElementById('selection-screen').classList.add('hidden');
@@ -191,7 +197,15 @@ function renderAbilities() {
     grid.className = 'ability-grid';
     abilities.slice(abilityPage * 12, abilityPage * 12 + 12).forEach(ab => {
         const btn = document.createElement('button');
-        btn.textContent = ab.name || ab;
+        if (ab.image) {
+            const img = document.createElement('img');
+            img.src = ab.image;
+            btn.appendChild(img);
+        } else {
+            btn.textContent = ab.name || ab;
+        }
+        btn.addEventListener('mouseenter', () => showTooltip(ab.description || ab.name || ab, btn));
+        btn.addEventListener('mouseleave', hideTooltip);
         grid.appendChild(btn);
     });
     container.appendChild(grid);
@@ -212,16 +226,26 @@ function renderAbilities() {
     }
 }
 
+
 function renderInventory() {
     const container = document.getElementById('inventory');
     container.innerHTML = '';
     const grid = document.createElement('div');
     grid.className = 'inventory-grid';
     inventory.slice(inventoryPage * 24, inventoryPage * 24 + 24).forEach(it => {
-        const div = document.createElement('div');
-        div.className = 'inventory-item';
-        div.textContent = it.name || it;
-        grid.appendChild(div);
+        const btn = document.createElement('button');
+        btn.className = 'inventory-item';
+        const imgSrc = it.image || it.icon;
+        if (imgSrc) {
+            const img = document.createElement('img');
+            img.src = imgSrc;
+            btn.appendChild(img);
+        } else {
+            btn.textContent = it.name || it;
+        }
+        btn.addEventListener('mouseenter', () => showTooltip(it.description || it.name || it, btn));
+        btn.addEventListener('mouseleave', hideTooltip);
+        grid.appendChild(btn);
     });
     container.appendChild(grid);
     if (inventory.length > 24) {
@@ -241,6 +265,7 @@ function renderInventory() {
     }
 }
 
+
 function renderSpecialMenu() {
     const container = document.getElementById('special-menu');
     container.innerHTML = '';
@@ -254,6 +279,41 @@ function renderSpecialMenu() {
     container.appendChild(surrender);
 }
 
+
+function createChip(imgSrc, label, value, container, onSelect) {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = label;
+    chip.appendChild(img);
+    chip.addEventListener('click', () => {
+        [...container.children].forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        onSelect(value);
+    });
+    return chip;
+}
+
+function showTooltip(text, target) {
+    if (!text) return;
+    hideTooltip();
+    tooltipEl = document.createElement('div');
+    tooltipEl.className = 'tooltip-bubble';
+    tooltipEl.textContent = text;
+    document.body.appendChild(tooltipEl);
+    const rect = target.getBoundingClientRect();
+    const top = rect.top - tooltipEl.offsetHeight - 5;
+    tooltipEl.style.left = rect.left + 'px';
+    tooltipEl.style.top = (top < 0 ? rect.bottom + 5 : top) + 'px';
+}
+
+function hideTooltip() {
+    if (tooltipEl) {
+        tooltipEl.remove();
+        tooltipEl = null;
+    }
+}
 function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
     const finalStats = { ...baseStats };
     const modifiers = {};

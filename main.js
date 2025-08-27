@@ -800,6 +800,19 @@ ipcMain.handle('get-random-tile-image', (event, type) => {
         console.error('Error getting random tile image:', err);
         return null;
     }
+}
+
+ipcMain.handle('get-battle-type-image', (event, worldName, type) => {
+    try {
+        const imgPath = path.join(worldRoot, worldName, 'Lexicon', 'Battle', `${type}.png`);
+        if (fs.existsSync(imgPath)) {
+            return pathToFileURL(imgPath).href;
+        }
+        return null;
+    } catch (err) {
+        console.error('Error getting battle type image:', err);
+        return null;
+    }
 });
 
 ipcMain.handle('get-sticker-images', (event, type) => {

@@ -18,39 +18,38 @@
     </div>
 
     <div id="selection-screen">
-        <div class="selection-row">
+        <div class="selection-row module-zone">
             <label>World:
                 <select id="world-select"></select>
             </label>
         </div>
         <div class="selection-row split">
-            <div class="select-side">
+            <div class="select-side module-zone">
                 <h3>Player Character</h3>
-                <select id="player-select"></select>
+                <div id="player-select" class="chip-container"></div>
             </div>
-            <div class="select-side">
+            <div class="select-side module-zone">
                 <h3>Enemy Character</h3>
-                <select id="enemy-select"></select>
+                <div id="enemy-select" class="chip-container"></div>
             </div>
         </div>
-        <div class="selection-row">
-            <label>Battleground Type:
-                <select id="type-select"></select>
-            </label>
+        <div class="selection-row module-zone">
+            <h3>Battleground Type</h3>
+            <div id="type-select" class="chip-container"></div>
         </div>
         <button id="start-battle-btn">Start Battle</button>
     </div>
 
     <div id="battle-screen" class="hidden">
         <div id="battle-top">
-            <div id="player-info" class="info-panel"></div>
-            <div id="visualizer"></div>
-            <div id="enemy-info" class="info-panel"></div>
+            <div id="player-info" class="info-panel module-zone"></div>
+            <div id="visualizer" class="module-zone"></div>
+            <div id="enemy-info" class="info-panel module-zone"></div>
         </div>
         <div id="battle-bottom">
-            <div id="battle-buttons"></div>
-            <div id="inventory"></div>
-            <div id="special-menu"></div>
+            <div id="battle-buttons" class="module-zone"></div>
+            <div id="inventory" class="module-zone"></div>
+            <div id="special-menu" class="module-zone"></div>
         </div>
     </div>
 

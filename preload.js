@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('electron', {
     saveMapRegion: (regionName, worldName, tiles, start) => ipcRenderer.invoke('save-map-region', regionName, worldName, tiles, start),
     listTileImages: () => ipcRenderer.invoke('list-tile-images'),
     getRandomTileImage: (type) => ipcRenderer.invoke('get-random-tile-image', type),
+    getBattleTypeImage: (world, type) => ipcRenderer.invoke("get-battle-type-image", world, type),
     getStickerImages: (type) => ipcRenderer.invoke('get-sticker-images', type),
     prepareWorldCharacter: (worldName, characterName, loadoutName) => ipcRenderer.invoke('prepare-world-character', worldName, characterName, loadoutName),
     getWorldCharacter: (worldName) => ipcRenderer.invoke('get-world-character', worldName),
