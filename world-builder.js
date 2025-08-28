@@ -1924,6 +1924,8 @@ async function loadWorld() {
         document.getElementById('inventory-btn').classList.add('hidden');
         document.getElementById('mini-inventory-grid').classList.add('hidden');
         document.getElementById('profile-stats').classList.add('hidden');
+        const hpEl = document.getElementById('character-hp');
+        if (hpEl) hpEl.innerHTML = '';
     }
 }
 
@@ -4571,6 +4573,14 @@ function renderStats() {
         });
     });
     const { finalStats, modifiers } = calculateFinalStats(worldCharacter.stats || {}, worldCharacter.traits || [], inventoryMods);
+    const hpMax = calculateHealth(finalStats);
+    worldCharacter.hpMax = hpMax;
+    if (worldCharacter.hp == null) worldCharacter.hp = hpMax;
+    const hpEl = document.getElementById('character-hp');
+    if (hpEl) {
+        hpEl.innerHTML = '';
+        hpEl.appendChild(createHealthBar(worldCharacter.hp, worldCharacter.hpMax));
+    }
     updateCarryInfo(finalStats);
     if (worldCharacter.showStats === false) {
         document.getElementById('profile-stats').classList.add('hidden');
@@ -4659,6 +4669,29 @@ function calculateFinalStats(baseStats = {}, traits = [], inventoryMods = []) {
     });
 
     return { finalStats, modifiers };
+}
+
+function calculateHealth(stats = {}) {
+	const fortitude = Number(stats.fortitude) || 0;
+	const strength = Number(stats.strength) || 0;
+	const dexterity = Number(stats.dexterity) || 0;
+	return Math.round(fortitude * 10 + strength * 2 + dexterity);
+}
+
+function createHealthBar(cur, max) {
+	const cont = document.createElement('div');
+	cont.className = 'hp-bar';
+	const fill = document.createElement('div');
+    fill.className = 'hp-fill';
+    const pct = max ? cur / max : 0;
+    fill.style.width = (pct * 100) + '%';
+    fill.style.backgroundColor = pct > 0.5 ? 'green' : pct > 0.2 ? 'yellow' : 'red';
+    const text = document.createElement('div');
+    text.className = 'hp-text';
+    text.textContent = `${cur}/${max}`;
+    cont.appendChild(fill);
+    cont.appendChild(text);
+    return cont;
 }
 
 function openItemInfo(index) {
