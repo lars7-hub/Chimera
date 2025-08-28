@@ -966,7 +966,7 @@ function buildItemsTable() {
         abilitiesTable.innerHTML = '';
 
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', 'Icon', 'Stats', ''].forEach(h => {
+        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', 'Speed Mult', 'Core Stat', 'Icon', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -1039,6 +1039,32 @@ function buildItemsTable() {
             powInput.addEventListener('input', e => ab.power = parseFloat(e.target.value) || 0);
             powTd.appendChild(powInput);
             tr.appendChild(powTd);
+
+            const spdTd = document.createElement('td');
+            const spdInput = document.createElement('input');
+            spdInput.type = 'number';
+            spdInput.step = '0.1';
+            spdInput.value = ab.speedMultiplier != null ? ab.speedMultiplier : 1;
+            spdInput.addEventListener('input', e => ab.speedMultiplier = parseFloat(e.target.value) || 0);
+            spdTd.appendChild(spdInput);
+            tr.appendChild(spdTd);
+
+            const coreTd = document.createElement('td');
+            const coreSel = document.createElement('select');
+            const corePlaceholder = document.createElement('option');
+            corePlaceholder.value = '';
+            corePlaceholder.textContent = '--';
+            coreSel.appendChild(corePlaceholder);
+            STAT_INFO.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.key;
+                opt.textContent = s.label;
+                coreSel.appendChild(opt);
+            });
+            coreSel.value = ab.coreStat || '';
+            coreSel.addEventListener('change', e => ab.coreStat = e.target.value);
+            coreTd.appendChild(coreSel);
+            tr.appendChild(coreTd);
 
             const iconTd = document.createElement('td');
             const img = document.createElement('img');

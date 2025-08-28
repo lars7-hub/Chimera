@@ -9,6 +9,9 @@ let selectedType = "";
 let currentWorld = "";
 let allChars = [];
 let tooltipEl = null;
+let playerChar = null;
+let enemyChar = null;
+let awaitingInput = false;
 
 window.addEventListener('load', async function () {
     await loadWorlds();
@@ -109,23 +112,6 @@ async function startBattle() {
     await renderBattle(player, enemy, type);
 }
 
-
-async function renderBattle(player, enemy, type) {
-    document.getElementById('selection-screen').classList.add('hidden');
-    const screen = document.getElementById('battle-screen');
-    screen.classList.remove('hidden');
-    renderInfo('player-info', player);
-    renderInfo('enemy-info', enemy);
-    await renderVisualizer(player.image, enemy.image, type);
-    abilities = player.abilities || [];
-    abilityPage = 0;
-    renderAbilities();
-    inventory = player.inventory || [];
-    inventoryPage = 0;
-    renderInventory();
-    renderSpecialMenu();
-}
-
 function renderInfo(id, data) {
     const el = document.getElementById(id);
     el.innerHTML = '';
@@ -143,6 +129,9 @@ function renderInfo(id, data) {
         });
     });
     const { finalStats, modifiers } = calculateFinalStats(data.stats || {}, data.traits || [], invMods);
+    data.finalStats = finalStats;
+    if (data.hpMax == null) data.hpMax = calculateHealth(finalStats);
+    if (data.hp == null) data.hp = data.hpMax;
     Object.keys(finalStats).forEach(key => {
         const tr = document.createElement('tr');
         const th = document.createElement('td');
@@ -162,8 +151,15 @@ function renderInfo(id, data) {
     });
     table.appendChild(tbody);
     el.appendChild(table);
-    const hpBar = createHealthBar(data.hp || (data.stats && data.stats.hp) || 0, (data.stats && data.stats.hp) || (data.hpMax || 0));
+    const hpBar = createHealthBar(data.hp, data.hpMax);
     el.appendChild(hpBar);
+}
+
+function calculateHealth(stats = {}) {
+    const fortitude = Number(stats.fortitude) || 0;
+    const strength = Number(stats.strength) || 0;
+    const dexterity = Number(stats.dexterity) || 0;
+    return Math.round(fortitude * 10 + strength * 2 + dexterity);
 }
 
 function createHealthBar(cur, max) {
@@ -217,6 +213,7 @@ function renderAbilities() {
         }
         btn.addEventListener('mouseenter', () => showTooltip(ab.description || ab.name || ab, btn));
         btn.addEventListener('mouseleave', hideTooltip);
+        btn.addEventListener('click', () => selectAbility(ab));
         grid.appendChild(btn);
     });
     container.appendChild(grid);
@@ -256,6 +253,7 @@ function renderInventory() {
         }
         btn.addEventListener('mouseenter', () => showTooltip(it.description || it.name || it, btn));
         btn.addEventListener('mouseleave', hideTooltip);
+        btn.addEventListener('click', () => useItem(it));
         grid.appendChild(btn);
     });
     container.appendChild(grid);
@@ -288,6 +286,127 @@ function renderSpecialMenu() {
     surrender.addEventListener('click', () => { alert('You surrendered'); location.reload(); });
     container.appendChild(flee);
     container.appendChild(surrender);
+}
+
+
+function resolveAbilities(list = []) {
+    return (list || []).map(ab => {
+        if (typeof ab === 'string') {
+            return (lexicon.abilities || []).find(a => a.key === ab || a.name === ab) || { name: ab, power: 0 };
+        }
+        return ab;
+    });
+}
+
+function selectAbility(ab) {
+    if (!awaitingInput) return;
+    awaitingInput = false;
+    const enemyAbility = chooseEnemyAbility();
+    runTurn(ab, enemyAbility);
+}
+
+function chooseEnemyAbility() {
+    const list = enemyChar && Array.isArray(enemyChar.abilities) ? enemyChar.abilities : [];
+    if (!list.length) return { name: 'Attack', power: 0, coreStat: 'strength' };
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function useItem(it) {
+    if (!awaitingInput) return;
+    awaitingInput = false;
+    performItem(playerChar, it);
+    renderInventory();
+    if (!checkBattleEnd()) {
+        runEnemyAction();
+    }
+}
+
+function runEnemyAction() {
+    const enemyAbility = chooseEnemyAbility();
+    executeAction(enemyChar, playerChar, enemyAbility);
+    postTurn();
+}
+
+function runTurn(playerAbility, enemyAbility) {
+    const pSpeed = getSpeed(playerChar, playerAbility);
+    const eSpeed = getSpeed(enemyChar, enemyAbility);
+    if (pSpeed >= eSpeed) {
+        executeAction(playerChar, enemyChar, playerAbility);
+        if (enemyChar.hp > 0) executeAction(enemyChar, playerChar, enemyAbility);
+    } else {
+        executeAction(enemyChar, playerChar, enemyAbility);
+        if (playerChar.hp > 0) executeAction(playerChar, enemyChar, playerAbility);
+    }
+    postTurn();
+}
+
+function getSpeed(ch, ability) {
+    const dex = (ch.finalStats && ch.finalStats.dexterity) || 0;
+    const mult = ability && ability.speedMultiplier != null ? ability.speedMultiplier : 1;
+    return dex * mult;
+}
+
+function executeAction(attacker, defender, ability) {
+    if (!ability) return;
+    const acc = ability.accuracy != null ? ability.accuracy : 100;
+    if (Math.random() * 100 > acc) {
+        console.log(`${attacker.name || 'Unknown'}'s ${ability.name || 'ability'} missed!`);
+        return;
+    }
+    const dmg = dealDamage(attacker, defender, ability);
+    console.log(`${attacker.name || 'Unknown'} used ${ability.name || 'Ability'} for ${dmg} damage`);
+}
+
+function dealDamage(attacker, defender, ability) {
+    const core = ability.coreStat || 'strength';
+    const statVal = (attacker.finalStats && attacker.finalStats[core]) || 0;
+    const base = Number(ability.power) || 0;
+    const dmg = Math.max(0, Math.round(base * (1 + statVal / 100)));
+    defender.hp = Math.max(0, (defender.hp || 0) - dmg);
+    return dmg;
+}
+
+function performItem(user, item) {
+    if (!item) return;
+    let healed = 0;
+    if (item.heal) healed += Number(item.heal) || 0;
+    (item.stats || []).forEach(s => {
+        if (s.stat === 'hp') healed += Number(s.value) || 0;
+    });
+    if (healed) user.hp = Math.min(user.hpMax, (user.hp || 0) + healed);
+    if (item.stackable) {
+        item.quantity = Math.max(0, (item.quantity || 1) - 1);
+        if (item.quantity === 0) {
+            const idx = inventory.indexOf(item);
+            if (idx >= 0) inventory.splice(idx, 1);
+        }
+    } else {
+        const idx = inventory.indexOf(item);
+        if (idx >= 0) inventory.splice(idx, 1);
+    }
+    renderInfo('player-info', playerChar);
+}
+
+function postTurn() {
+    renderInfo('player-info', playerChar);
+    renderInfo('enemy-info', enemyChar);
+    renderAbilities();
+    renderInventory();
+    if (!checkBattleEnd()) awaitingInput = true;
+}
+
+function checkBattleEnd() {
+    if (playerChar.hp <= 0) {
+        alert('You were defeated');
+        location.reload();
+        return true;
+    }
+    if (enemyChar.hp <= 0) {
+        alert('Enemy defeated');
+        location.reload();
+        return true;
+    }
+    return false;
 }
 
 
