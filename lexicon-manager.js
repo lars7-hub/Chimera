@@ -626,7 +626,7 @@ function buildItemsTable() {
 
         const thead = document.createElement('thead');
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Weight', 'Slots', 'Width', 'Height', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
+         ['', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Weight', 'Slots', 'Width', 'Height', 'Value', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -765,27 +765,25 @@ function buildItemsTable() {
         data.forEach((item, idx) => {
             const tr = document.createElement('tr');
 
+            const infoTd = document.createElement('td');
+            infoTd.className = 'item-info';
             const keyInput = document.createElement('input');
+            keyInput.placeholder = 'Key';
             keyInput.value = item.key || '';
             keyInput.addEventListener('input', e => item.key = e.target.value);
-            const keyTd = document.createElement('td');
-            keyTd.appendChild(keyInput);
-            tr.appendChild(keyTd);
-
             const nameInput = document.createElement('input');
+            nameInput.placeholder = 'Name';
             nameInput.value = item.name || '';
             nameInput.addEventListener('input', e => item.name = e.target.value);
-            const nameTd = document.createElement('td');
-            nameTd.appendChild(nameInput);
-            tr.appendChild(nameTd);
-
             const catInput = document.createElement('input');
             catInput.setAttribute('list', catListId);
+            catInput.placeholder = 'Category';
             catInput.value = item.category || '';
             catInput.addEventListener('input', e => item.category = e.target.value);
-            const catTd = document.createElement('td');
-            catTd.appendChild(catInput);
-            tr.appendChild(catTd);
+            infoTd.appendChild(keyInput);
+            infoTd.appendChild(nameInput);
+            infoTd.appendChild(catInput);
+            tr.appendChild(infoTd);
 
             const descInput = document.createElement('input');
             descInput.value = item.description || '';
@@ -861,7 +859,27 @@ function buildItemsTable() {
             valTd.appendChild(valInput);
             tr.appendChild(valTd);
 
-            const iconTd = document.createElement('td');
+            const remTd = document.createElement('td');
+            const remBtn = document.createElement('button');
+            remBtn.textContent = '×';
+            remBtn.addEventListener('click', () => {
+                data.splice(idx, 1);
+                buildItemsTable();
+            });
+            remTd.appendChild(remBtn);
+            tr.appendChild(remTd);
+
+            tbody.appendChild(tr);
+
+            const extra = document.createElement('tr');
+            const spacer = document.createElement('td');
+            extra.appendChild(spacer);
+            const extraTd = document.createElement('td');
+            extraTd.colSpan = 10;
+            const extraWrap = document.createElement('div');
+            extraWrap.className = 'item-extra';
+
+            const iconWrap = document.createElement('div');
             const img = document.createElement('img');
             img.className = 'item-thumb';
             if (item.icon) img.src = item.icon;
@@ -875,12 +893,12 @@ function buildItemsTable() {
                     img.src = url;
                 }
             });
-            iconTd.appendChild(img);
-            iconTd.appendChild(imgBtn);
-            tr.appendChild(iconTd);
+            iconWrap.appendChild(img);
+            iconWrap.appendChild(imgBtn);
+            extraWrap.appendChild(iconWrap);
 
             item.abilities = Array.isArray(item.abilities) ? item.abilities : [];
-            const abilitiesTd = document.createElement('td');
+            const abilitiesWrap = document.createElement('div');
             const abilityChips = document.createElement('div');
             abilityChips.className = 'npc-ability-chips';
             item.abilities.forEach((name, aIdx) => {
@@ -900,7 +918,7 @@ function buildItemsTable() {
                 chip.appendChild(rem);
                 abilityChips.appendChild(chip);
             });
-            abilitiesTd.appendChild(abilityChips);
+            abilitiesWrap.appendChild(abilityChips);
             const abilityInput = document.createElement('input');
             abilityInput.setAttribute('list', abilityListId);
             const abilityAddBtn = document.createElement('button');
@@ -911,25 +929,17 @@ function buildItemsTable() {
                 item.abilities.push(val);
                 buildItemsTable();
             });
-            abilitiesTd.appendChild(abilityInput);
-            abilitiesTd.appendChild(abilityAddBtn);
-            tr.appendChild(abilitiesTd);
+            abilitiesWrap.appendChild(abilityInput);
+            abilitiesWrap.appendChild(abilityAddBtn);
+            extraWrap.appendChild(abilitiesWrap);
 
-            const statsTd = document.createElement('td');
-            statsTd.appendChild(buildStatsEditor(item));
-            tr.appendChild(statsTd);
+            const statsWrap = document.createElement('div');
+            statsWrap.appendChild(buildStatsEditor(item));
+            extraWrap.appendChild(statsWrap);
 
-            const remTd = document.createElement('td');
-            const remBtn = document.createElement('button');
-            remBtn.textContent = '×';
-            remBtn.addEventListener('click', () => {
-                data.splice(idx, 1);
-                buildItemsTable();
-            });
-            remTd.appendChild(remBtn);
-            tr.appendChild(remTd);
-
-            tbody.appendChild(tr);
+            extraTd.appendChild(extraWrap);
+            extra.appendChild(extraTd);
+            tbody.appendChild(extra);
         });
         itemsTable.appendChild(tbody);
     }
