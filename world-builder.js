@@ -2233,7 +2233,7 @@ function drawShortcutPaths() {
 
     ctx.strokeStyle = '#ff0';
     paths.forEach(p => {
-        const route = findPath(`${p.startX}-${p.startY}`, `${p.targetX}-${p.targetY}`, worldInventory || [], (worldCharacter && worldCharacter.abilities) || [], { allowedBiomes: p.biomes || [], allowedConditions: p.conditions || [], allowedZones: p.zones || [] });
+        const route = findPath(`${p.startX}-${p.startY}`, `${p.targetX}-${p.targetY}`, worldInventory || [], (worldCharacter && worldCharacter.abilities) || [], { ignoreConditions: true, allowedBiomes: p.biomes || [], allowedConditions: p.conditions || [], allowedZones: p.zones || [] });
         if (!route || route.length < 2) return;
         const pts = route.map(k => {
             const [x, y] = keyToCoords(k);

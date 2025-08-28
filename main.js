@@ -830,6 +830,7 @@ ipcMain.handle('prepare-world-character', (event, worldName, characterName, load
         const destDir = path.join(worldRoot, worldName, 'savedata');
         fs.rmSync(destDir, { recursive: true, force: true });
         fs.mkdirSync(destDir, { recursive: true });
+        fs.mkdirSync(path.join(destDir, 'spawns'), { recursive: true });
         const srcDir = path.join(fileSystemPath, characterName);
         // Copy character data and image, renaming to fixed filenames
         const srcJson = path.join(srcDir, `${characterName}.json`);
@@ -1333,5 +1334,39 @@ ipcMain.handle('save-world-position', (event, worldName, pos) => {
     } catch (err) {
         console.error('Error saving world position:', err);
         return { success: false, message: 'Error saving world position' };
+    }
+});
+
+ipcMain.handle('get-world-spawns', (event, worldName) => {
+    const spawns = [];
+    try {
+        const spawnPath = path.join(worldRoot, worldName, 'savedata', 'spawns');
+        if (fs.existsSync(spawnPath)) {
+            fs.readdirSync(spawnPath).forEach(file => {
+                if (file.endsWith('.json')) {
+                    const p = path.join(spawnPath, file);
+                    spawns.push(JSON.parse(fs.readFileSync(p, 'utf-8')));
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error reading world spawns:', err);
+    }
+    return spawns;
+});
+
+ipcMain.handle('save-world-spawns', (event, worldName, spawns) => {
+    try {
+        const spawnPath = path.join(worldRoot, worldName, 'savedata', 'spawns');
+        fs.rmSync(spawnPath, { recursive: true, force: true });
+        fs.mkdirSync(spawnPath, { recursive: true });
+        spawns.forEach((sp, index) => {
+            const file = path.join(spawnPath, `spawn${index}.json`);
+            fs.writeFileSync(file, JSON.stringify(sp, null, 2));
+        });
+        return { success: true };
+    } catch (err) {
+        console.error('Error saving world spawns:', err);
+        return { success: false };
     }
 });
