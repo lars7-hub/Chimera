@@ -2196,7 +2196,7 @@ function drawConnections() {
 function drawShortcutPaths() {
     const existing = document.getElementById('shortcut-canvas');
     if (existing) existing.remove();
-    if (viewMode !== 'world') return;
+    document.querySelectorAll('.path-label').forEach(el => el.remove());
     const warps = getAllWarps();
     const paths = getAllPaths();
     if (!warps.length && !paths.length) return;
@@ -2216,15 +2216,15 @@ function drawShortcutPaths() {
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.lineWidth = Math.max(2, tileSize * 0.2);
-    const offsetX = -viewMinX;
-    const offsetY = -viewMinY;
+    const gap = viewMode === 'world' ? 0 : tileGap;
+    const stride = tileSize + gap;
 
     ctx.strokeStyle = '#0ff';
     warps.forEach(w => {
-        const x1 = (w.startX + offsetX + 0.5) * tileSize;
-        const y1 = (w.startY + offsetY + 0.5) * tileSize;
-        const x2 = (w.targetX + offsetX + 0.5) * tileSize;
-        const y2 = (w.targetY + offsetY + 0.5) * tileSize;
+        const x1 = (w.startX - viewMinX) * stride + tileSize / 2;
+        const y1 = (w.startY - viewMinY) * stride + tileSize / 2;
+        const x2 = (w.targetX - viewMinX) * stride + tileSize / 2;
+        const y2 = (w.targetY - viewMinY) * stride + tileSize / 2;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
@@ -2237,7 +2237,7 @@ function drawShortcutPaths() {
         if (!route || route.length < 2) return;
         const pts = route.map(k => {
             const [x, y] = keyToCoords(k);
-            return [(x + offsetX + 0.5) * tileSize, (y + offsetY + 0.5) * tileSize];
+            return [(x - viewMinX) * stride + tileSize / 2, (y - viewMinY) * stride + tileSize / 2];
         });
         ctx.beginPath();
         ctx.moveTo(pts[0][0], pts[0][1]);
@@ -2251,6 +2251,25 @@ function drawShortcutPaths() {
         const last = pts[pts.length - 1];
         ctx.lineTo(last[0], last[1]);
         ctx.stroke();
+
+        if (viewMode === 'split') {
+            const placeLabel = (key) => {
+                const [lx, ly] = keyToCoords(key);
+                if (lx < viewMinX || lx > viewMaxX || ly < viewMinY || ly > viewMaxY) return;
+                const div = document.createElement('div');
+                div.className = 'path-label';
+                div.textContent = p.name;
+                div.style.left = `${(lx - viewMinX) * stride + tileSize / 2}px`;
+                div.style.top = `${(ly - viewMinY) * stride + tileSize / 2}px`;
+                mapGrid.appendChild(div);
+            };
+            if (route.length > 1) placeLabel(route[1]);
+            if (route.length > 2) {
+                placeLabel(route[route.length - 2]);
+            } else {
+                placeLabel(route[0]);
+            }
+        }
     });
 }
 
@@ -3406,27 +3425,43 @@ function renderZoneNames() {
         if (inZone) active.push(z.name);
         z.showName = z.showName || { world: true, split: true, full: true };
         if (!z.showName[viewMode] || inZone) return;
+        const visible = tiles.filter(k => {
+            const [tx, ty] = keyToCoords(k);
+            return tx >= viewMinX && tx <= viewMaxX && ty >= viewMinY && ty <= viewMaxY;
+        });
+        if (!visible.length) return;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        tiles.forEach(k => {
+        let sumX = 0, sumY = 0;
+        visible.forEach(k => {
             const [tx, ty] = keyToCoords(k);
             if (tx < minX) minX = tx;
             if (ty < minY) minY = ty;
             if (tx > maxX) maxX = tx;
             if (ty > maxY) maxY = ty;
+            sumX += tx;
+            sumY += ty;
         });
-        const dispMinX = Math.max(minX, viewMinX);
-        const dispMaxX = Math.min(maxX, viewMaxX);
-        const dispMinY = Math.max(minY, viewMinY);
-        const dispMaxY = Math.min(maxY, viewMaxY);
-        if (dispMinX > dispMaxX || dispMinY > dispMaxY) return;
-        const left = (dispMinX - viewMinX) * (tileSize + gap) + ((dispMaxX - dispMinX + 1) * (tileSize + gap) - gap) / 2;
-        const top = (dispMinY - viewMinY) * (tileSize + gap) + ((dispMaxY - dispMinY + 1) * (tileSize + gap) - gap) / 2;
+        const avgX = sumX / visible.length;
+        const avgY = sumY / visible.length;
+        const stride = tileSize + gap;
+        const zoneLeft = (minX - viewMinX) * stride;
+        const zoneTop = (minY - viewMinY) * stride;
+        const zoneWidth = (maxX - minX + 1) * stride - gap;
+        const zoneHeight = (maxY - minY + 1) * stride - gap;
+        let left = (avgX - viewMinX) * stride + tileSize / 2;
+        let top = (avgY - viewMinY) * stride + tileSize / 2;
         const div = document.createElement('div');
         div.className = 'zone-name';
-        div.style.left = `${left}px`;
-        div.style.top = `${top}px`;
         div.textContent = z.name;
         mapGrid.appendChild(div);
+        const halfW = div.offsetWidth / 2;
+        const halfH = div.offsetHeight / 2;
+        if (left - halfW < zoneLeft) left = zoneLeft + halfW;
+        if (left + halfW > zoneLeft + zoneWidth) left = zoneLeft + zoneWidth - halfW;
+        if (top - halfH < zoneTop) top = zoneTop + halfH;
+        if (top + halfH > zoneTop + zoneHeight) top = zoneTop + zoneHeight - halfH;
+        div.style.left = `${left}px`;
+        div.style.top = `${top}px`;
     });
     const title = document.getElementById('zone-title');
     if (active.length) {
