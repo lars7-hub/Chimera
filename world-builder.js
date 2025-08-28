@@ -3030,6 +3030,7 @@ function dropInventoryItem(index) {
     const item = worldInventory[index];
     if (!item) return;
     entry.data.items = entry.data.items || [];
+    const def = itemByKey[item.key];
     const ref = {
         key: item.key,
         name: item.name,
@@ -3038,7 +3039,7 @@ function dropInventoryItem(index) {
         value: item.value,
         stats: item.stats,
         abilities: item.abilities,
-        image: item.image,
+        image: item.image || resolveItemIcon(item.icon || (def && def.icon)),
         renewable: false,
         regenTime: 0,
         _lastRegen: Date.now()

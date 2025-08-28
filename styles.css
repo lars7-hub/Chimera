@@ -308,23 +308,65 @@ button:hover {
     text-align: center;
 }
 
+#type-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.type-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 4px;
+}
+
+.type-name {
+    margin-bottom: 4px;
+}
+
+.type-icon {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+.type-icon-btn {
+    margin-top: 4px;
+}
+
+#items-table-wrapper {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
 #items-table {
-	width: 100%;
-	border-collapse: collapse;
-	margin-top: 10px;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 3px;
+    margin-top: 10px;
 }
 
 #items-table th,
 #items-table td {
-	border: 1px solid #666;
+    border: 1px solid #666;
+    background-color: #222;
+    padding: 4px;
+}
+
+#items-table thead th {
+    position: sticky;
+    top: 0;
+    background: #333;
+    z-index: 1;
 }
 
 .item-thumb {
-        width: 32px;
-        height: 32px;
-        object-fit: contain;
-        display: block;
-        margin-bottom: 4px;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    display: block;
+    margin-bottom: 4px;
 }
 
 .error {

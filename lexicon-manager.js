@@ -498,16 +498,21 @@ window.addEventListener('DOMContentLoaded', async () => {
         typing.icons = typing.icons || {};
         typeChipsDiv.innerHTML = '';
         typing.types.forEach((type, idx) => {
-            const chip = document.createElement('span');
-            chip.className = 'chip';
-            const img = document.createElement('img');
-            img.className = 'item-thumb';
-            if (typing.icons[type]) img.src = typing.icons[type];
-            chip.appendChild(img);
-            const nameSpan = document.createElement('span');
+            const chip = document.createElement('div');
+            chip.className = 'type-chip';
+
+            const nameSpan = document.createElement('div');
+            nameSpan.className = 'type-name';
             nameSpan.textContent = type;
             chip.appendChild(nameSpan);
+
+            const img = document.createElement('img');
+            img.className = 'type-icon';
+            if (typing.icons[type]) img.src = typing.icons[type];
+            chip.appendChild(img);
+
             const iconBtn = document.createElement('button');
+            iconBtn.className = 'type-icon-btn';
             iconBtn.textContent = 'Icon';
             iconBtn.addEventListener('click', async () => {
                 const p = await window.electron.openFileDialog();
@@ -518,6 +523,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 }
             });
             chip.appendChild(iconBtn);
+
             const btn = document.createElement('button');
             btn.textContent = '×';
             btn.addEventListener('click', () => {
@@ -530,6 +536,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 buildTypingUI();
             });
             chip.appendChild(btn);
+
             typeChipsDiv.appendChild(chip);
         });
     }
@@ -617,6 +624,18 @@ function buildItemsTable() {
         lexicon.items = data;
         itemsTable.innerHTML = '';
 
+        const thead = document.createElement('thead');
+        const head = document.createElement('tr');
+        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Weight', 'Slots', 'Width', 'Height', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            head.appendChild(th);
+        });
+        thead.appendChild(head);
+        itemsTable.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
         const catListId = 'item-category-list';
         let catList = document.getElementById(catListId);
         if (!catList) {
@@ -651,14 +670,6 @@ function buildItemsTable() {
             }
             abilityList.appendChild(opt);
         });
-
-        const head = document.createElement('tr');
-        ['Key', 'Name', 'Category', 'Description', 'Rarity', 'Stackable', 'Max Stack', 'Weight', 'Slots', 'Width', 'Height', 'Value', 'Icon', 'Abilities', 'Stats', ''].forEach(h => {
-            const th = document.createElement('th');
-            th.textContent = h;
-            head.appendChild(th);
-        });
-        itemsTable.appendChild(head);
 
         function buildRaritySelector(item) {
             const wrap = document.createElement('div');
@@ -778,6 +789,7 @@ function buildItemsTable() {
 
             const descInput = document.createElement('input');
             descInput.value = item.description || '';
+            descInput.style.width = '100%';
             descInput.addEventListener('input', e => item.description = e.target.value);
             const descTd = document.createElement('td');
             descTd.appendChild(descInput);
@@ -798,6 +810,7 @@ function buildItemsTable() {
             const maxInput = document.createElement('input');
             maxInput.type = 'number';
             maxInput.value = item.maxStack != null ? item.maxStack : 1;
+            maxInput.style.width = '4ch';
             maxInput.addEventListener('input', e => item.maxStack = parseInt(e.target.value) || 1);
             const maxTd = document.createElement('td');
             maxTd.appendChild(maxInput);
@@ -807,6 +820,7 @@ function buildItemsTable() {
             weightInput.type = 'number';
             weightInput.step = 'any';
             weightInput.value = item.weight != null ? item.weight : 0;
+            weightInput.style.width = '4ch';
             weightInput.addEventListener('input', e => item.weight = parseFloat(e.target.value) || 0);
             const weightTd = document.createElement('td');
             weightTd.appendChild(weightInput);
@@ -815,6 +829,7 @@ function buildItemsTable() {
             const slotsInput = document.createElement('input');
             slotsInput.type = 'number';
             slotsInput.value = item.slots != null ? item.slots : 0;
+            slotsInput.style.width = '4ch';
             slotsInput.addEventListener('input', e => item.slots = parseInt(e.target.value) || 0);
             const slotsTd = document.createElement('td');
             slotsTd.appendChild(slotsInput);
@@ -823,6 +838,7 @@ function buildItemsTable() {
             const widthInput = document.createElement('input');
             widthInput.type = 'number';
             widthInput.value = item.width != null ? item.width : 1;
+            widthInput.style.width = '4ch';
             widthInput.addEventListener('input', e => item.width = parseInt(e.target.value) || 1);
             const widthTd = document.createElement('td');
             widthTd.appendChild(widthInput);
@@ -831,6 +847,7 @@ function buildItemsTable() {
             const heightInput = document.createElement('input');
             heightInput.type = 'number';
             heightInput.value = item.height != null ? item.height : 1;
+            heightInput.style.width = '4ch';
             heightInput.addEventListener('input', e => item.height = parseInt(e.target.value) || 1);
             const heightTd = document.createElement('td');
             heightTd.appendChild(heightInput);
@@ -912,8 +929,9 @@ function buildItemsTable() {
             remTd.appendChild(remBtn);
             tr.appendChild(remTd);
 
-            itemsTable.appendChild(tr);
+            tbody.appendChild(tr);
         });
+        itemsTable.appendChild(tbody);
     }
 
     addItemBtn.addEventListener('click', () => {
