@@ -804,7 +804,7 @@ ipcMain.handle('get-random-tile-image', (event, type) => {
 
 ipcMain.handle('get-battle-type-image', (event, worldName, type) => {
     try {
-        const imgPath = path.join(worldRoot, worldName, 'Lexicon', 'Battle', `${type}.png`);
+        const imgPath = path.join(worldRoot, worldName, 'Lexicon', 'battle', `${type}.png`);
         if (fs.existsSync(imgPath)) {
             return pathToFileURL(imgPath).href;
         }

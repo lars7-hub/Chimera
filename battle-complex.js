@@ -217,11 +217,11 @@ async function renderVisualizer(playerImg, enemyImg, type) {
     const log = actionLogDiv;
     vis.innerHTML = '';
     let bg = 'resources/ui/battle.png';
-    if (type) {
+    if (type && currentWorld) {
         try {
-            const p = await window.electron.getRandomTileImage(type);
+            const p = await window.electron.getBattleTypeImage(currentWorld, type);
             if (p) bg = p;
-        } catch(e){}
+        } catch (e) {}
     }
     vis.style.backgroundImage = `url('${bg}')`;
     const left = document.createElement('img');
@@ -350,10 +350,17 @@ function chooseEnemyAbility() {
 function useItem(it) {
     if (!awaitingInput) return;
     awaitingInput = false;
-    performItem(playerChar, it);
-    renderInventory();
-    if (!checkBattleEnd()) {
-        runEnemyAction();
+    if (it && it.abilities && it.abilities.length) {
+        performItem(playerChar, it);
+        const ability = resolveAbilities(it.abilities)[0];
+        const enemyAbility = chooseEnemyAbility();
+        runTurn(ability, enemyAbility);
+    } else {
+        performItem(playerChar, it);
+        renderInventory();
+        if (!checkBattleEnd()) {
+            runEnemyAction();
+        }
     }
 }
 
