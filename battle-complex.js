@@ -12,8 +12,21 @@ let tooltipEl = null;
 let playerChar = null;
 let enemyChar = null;
 let awaitingInput = false;
+let actionLogDiv = null;
+let turnLog = [];
+
+const TEXT_TEMPLATES = {
+    abilityUse: (name, ability) => `${name} cast ${ability}!`,
+    damage: (name, dmg) => `${name} took ${dmg} damage!`,
+    miss: (name, ability) => `${name}'s ${ability} missed!`,
+    crit: (name, ability, dmg) => `${name} dealt critical ${ability} for ${dmg} damage!`,
+    effective: ability => `${ability} was super effective!`,
+    ineffective: ability => `${ability} was not very effective...`,
+    item: (name, item) => `${name} used ${item}!`
+};
 
 window.addEventListener('load', async function () {
+    actionLogDiv = document.getElementById('action-log');
     await loadWorlds();
     await loadCharacters();
     document.getElementById('world-select').addEventListener('change', loadLexicon);
@@ -112,6 +125,27 @@ async function startBattle() {
     await renderBattle(player, enemy, type);
 }
 
+async function renderBattle(player, enemy, type) {
+    document.getElementById('selection-screen').classList.add('hidden');
+    const screen = document.getElementById('battle-screen');
+    screen.classList.remove('hidden');
+    playerChar = player;
+    enemyChar = enemy;
+    playerChar.abilities = resolveAbilities(playerChar.abilities);
+    enemyChar.abilities = resolveAbilities(enemyChar.abilities);
+    renderInfo('player-info', playerChar);
+    renderInfo('enemy-info', enemyChar);
+    await renderVisualizer(player.image, enemy.image, type);
+    abilities = playerChar.abilities || [];
+    abilityPage = 0;
+    renderAbilities();
+    inventory = playerChar.inventory || [];
+    inventoryPage = 0;
+    renderInventory();
+    renderSpecialMenu();
+    awaitingInput = true;
+}
+
 function renderInfo(id, data) {
     const el = document.getElementById(id);
     el.innerHTML = '';
@@ -180,6 +214,7 @@ function createHealthBar(cur, max) {
 
 async function renderVisualizer(playerImg, enemyImg, type) {
     const vis = document.getElementById('visualizer');
+    const log = actionLogDiv;
     vis.innerHTML = '';
     let bg = 'resources/ui/battle.png';
     if (type) {
@@ -195,6 +230,7 @@ async function renderVisualizer(playerImg, enemyImg, type) {
     right.src = enemyImg;
     vis.appendChild(left);
     vis.appendChild(right);
+    if (log) vis.appendChild(log);
 }
 
 function renderAbilities() {
@@ -307,7 +343,7 @@ function selectAbility(ab) {
 
 function chooseEnemyAbility() {
     const list = enemyChar && Array.isArray(enemyChar.abilities) ? enemyChar.abilities : [];
-    if (!list.length) return { name: 'Attack', power: 0, coreStat: 'strength' };
+    if (!list.length) return { name: 'Attack', power: 0, attackStat: 'strength', defendStat: 'fortitude' };
     return list[Math.floor(Math.random() * list.length)];
 }
 
@@ -346,28 +382,50 @@ function getSpeed(ch, ability) {
     return dex * mult;
 }
 
+function addLog(side, text) {
+    turnLog.push({ side, text });
+}
+
+function renderActionLog() {
+    if (!actionLogDiv) return;
+    actionLogDiv.innerHTML = '';
+    turnLog.forEach(entry => {
+        const p = document.createElement('p');
+        p.className = entry.side;
+        p.textContent = entry.text;
+        actionLogDiv.appendChild(p);
+    });
+    turnLog = [];
+}
+
 function executeAction(attacker, defender, ability) {
     if (!ability) return;
     const acc = ability.accuracy != null ? ability.accuracy : 100;
+    const atkSide = attacker === playerChar ? 'player' : 'enemy';
+    const defSide = defender === playerChar ? 'player' : 'enemy';
     if (Math.random() * 100 > acc) {
-        console.log(`${attacker.name || 'Unknown'}'s ${ability.name || 'ability'} missed!`);
+        addLog(atkSide, TEXT_TEMPLATES.miss(attacker.name || 'Unknown', ability.name || 'ability'));
         return;
     }
+    addLog(atkSide, TEXT_TEMPLATES.abilityUse(attacker.name || 'Unknown', ability.name || 'Ability'));
     const dmg = dealDamage(attacker, defender, ability);
-    console.log(`${attacker.name || 'Unknown'} used ${ability.name || 'Ability'} for ${dmg} damage`);
+    addLog(defSide, TEXT_TEMPLATES.damage(defender.name || 'Unknown', dmg));
 }
 
 function dealDamage(attacker, defender, ability) {
-    const core = ability.coreStat || 'strength';
-    const statVal = (attacker.finalStats && attacker.finalStats[core]) || 0;
+    const atk = ability.attackStat || 'strength';
+    const def = ability.defendStat || 'fortitude';
+    const atkVal = (attacker.finalStats && attacker.finalStats[atk]) || 0;
+    const defVal = (defender.finalStats && defender.finalStats[def]) || 0;
     const base = Number(ability.power) || 0;
-    const dmg = Math.max(0, Math.round(base * (1 + statVal / 100)));
+    const dmg = Math.max(0, Math.round(base * (1 + atkVal / 100 - defVal / 100)));
     defender.hp = Math.max(0, (defender.hp || 0) - dmg);
     return dmg;
 }
 
 function performItem(user, item) {
     if (!item) return;
+    addLog(user === playerChar ? 'player' : 'enemy', TEXT_TEMPLATES.item(user.name || 'Unknown', item.name || 'item'));
     let healed = 0;
     if (item.heal) healed += Number(item.heal) || 0;
     (item.stats || []).forEach(s => {
@@ -392,6 +450,7 @@ function postTurn() {
     renderInfo('enemy-info', enemyChar);
     renderAbilities();
     renderInventory();
+    renderActionLog();
     if (!checkBattleEnd()) awaitingInput = true;
 }
 

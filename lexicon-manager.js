@@ -966,7 +966,7 @@ function buildItemsTable() {
         abilitiesTable.innerHTML = '';
 
         const head = document.createElement('tr');
-        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', 'Speed Mult', 'Core Stat', 'Icon', 'Stats', ''].forEach(h => {
+        ['Key', 'Name', 'Categories', 'Type', 'Accuracy', 'Power', 'Speed Mult', 'Attack Stat', 'Defend Stat', 'Icon', 'Stats', ''].forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
             head.appendChild(th);
@@ -1049,22 +1049,39 @@ function buildItemsTable() {
             spdTd.appendChild(spdInput);
             tr.appendChild(spdTd);
 
-            const coreTd = document.createElement('td');
-            const coreSel = document.createElement('select');
-            const corePlaceholder = document.createElement('option');
-            corePlaceholder.value = '';
-            corePlaceholder.textContent = '--';
-            coreSel.appendChild(corePlaceholder);
+            const atkTd = document.createElement('td');
+            const atkSel = document.createElement('select');
+            const atkPlaceholder = document.createElement('option');
+            atkPlaceholder.value = '';
+            atkPlaceholder.textContent = '--';
+            atkSel.appendChild(atkPlaceholder);
             STAT_INFO.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.key;
                 opt.textContent = s.label;
-                coreSel.appendChild(opt);
+                atkSel.appendChild(opt);
             });
-            coreSel.value = ab.coreStat || '';
-            coreSel.addEventListener('change', e => ab.coreStat = e.target.value);
-            coreTd.appendChild(coreSel);
-            tr.appendChild(coreTd);
+            atkSel.value = ab.attackStat || '';
+            atkSel.addEventListener('change', e => ab.attackStat = e.target.value);
+            atkTd.appendChild(atkSel);
+            tr.appendChild(atkTd);
+
+            const defTd = document.createElement('td');
+            const defSel = document.createElement('select');
+            const defPlaceholder = document.createElement('option');
+            defPlaceholder.value = '';
+            defPlaceholder.textContent = '--';
+            defSel.appendChild(defPlaceholder);
+            STAT_INFO.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.key;
+                opt.textContent = s.label;
+                defSel.appendChild(opt);
+            });
+            defSel.value = ab.defendStat || '';
+            defSel.addEventListener('change', e => ab.defendStat = e.target.value);
+            defTd.appendChild(defSel);
+            tr.appendChild(defTd);
 
             const iconTd = document.createElement('td');
             const img = document.createElement('img');
@@ -1113,7 +1130,7 @@ function buildItemsTable() {
 
     addAbilityBtn.addEventListener('click', () => {
         const data = Array.isArray(lexicon.abilities) ? lexicon.abilities : [];
-        data.push({ key: '', name: '', categories: [], type: '', accuracy: 100, power: 0, stats: [], icon: null });
+        data.push({ key: '', name: '', categories: [], type: '', accuracy: 100, power: 0, attackStat: '', defendStat: '', stats: [], icon: null });
         lexicon.abilities = data;
         buildAbilitiesTable();
     });
