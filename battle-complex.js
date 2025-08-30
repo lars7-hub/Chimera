@@ -15,6 +15,7 @@ let awaitingInput = false;
 let actionLogDiv = null;
 let turnLog = [];
 let currentBattleType = '';
+let returnUrl = '';
 
 const TEXT_TEMPLATES = {
     abilityUse: (name, ability) => `${name} cast ${ability}!`,
@@ -28,11 +29,29 @@ const TEXT_TEMPLATES = {
 
 window.addEventListener('load', async function () {
     actionLogDiv = document.getElementById('action-log');
+    if (await autoStartFromParams()) return;
     await loadWorlds();
     await loadCharacters();
     document.getElementById('world-select').addEventListener('change', loadLexicon);
     document.getElementById('start-battle-btn').addEventListener('click', startBattle);
 });
+
+async function autoStartFromParams() {
+    const params = new URLSearchParams(window.location.search);
+    const playerVal = params.get('player');
+    const enemyVal = params.get('enemy');
+    const world = params.get('world');
+    const type = params.get('type') || '';
+    returnUrl = params.get('return') || '';
+    if (!playerVal || !enemyVal || !world) return false;
+    currentWorld = world;
+    await window.electron.ensureLexicon(world);
+    lexicon = await window.electron.getLexicon(world);
+    const player = await prepareCharacter(playerVal);
+    const enemy = await prepareCharacter(enemyVal);
+    await renderBattle(player, enemy, type);
+    return true;
+}
 
 async function loadWorlds() {
     const worlds = await window.electron.listWorlds();
@@ -98,34 +117,26 @@ async function startBattle() {
     const enemyVal = selectedEnemy;
     const type = selectedType;
     if (!playerVal || !enemyVal) return;
-    let player;
-    if (playerVal.startsWith('npc:')) {
-        const bpName = playerVal.slice(4);
-        const bp = (lexicon.npc_blueprints || []).find(n => n.name === bpName) || {};
-        player = { ...bp };
-        player.image = bp.icon || '';
-        player.inventory = resolveItems(bp.inventory || []);
-    } else {
-        player = await window.electron.getCharacter(playerVal);
-        player.image = await window.electron.getCharacterImage(playerVal);
-        const inv = await window.electron.getInventory(playerVal, 'default');
-        player.inventory = resolveItems(inv || []);
-    }
-    let enemy;
-    if (enemyVal.startsWith('pc:')) {
-        const enemyName = enemyVal.slice(3);
-        enemy = await window.electron.getCharacter(enemyName);
-        enemy.image = await window.electron.getCharacterImage(enemyName);
-        const inv = await window.electron.getInventory(enemyName, 'default');
-        enemy.inventory = resolveItems(inv || []);
-    } else {
-        const bpName = enemyVal.slice(4);
-        const bp = (lexicon.npc_blueprints || []).find(n => n.name === bpName) || {};
-        enemy = { ...bp };
-        enemy.image = bp.icon || '';
-        enemy.inventory = resolveItems(bp.inventory || []);
-    }
+    const player = await prepareCharacter(playerVal);
+    const enemy = await prepareCharacter(enemyVal);
     await renderBattle(player, enemy, type);
+}
+
+async function prepareCharacter(val) {
+    if (val.startsWith('npc:')) {
+        const bpName = val.slice(4);
+        const bp = (lexicon.npc_blueprints || []).find(n => n.name === bpName) || {};
+        const c = { ...bp };
+        c.image = bp.icon || '';
+        c.inventory = resolveItems(bp.inventory || []);
+        return c;
+    }
+    if (val.startsWith('pc:')) val = val.slice(3);
+    const ch = await window.electron.getCharacter(val);
+    ch.image = await window.electron.getCharacterImage(val);
+    const inv = await window.electron.getInventory(val, 'default');
+    ch.inventory = resolveItems(inv || []);
+    return ch;
 }
 
 async function renderBattle(player, enemy, type) {
@@ -517,16 +528,25 @@ function postTurn() {
 
 function checkBattleEnd() {
     if (playerChar.hp <= 0) {
-        alert('You were defeated');
-        location.reload();
+        finishBattle({ winner: 'enemy', player: playerChar, enemy: enemyChar });
         return true;
     }
     if (enemyChar.hp <= 0) {
-        alert('Enemy defeated');
-        location.reload();
+        finishBattle({ winner: 'player', player: playerChar, enemy: enemyChar });
         return true;
     }
     return false;
+}
+
+function finishBattle(result) {
+    try {
+        localStorage.setItem('lastBattleResult', JSON.stringify(result));
+    } catch (e) {}
+    if (returnUrl) {
+        window.location.href = returnUrl;
+    } else {
+        location.reload();
+    }
 }
 
 
