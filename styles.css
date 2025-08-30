@@ -2524,6 +2524,19 @@ button:hover {
         align-items: flex-end;
         }
 
+#battle-type-banner {
+        position: absolute;
+        top: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: default;
+        }
+
 #action-log {
         position: absolute;
         bottom: 0;

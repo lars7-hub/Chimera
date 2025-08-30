@@ -14,6 +14,7 @@ let enemyChar = null;
 let awaitingInput = false;
 let actionLogDiv = null;
 let turnLog = [];
+let currentBattleType = '';
 
 const TEXT_TEMPLATES = {
     abilityUse: (name, ability) => `${name} cast ${ability}!`,
@@ -131,6 +132,7 @@ async function renderBattle(player, enemy, type) {
     document.getElementById('selection-screen').classList.add('hidden');
     const screen = document.getElementById('battle-screen');
     screen.classList.remove('hidden');
+    currentBattleType = type || '';
     playerChar = player;
     enemyChar = enemy;
     playerChar.abilities = resolveAbilities(playerChar.abilities).concat(inventoryAbilities(playerChar.inventory));
@@ -164,7 +166,14 @@ function renderInfo(id, data) {
             invMods.push(m);
         });
     });
-    const { finalStats, modifiers } = calculateFinalStats(data.stats || {}, data.traits || [], invMods);
+    let { finalStats, modifiers } = calculateFinalStats(data.stats || {}, data.traits || [], invMods);
+    if (currentBattleType && Array.isArray(data.types) && data.types.includes(currentBattleType)) {
+        Object.keys(finalStats).forEach(stat => {
+            finalStats[stat] = finalStats[stat] * 1.1;
+            const base = (data.stats && data.stats[stat]) || 0;
+            modifiers[stat] = finalStats[stat] - base;
+        });
+    }
     data.finalStats = finalStats;
     if (data.hpMax == null) data.hpMax = calculateHealth(finalStats);
     if (data.hp == null) data.hp = data.hpMax;
@@ -226,6 +235,14 @@ async function renderVisualizer(playerImg, enemyImg, type) {
         } catch (e) {}
     }
     vis.style.backgroundImage = `url('${bg}')`;
+    if (type) {
+        const banner = document.createElement('div');
+        banner.id = 'battle-type-banner';
+        banner.textContent = type;
+        banner.addEventListener('mouseenter', () => showTooltip(`${type}-type area. ${type}-type monsters and attacks will be slightly strengthened here.`, banner));
+        banner.addEventListener('mouseleave', hideTooltip);
+        vis.appendChild(banner);
+    }
     const left = document.createElement('img');
     left.src = playerImg;
     const right = document.createElement('img');
@@ -455,7 +472,12 @@ function dealDamage(attacker, defender, ability) {
     const atkVal = (attacker.finalStats && attacker.finalStats[atk]) || 0;
     const defVal = (defender.finalStats && defender.finalStats[def]) || 0;
     const base = Number(ability.power) || 0;
-    const dmg = Math.max(0, Math.round(base * (1 + atkVal / 100 - defVal / 100)));
+    let dmg = base * (1 + atkVal / 100 - defVal / 100);
+    if (currentBattleType && ability.type === currentBattleType) {
+        dmg *= 1.1;
+    }
+    const rand = 0.85 + Math.random() * 0.3;
+    dmg = Math.max(0, Math.round(dmg * rand));
     defender.hp = Math.max(0, (defender.hp || 0) - dmg);
     return dmg;
 }
