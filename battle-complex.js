@@ -103,24 +103,26 @@ async function startBattle() {
         const bp = (lexicon.npc_blueprints || []).find(n => n.name === bpName) || {};
         player = { ...bp };
         player.image = bp.icon || '';
-        player.inventory = bp.inventory || [];
+        player.inventory = resolveItems(bp.inventory || []);
     } else {
         player = await window.electron.getCharacter(playerVal);
         player.image = await window.electron.getCharacterImage(playerVal);
-        player.inventory = await window.electron.getInventory(playerVal, 'default');
+        const inv = await window.electron.getInventory(playerVal, 'default');
+        player.inventory = resolveItems(inv || []);
     }
     let enemy;
     if (enemyVal.startsWith('pc:')) {
         const enemyName = enemyVal.slice(3);
         enemy = await window.electron.getCharacter(enemyName);
         enemy.image = await window.electron.getCharacterImage(enemyName);
-        enemy.inventory = await window.electron.getInventory(enemyName, 'default');
+        const inv = await window.electron.getInventory(enemyName, 'default');
+        enemy.inventory = resolveItems(inv || []);
     } else {
         const bpName = enemyVal.slice(4);
         const bp = (lexicon.npc_blueprints || []).find(n => n.name === bpName) || {};
         enemy = { ...bp };
         enemy.image = bp.icon || '';
-        enemy.inventory = bp.inventory || [];
+        enemy.inventory = resolveItems(bp.inventory || []);
     }
     await renderBattle(player, enemy, type);
 }
@@ -131,8 +133,8 @@ async function renderBattle(player, enemy, type) {
     screen.classList.remove('hidden');
     playerChar = player;
     enemyChar = enemy;
-    playerChar.abilities = resolveAbilities(playerChar.abilities);
-    enemyChar.abilities = resolveAbilities(enemyChar.abilities);
+    playerChar.abilities = resolveAbilities(playerChar.abilities).concat(inventoryAbilities(playerChar.inventory));
+    enemyChar.abilities = resolveAbilities(enemyChar.abilities).concat(inventoryAbilities(enemyChar.inventory));
     renderInfo('player-info', playerChar);
     renderInfo('enemy-info', enemyChar);
     await renderVisualizer(player.image, enemy.image, type);
@@ -334,6 +336,34 @@ function resolveAbilities(list = []) {
     });
 }
 
+function resolveItems(list = []) {
+    return (list || []).map(it => {
+        if (typeof it === 'string') {
+            const base = (lexicon.items || []).find(i => i.key === it || i.name === it) || { name: it };
+            return { ...base };
+        }
+        if (it && (it.category || it.stats || it.abilities)) {
+            return { ...it };
+        }
+        const key = it.item || it.key || it.name;
+        const qty = it.qty != null ? it.qty : (it.quantity != null ? it.quantity : 1);
+        const base = (lexicon.items || []).find(i => i.key === key || i.name === key) || { name: key };
+        const item = { ...base };
+        if (item.stackable) item.quantity = qty;
+        return item;
+    });
+}
+
+function inventoryAbilities(inv = []) {
+    const list = [];
+    (inv || []).forEach(it => {
+        if (it && it.abilities && it.abilities.length) {
+            list.push(...resolveAbilities(it.abilities));
+        }
+    });
+    return list;
+}
+
 function selectAbility(ab) {
     if (!awaitingInput) return;
     awaitingInput = false;
@@ -439,15 +469,17 @@ function performItem(user, item) {
         if (s.stat === 'hp') healed += Number(s.value) || 0;
     });
     if (healed) user.hp = Math.min(user.hpMax, (user.hp || 0) + healed);
-    if (item.stackable) {
-        item.quantity = Math.max(0, (item.quantity || 1) - 1);
-        if (item.quantity === 0) {
+    if (item.category === 'consumables') {
+        if (item.stackable) {
+            item.quantity = Math.max(0, (item.quantity || 1) - 1);
+            if (item.quantity === 0) {
+                const idx = inventory.indexOf(item);
+                if (idx >= 0) inventory.splice(idx, 1);
+            }
+        } else {
             const idx = inventory.indexOf(item);
             if (idx >= 0) inventory.splice(idx, 1);
         }
-    } else {
-        const idx = inventory.indexOf(item);
-        if (idx >= 0) inventory.splice(idx, 1);
     }
     renderInfo('player-info', playerChar);
 }
